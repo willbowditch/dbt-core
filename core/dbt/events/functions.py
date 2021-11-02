@@ -7,8 +7,9 @@ import logging.config
 import os
 import structlog
 
-
-LOG = None  # will be set up via setup_event_logger
+# will be set up with CLI inputs via setup_event_logger
+global LOG
+LOG = structlog.get_logger()
 
 def setup_event_logger(log_path):
     logger.make_log_dir_if_missing(log_path)

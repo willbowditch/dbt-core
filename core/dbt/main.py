@@ -242,7 +242,6 @@ def run_from_args(parsed):
         log_path = getattr(task.config, 'log_path', None)
     # we can finally set the file logger up
     # TODO move as a part of #4179
-    breakpoint()
     setup_event_logger(log_path or 'logs')
     log_manager.set_path(log_path)
     if dbt.tracking.active_user is not None:  # mypy appeasement, always true
