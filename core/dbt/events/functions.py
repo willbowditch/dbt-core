@@ -8,6 +8,7 @@ import os
 import structlog
 
 # will be set up with CLI inputs via setup_event_logger
+# DO NOT IMPORT AND USE THIS DIRECTLY
 global LOG
 LOG = structlog.get_logger()
 
