@@ -66,6 +66,31 @@ class CliEventABC(Event, metaclass=ABCMeta):
         raise Exception("cli_msg not implemented for cli event")
 
 
+@dataclass
+class AdapterEventBase():
+    name: str
+    raw_msg: str
+
+    def cli_msg(self) -> str:
+        return f"{self.name} adapter: {self.raw_msg}"
+
+
+class AdapterEventDebug(DebugLevel, AdapterEventBase, CliEventABC, ShowException):
+    pass
+
+
+class AdapterEventInfo(InfoLevel, AdapterEventBase, CliEventABC, ShowException):
+    pass
+
+
+class AdapterEventWarning(WarnLevel, AdapterEventBase, CliEventABC, ShowException):
+    pass
+
+
+class AdapterEventError(ErrorLevel, AdapterEventBase, CliEventABC, ShowException):
+    pass
+
+
 class ParsingStart(InfoLevel, CliEventABC):
     def cli_msg(self) -> str:
         return "Start parsing."

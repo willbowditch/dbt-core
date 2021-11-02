@@ -12,6 +12,7 @@ import structlog
 global LOG
 LOG = structlog.get_logger()
 
+
 def setup_event_logger(log_path):
     logger.make_log_dir_if_missing(log_path)
 
@@ -76,7 +77,7 @@ def setup_event_logger(log_path):
         cache_logger_on_first_use=True,
     )
 
-    LOG = structlog.get_logger()
+    LOG = structlog.get_logger()  # noqa: F841
 
 
 # top-level method for accessing the new eventing system
