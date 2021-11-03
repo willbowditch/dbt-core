@@ -1,6 +1,8 @@
 from abc import ABCMeta, abstractmethod
+import argparse
 from dataclasses import dataclass
 import datetime
+from dbt.semver import Matchers, VersionSpecifier
 from typing import Any, List
 
 
@@ -89,6 +91,22 @@ class AdapterEventWarning(WarnLevel, AdapterEventBase, CliEventABC, ShowExceptio
 
 class AdapterEventError(ErrorLevel, AdapterEventBase, CliEventABC, ShowException):
     pass
+
+
+@dataclass
+class ReportVersion(InfoLevel, CliEventABC):
+    v: VersionSpecifier
+
+    def cli_msg(self):
+        return f"Running with dbt{str(self.v)}"
+
+
+@dataclass
+class ReportArgs(DebugLevel, CliEventABC):
+    args: argparse.Namespace
+
+    def cli_msg(self):
+        return f"running dbt with arguments {str(self.args)}"
 
 
 class ParsingStart(InfoLevel, CliEventABC):
@@ -337,6 +355,14 @@ class MacroEventDebug(DebugLevel, CliEventABC):
 #
 # TODO remove these lines once we run mypy everywhere.
 if 1 == 0:
+    ReportVersion(VersionSpecifier(
+        build=None,
+        major='0',
+        matcher=Matchers['='],
+        minor='1',
+        patch='2',
+        prerelease=None,
+    ))
     ParsingStart()
     ParsingCompiling()
     ParsingWritingManifest()

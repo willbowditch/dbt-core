@@ -9,7 +9,8 @@ from contextlib import contextmanager
 from pathlib import Path
 
 import dbt.version
-from dbt.events.functions import setup_event_logger
+from dbt.events.functions import fire_event, setup_event_logger
+from dbt.events.types import ReportArgs, ReportVersion
 import dbt.flags as flags
 import dbt.task.build as build_task
 import dbt.task.clean as clean_task
@@ -229,13 +230,9 @@ def run_from_args(parsed):
     # set log_format in the logger
     parsed.cls.pre_init_hook(parsed)
 
-    logger.info("Running with dbt{}".format(dbt.version.installed))
-
     # this will convert DbtConfigErrors into RuntimeExceptions
     # task could be any one of the task objects
     task = parsed.cls.from_args(args=parsed)
-
-    logger.debug("running dbt with arguments {parsed}", parsed=str(parsed))
 
     log_path = None
     if task.config is not None:
@@ -243,6 +240,8 @@ def run_from_args(parsed):
     # we can finally set the file logger up
     # TODO move as a part of #4179
     setup_event_logger(log_path or 'logs')
+    fire_event(ReportVersion(v=dbt.version.installed))
+    fire_event(ReportArgs(args=parsed))
     log_manager.set_path(log_path)
     if dbt.tracking.active_user is not None:  # mypy appeasement, always true
         logger.debug("Tracking: {}".format(dbt.tracking.active_user.state()))
