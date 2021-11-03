@@ -23,8 +23,6 @@ def setup_event_logger(log_path):
         timestamper,
     ]
 
-    print(f"log format: {flags.LOG_FORMAT}")
-
     # see: https://docs.python.org/3/library/logging.config.html#logging-config-dictschema
     logging.config.dictConfig({
         "version": 1,
