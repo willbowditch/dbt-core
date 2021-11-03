@@ -40,7 +40,7 @@ def setup_event_logger(log_path):
             },
             "json": {
                 "()": structlog.stdlib.ProcessorFormatter,
-                "processor": structlog.processors.JSONRenderer,
+                "processor": structlog.processors.JSONRenderer(),
                 "foreign_pre_chain": pre_chain,
             },
         },
@@ -122,7 +122,7 @@ def fire_event(e: Event) -> None:
     EVENT_HISTORY.append(e)
     level_tag = e.level_tag()
     if isinstance(e, CliEventABC):
-        log_line = e.cli_msg()
+        log_line: str = e.cli_msg()
         if isinstance(e, ShowException):
             event_dict = {
                 'exc_info': e.exc_info,
