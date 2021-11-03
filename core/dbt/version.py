@@ -96,5 +96,5 @@ def _get_dbt_plugins_info():
         yield plugin_name, mod.version
 
 
-__version__ = '0.21.0'
+__version__ = '0.21.1rc1'
 installed = get_installed_version()
