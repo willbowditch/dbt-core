@@ -98,8 +98,11 @@ def setup_event_logger(log_path):
         structlog.stdlib.PositionalArgumentsFormatter()
     ]
 
+    breakpoint()
     # configure the stdout logger
     STDOUT_LOGGER = structlog.wrap_logger(
+        #logger=structlog.PrintLogger(),
+        logger=None,
         processors=common_processors + [
             structlog.processors.TimeStamper(fmt="iso"),
             structlog.processors.StackInfoRenderer(),
@@ -118,6 +121,8 @@ def setup_event_logger(log_path):
     # configure the json file handler
     if json:
         FILE_LOGGER = structlog.wrap_logger(
+            #logger=structlog.PrintLogger(),
+            logger=None,
             processors=common_processors + [
                 structlog.processors.TimeStamper(fmt="iso"),
                 structlog.processors.StackInfoRenderer(),
@@ -138,6 +143,8 @@ def setup_event_logger(log_path):
     else:
         # TODO follow pattern from above ^^
         FILE_LOGGER = structlog.wrap_logger(
+            #logger=structlog.PrintLogger(),
+            logger=None,
             processors=common_processors + [
                 structlog.processors.TimeStamper("%H:%M:%S"),
                 structlog.processors.StackInfoRenderer(),
