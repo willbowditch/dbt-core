@@ -91,19 +91,14 @@ def setup_event_logger(log_path):
         cache_logger_on_first_use=False,
     )
 
-    # name common processors
-    common_processors = [
-        structlog.stdlib.filter_by_level,
-        structlog.stdlib.add_log_level,
-        structlog.stdlib.PositionalArgumentsFormatter()
-    ]
-
-    breakpoint()
     # configure the stdout logger
     STDOUT_LOGGER = structlog.wrap_logger(
         #logger=structlog.PrintLogger(),
         logger=None,
-        processors=common_processors + [
+        processors=[
+            structlog.stdlib.filter_by_level,
+            structlog.stdlib.add_log_level,
+            structlog.stdlib.PositionalArgumentsFormatter(),
             structlog.processors.TimeStamper(fmt="iso"),
             structlog.processors.StackInfoRenderer(),
             structlog.processors.format_exc_info,
@@ -123,7 +118,10 @@ def setup_event_logger(log_path):
         FILE_LOGGER = structlog.wrap_logger(
             #logger=structlog.PrintLogger(),
             logger=None,
-            processors=common_processors + [
+            processors=[
+                structlog.stdlib.filter_by_level,
+                structlog.stdlib.add_log_level,
+                structlog.stdlib.PositionalArgumentsFormatter(),
                 structlog.processors.TimeStamper(fmt="iso"),
                 structlog.processors.StackInfoRenderer(),
                 structlog.processors.format_exc_info,
@@ -145,7 +143,10 @@ def setup_event_logger(log_path):
         FILE_LOGGER = structlog.wrap_logger(
             #logger=structlog.PrintLogger(),
             logger=None,
-            processors=common_processors + [
+            processors=[
+                structlog.stdlib.filter_by_level,
+                structlog.stdlib.add_log_level,
+                structlog.stdlib.PositionalArgumentsFormatter(),
                 structlog.processors.TimeStamper("%H:%M:%S"),
                 structlog.processors.StackInfoRenderer(),
                 structlog.processors.format_exc_info,
@@ -169,7 +170,6 @@ def fire_event(e: Event) -> None:
     EVENT_HISTORY.append(e)
     level_tag = e.level_tag()
     if isinstance(e, CliEventABC):
-        log_line: str = e.cli_msg()
         if isinstance(e, ShowException):
             event_dict = {
                 'exc_info': e.exc_info,
