@@ -4,6 +4,7 @@ from dbt.events.types import CliEventABC, Event, ShowException
 import dbt.logger as logger  # TODO remove references to this logger
 import dbt.flags as flags
 import logging.config
+import logging
 import os
 import structlog
 import sys
@@ -93,17 +94,15 @@ def setup_event_logger(log_path):
 
     # configure the stdout logger
     STDOUT_LOGGER = structlog.wrap_logger(
-        #logger=structlog.PrintLogger(),
-        logger=None,
+        logger=logging.Logger('console logger'),
         processors=[
             structlog.stdlib.filter_by_level,
             structlog.stdlib.add_log_level,
             structlog.stdlib.PositionalArgumentsFormatter(),
-            structlog.processors.TimeStamper(fmt="iso"),
+            structlog.processors.TimeStamper("%H:%M:%S"),
             structlog.processors.StackInfoRenderer(),
             structlog.processors.format_exc_info,
-            structlog.processors.UnicodeDecoder(),
-            structlog.processors.JSONRenderer()
+            structlog.stdlib.ProcessorFormatter.wrap_for_formatter,
         ]
     )
     formatter = structlog.stdlib.ProcessorFormatter(
@@ -116,8 +115,7 @@ def setup_event_logger(log_path):
     # configure the json file handler
     if json:
         FILE_LOGGER = structlog.wrap_logger(
-            #logger=structlog.PrintLogger(),
-            logger=None,
+            logger=logging.Logger('json file logger'),
             processors=[
                 structlog.stdlib.filter_by_level,
                 structlog.stdlib.add_log_level,
@@ -141,8 +139,7 @@ def setup_event_logger(log_path):
     else:
         # TODO follow pattern from above ^^
         FILE_LOGGER = structlog.wrap_logger(
-            #logger=structlog.PrintLogger(),
-            logger=None,
+            logger=logging.Logger('plaintext file logger'),
             processors=[
                 structlog.stdlib.filter_by_level,
                 structlog.stdlib.add_log_level,
@@ -170,6 +167,7 @@ def fire_event(e: Event) -> None:
     EVENT_HISTORY.append(e)
     level_tag = e.level_tag()
     if isinstance(e, CliEventABC):
+        log_line = e.cli_msg()
         if isinstance(e, ShowException):
             event_dict = {
                 'exc_info': e.exc_info,
