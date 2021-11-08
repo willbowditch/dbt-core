@@ -131,13 +131,14 @@ class NodeSelector(MethodManager):
             )
             direct_nodes = direct_nodes - direct_nodes_excluded
             indirect_nodes = indirect_nodes - indirect_nodes_excluded
-        logger.info(
-            f"\nThe '{spec.method}' selector specified in '{spec.raw}' will"
-            f" exclude these nodes: \n{direct_nodes_excluded}\n"
-            f"\nThese source nodes: '{collected_excluded}' must have '{spec.method}:{spec.value}'"
-            f" for the excluded nodes to run."
-            f"\n ----------------"
-        )
+            if direct_nodes_excluded != set():
+                logger.info(
+                    f"\nThe '{spec.method}' selector specified in '{spec.raw}' will"
+                    f" exclude these nodes: \n{direct_nodes_excluded}\n"
+                    f"\nThese source nodes: '{collected_excluded}' must have '{spec.method}:{spec.value}'"
+                    f" for the excluded nodes to run."
+                    f"\n ----------------"
+                )
 
         return direct_nodes, indirect_nodes
 
