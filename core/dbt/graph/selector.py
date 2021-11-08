@@ -70,6 +70,23 @@ class NodeSelector(MethodManager):
         method = self.get_method(spec.method, spec.method_arguments)
         return set(method.search(included_nodes, spec.value))
 
+    def select_excluded_source_nodes(
+        self, included_nodes: Set[UniqueId], spec: SelectionCriteria,
+    ) -> Set[UniqueId]:
+        """Select the explicitly excluded source nodes, using the given spec. Return
+        the selected set of unique IDs.
+        """
+        method = self.get_method(spec.method, spec.method_arguments)
+        source_status_values = {'pass','warn','error'}
+        source_status_values.remove(spec.value)
+        print(f"source_status_values: {source_status_values}")
+        excluded_source_nodes = set()
+        for source_status in source_status_values:
+            source_nodes = method.search(included_nodes, source_status)
+            excluded_source_nodes.update(source_nodes)
+        
+        return excluded_source_nodes
+
     def get_nodes_from_criteria(
         self,
         spec: SelectionCriteria
@@ -84,6 +101,9 @@ class NodeSelector(MethodManager):
         nodes = self.graph.nodes()
         try:
             collected = self.select_included(nodes, spec)
+            if spec.method == 'source_status':
+                collected_excluded = self.select_excluded_source_nodes(nodes, spec)
+            
         except InvalidSelectorException:
             valid_selectors = ", ".join(self.SELECTOR_METHODS)
             logger.info(
@@ -97,6 +117,23 @@ class NodeSelector(MethodManager):
             selected=(collected | neighbors),
             eagerly_expand=spec.eagerly_expand
         )
+        if spec.method == 'source_status':
+            neighbors_excluded = self.collect_specified_neighbors(spec, collected_excluded)
+            direct_nodes_excluded, indirect_nodes_excluded = self.expand_selection(
+                selected=(collected_excluded | neighbors_excluded),
+                eagerly_expand=spec.eagerly_expand
+            )
+            direct_nodes = direct_nodes - direct_nodes_excluded
+            indirect_nodes = indirect_nodes - indirect_nodes_excluded
+        print(f"direct_nodes: {direct_nodes}")
+        print(f"indirect_nodes: {indirect_nodes}")
+        logger.info(
+            f"The '{spec.method}' selector specified in {spec.raw} will"
+            f" exclude these nodes: '{direct_nodes_excluded}."
+            f" These source nodes: '{collected_excluded}' must have '{spec.method}:{spec.value}'"
+            f" for the excluded nodes to run."
+        )
+
         return direct_nodes, indirect_nodes
 
     def collect_specified_neighbors(
