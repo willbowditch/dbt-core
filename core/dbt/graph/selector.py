@@ -78,10 +78,14 @@ class NodeSelector(MethodManager):
         """
         method = self.get_method(spec.method, spec.method_arguments)
         #TODO: make it dynamic where if it's warn+, dbt will make the opionated choice to run pass+ children nodes too if they intersect
-        source_status_values = {'pass','warn','error'}
-        source_status_values.remove(spec.value)
+        # source_status_values = {'pass','warn','error'}
+        if spec.value == 'pass':
+            source_status_values_to_exclude = {'warn','error'}
+        else: 
+            source_status_values_to_exclude = {'error'} # TODO: fix this logic
+        # source_status_values_to_exclude.remove(spec.value)
         excluded_source_nodes = set()
-        for source_status in source_status_values:
+        for source_status in source_status_values_to_exclude:
             source_nodes = method.search(included_nodes, source_status)
             excluded_source_nodes.update(source_nodes)
         
@@ -126,7 +130,7 @@ class NodeSelector(MethodManager):
             direct_nodes = direct_nodes - direct_nodes_excluded
             indirect_nodes = indirect_nodes - indirect_nodes_excluded
         logger.info(
-            f"The '{spec.method}' selector specified in '{spec.raw}' will"
+            f"\nThe '{spec.method}' selector specified in '{spec.raw}' will"
             f" exclude these nodes: \n{direct_nodes_excluded}\n"
             f"\nThese source nodes: '{collected_excluded}' must have '{spec.method}:{spec.value}'"
             f" for the excluded nodes to run."
