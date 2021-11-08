@@ -542,23 +542,13 @@ class SourceStatusSelectorMethod(SelectorMethod):
             raise InternalException(
                 'No comparison results in sources.json'
             )
-        #TODO?: include all source nodes. 
-        # TODO?: If any source nodes have the same child and not ALL are equal to the selector status, 
-        # TODO?: stop the run
-        #TODO?: output in the terminal which nodes must equal the selector status to run downstream children nodes
-        #TODO: how do I search the nodes and verify upstream nodes of the source? See below
         matches = set(
             result.unique_id for result in self.previous_state.sources.results
             if result.status == selector
         )
         for node, real_node in self.all_nodes(included_nodes):
-            # if in matches AND node = depends_on source(filter for these) nodes: yield node
-            # this ensures that if there's a single source, the child node will be run
-            # if there are multiple sources and only one source is in there, the child node will NOT be run
             if node in matches:
                 yield node
-            # this is the the payload I need to parse
-            # depends_on=DependsOn(macros=[], nodes=['source.tpch.tpch.orders'])
 
 
 class MethodManager:
