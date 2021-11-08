@@ -1,14 +1,32 @@
 ## dbt-core 1.0.0 (Release TBD)
 
+### Breaking changes
+- Replace `greedy` flag/property for test selection with `indirect_selection: eager/cautious` flag/property. Set to `eager` by default. **Note:** This reverts test selection to its pre-v0.20 behavior by default. `dbt test -s my_model` _will_ select multi-parent tests, such as `relationships`, that depend on unselected resources. To achieve the behavior change in v0.20 + v0.21, set `--indirect-selection=cautious` on the CLI or `indirect_selection: cautious` in yaml selectors. ([#4082](https://github.com/dbt-labs/dbt-core/issues/4082), [#4104](https://github.com/dbt-labs/dbt-core/pull/4104))
+- In v1.0.0, **`pip install dbt` will raise an explicit error.** Instead, please use `pip install dbt-<adapter>` (to use dbt with that database adapter), or `pip install dbt-core` (for core functionality). For parity with the previous behavior of `pip install dbt`, you can use: `pip install dbt-core dbt-postgres dbt-redshift dbt-snowflake dbt-bigquery` ([#4100](https://github.com/dbt-labs/dbt-core/issues/4100), [#4133](https://github.com/dbt-labs/dbt-core/pull/4133))
+
 ### Features
 - Allow nullable `error_after` in source freshness ([#3874](https://github.com/dbt-labs/dbt-core/issues/3874), [#3955](https://github.com/dbt-labs/dbt-core/pull/3955))
+- Increase performance of graph subset selection ([#4135](https://github.com/dbt-labs/dbt-core/issues/4135),[#4155](https://github.com/dbt-labs/dbt-core/pull/4155))
+- Speed up node selection by skipping indirect node incorporation when not needed ([#4213](https://github.com/dbt-labs/dbt-core/issues/4213),[#4214](https://github.com/dbt-labs/dbt-core/pull/4214))
 
 ### Fixes
-- Changes unit tests using `assertRaisesRegexp` to `assertRaisesRegex`
+- Changes unit tests using `assertRaisesRegexp` to `assertRaisesRegex` ([#4136](https://github.com/dbt-labs/dbt-core/issues/4132), [#4136](https://github.com/dbt-labs/dbt-core/pull/4136))
+- Allow retries when the answer from a `dbt deps` is `None` ([#4178](https://github.com/dbt-labs/dbt-core/issues/4178))
+
+### Under the hood
+- Bump artifact schema versions for 1.0.0: manifest v4, run results v4, sources v3. Notable changes: schema test + data test nodes are renamed to generic test + singular test nodes; freshness threshold default values ([#4191](https://github.com/dbt-labs/dbt-core/pull/4191))
+- Speed up node selection by skipping `incorporate_indirect_nodes` if not needed ([#4213](https://github.com/dbt-labs/dbt-core/issues/4213), [#4214](https://github.com/dbt-labs/dbt-core/issues/4214))
+- When on_schema_change is set, pass common columns as dest_columns in incremental merge macros ([#4144](https://github.com/dbt-labs/dbt-core/issues/4144), [#4170](https://github.com/dbt-labs/dbt-core/pull/4170))
+- Clear adapters before registering in lib module config generation ([#4218](https://github.com/dbt-labs/dbt-core/pull/4218))
 
 Contributors:
-- [@kadero](https://github.com/kadero) ([3955](https://github.com/dbt-labs/dbt-core/pull/3955))
-- [@frankcash](https://github.com/frankcash) ([4136](https://github.com/dbt-labs/dbt-core/pull/4136)
+- [@kadero](https://github.com/kadero) ([#3955](https://github.com/dbt-labs/dbt-core/pull/3955))
+- [@frankcash](https://github.com/frankcash) ([#4136](https://github.com/dbt-labs/dbt-core/pull/4136))
+- [@Kayrnt](https://github.com/Kayrnt) ([#4136](https://github.com/dbt-labs/dbt-core/pull/4170))
+- [@VersusFacit](https://github.com/VersusFacit) ([#4104](https://github.com/dbt-labs/dbt-core/pull/4104))
+- [@joellabes](https://github.com/joellabes) ([#4104](https://github.com/dbt-labs/dbt-core/pull/4104))
+- [@b-per](https://github.com/b-per) ([#4225](https://github.com/dbt-labs/dbt-core/pull/4225))
+
 
 ## dbt-core 1.0.0b2 (October 25, 2021)
 
@@ -33,6 +51,7 @@ Contributors:
 - Prefer macros defined in the project over the ones in a package by default ([#4106](https://github.com/dbt-labs/dbt-core/issues/4106), [#4114](https://github.com/dbt-labs/dbt-core/pull/4114)) 
 - Dependency updates ([#4079](https://github.com/dbt-labs/dbt-core/pull/4079)), ([#3532](https://github.com/dbt-labs/dbt-core/pull/3532)
 - Schedule partial parsing for SQL files with env_var changes ([#3885](https://github.com/dbt-labs/dbt-core/issues/3885), [#4101](https://github.com/dbt-labs/dbt-core/pull/4101))
+- Schedule partial parsing for schema files with env_var changes ([#3885](https://github.com/dbt-labs/dbt-core/issues/3885), [#4162](https://github.com/dbt-labs/dbt-core/pull/4162))
 
 Contributors:
 - [@sungchun12](https://github.com/sungchun12) ([#4017](https://github.com/dbt-labs/dbt/pull/4017))
@@ -78,6 +97,7 @@ Contributors:
 - Update the default project paths to be `analysis-paths = ['analyses']` and `test-paths = ['tests]`. Also have starter project set `analysis-paths: ['analyses']` from now on.  ([#2659](https://github.com/dbt-labs/dbt-core/issues/2659))
 - Define the data type of `sources` as an array of arrays of string in the manifest artifacts. ([#3966](https://github.com/dbt-labs/dbt-core/issues/3966), [#3967](https://github.com/dbt-labs/dbt-core/pull/3967))
 - Marked `source-paths` and `data-paths` as deprecated keys in `dbt_project.yml` in favor of `model-paths` and `seed-paths` respectively.([#1607](https://github.com/dbt-labs/dbt-core/issues/1607))
+- Surface git errors to `stdout` when cloning dbt packages from Github. ([#3167](https://github.com/dbt-labs/dbt-core/issues/3167))
 
 Contributors:
 
@@ -86,8 +106,14 @@ Contributors:
 - [@samlader](https://github.com/samlader) ([#3993](https://github.com/dbt-labs/dbt-core/pull/3993))
 - [@yu-iskw](https://github.com/yu-iskw) ([#3967](https://github.com/dbt-labs/dbt-core/pull/3967))
 - [@laxjesse](https://github.com/laxjesse) ([#4019](https://github.com/dbt-labs/dbt-core/pull/4019))
+- [@gitznik](https://github.com/Gitznik) ([#4124](https://github.com/dbt-labs/dbt-core/pull/4124))
 
 ## dbt 0.21.1 (Release TBD)
+
+### Fixes
+- Add `get_where_subquery` to test macro namespace, fixing custom generic tests that rely on introspecting the `model` arg at parse time ([#4195](https://github.com/dbt-labs/dbt/issues/4195), [#4197](https://github.com/dbt-labs/dbt/pull/4197))
+
+## dbt 0.21.1rc1 (November 03, 2021)
 
 ### Fixes
 - Performance: Use child_map to find tests for nodes in resolve_graph ([#4012](https://github.com/dbt-labs/dbt/issues/4012), [#4022](https://github.com/dbt-labs/dbt/pull/4022))
@@ -96,6 +122,9 @@ Contributors:
 - Added support for tests on databases that lack real boolean types. ([#4084](https://github.com/dbt-labs/dbt-core/issues/4084))
 - Scrub secrets coming from `CommandError`s so they don't get exposed in logs. ([#4138](https://github.com/dbt-labs/dbt-core/pull/4138))
 - Syntax fix in `alter_relation_add_remove_columns` if only removing columns in `on_schema_change: sync_all_columns` ([#4147](https://github.com/dbt-labs/dbt-core/issues/4147))
+- Increase performance of graph subset selection ([#4135](https://github.com/dbt-labs/dbt-core/issues/4135),[#4155](https://github.com/dbt-labs/dbt-core/pull/4155))
+- Add downstream test edges for `build` task _only_. Restore previous graph construction, compilation performance, and node selection behavior (`test+`) for all other tasks ([#4135](https://github.com/dbt-labs/dbt-core/issues/4135), [#4143](https://github.com/dbt-labs/dbt-core/pull/4143))
+- Don't require a strict/proper subset when adding testing edges to specialized graph for `build` ([#4158](https://github.com/dbt-labs/dbt-core/issues/4135), [#4158](https://github.com/dbt-labs/dbt-core/pull/4160))
 
 Contributors:
 - [@ljhopkins2](https://github.com/ljhopkins2) ([#4077](https://github.com/dbt-labs/dbt-core/pull/4077))
