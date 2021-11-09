@@ -8,7 +8,7 @@ from dbt.logger import SECRET_ENV_PREFIX, make_log_dir_if_missing
 import json
 import logging
 from logging import Logger
-from logging.handlers import WatchedFileHandler
+from logging.handlers import RotatingFileHandler
 import os
 from typing import List
 
@@ -59,7 +59,7 @@ def setup_event_logger(log_path):
     file_passthrough_formatter = logging.Formatter(fmt=FORMAT)
 
     # TODO log rotation is not handled by WatchedFileHandler
-    file_handler = WatchedFileHandler(filename=log_dest, encoding='utf8')
+    file_handler = RotatingFileHandler(filename=log_dest, encoding='utf8')
     file_handler.setFormatter(file_passthrough_formatter)
     file_handler.setLevel(logging.DEBUG)  # always debug regardless of user input
     this.FILE_LOG.addHandler(file_handler)
