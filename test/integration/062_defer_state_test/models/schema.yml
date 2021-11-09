@@ -8,3 +8,17 @@ models:
               severity: error
           - not_null
       - name: name
+
+sources:
+  - name: test_source
+    loader: custom
+    freshness:
+      warn_after: {count: 10, period: hour}
+      error_after: {count: 1, period: day}
+    schema: "{{ var(env_var('DBT_TEST_SCHEMA_NAME_VARIABLE')) }}"
+    tables:
+      - name: test_table
+        identifier: source
+        loaded_at_field: "{{ var('test_loaded_at') | as_text }}"
+        freshness:
+          error_after: {count: 18, period: hour}
