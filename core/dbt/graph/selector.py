@@ -137,7 +137,7 @@ class NodeSelector(MethodManager):
                     f" exclude the below nodes:\n"
                     f"\nDirect Nodes: \n{direct_nodes_excluded}\n"
                     f"\nIndirect Nodes: \n{indirect_nodes_excluded}\n"
-                    f"\nThese source nodes: '{collected_excluded}' must have '{spec.method}:{spec.value}'"
+                    f"\nThese source nodes: '{collected_excluded}' require '{spec.method}:{spec.value}'"
                     f" for the excluded nodes to run."
                     f"\nNote: Concurrent selectors may include the excluded nodes(ex: source_status:warn+ source_status:pass+)"
                     f"\n ----------------"
