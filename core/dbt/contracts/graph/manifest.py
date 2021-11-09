@@ -15,8 +15,8 @@ from dbt.contracts.graph.compiled import (
 )
 from dbt.contracts.graph.parsed import (
     ParsedMacro, ParsedDocumentation,
-    ParsedSourceDefinition, ParsedExposure, ParsedMetric,
-    HasUniqueID, UnpatchedSourceDefinition, ManifestNodes
+    ParsedSourceDefinition, ParsedExposure, HasUniqueID,
+    UnpatchedSourceDefinition, ManifestNodes
 )
 from dbt.contracts.graph.unparsed import SourcePatch
 from dbt.contracts.files import SourceFile, SchemaSourceFile, FileHash, AnySourceFile
@@ -546,8 +546,6 @@ class ParsingInfo:
 @dataclass
 class ManifestStateCheck(dbtClassMixin):
     vars_hash: FileHash = field(default_factory=FileHash.empty)
-    project_env_vars_hash: FileHash = field(default_factory=FileHash.empty)
-    profile_env_vars_hash: FileHash = field(default_factory=FileHash.empty)
     profile_hash: FileHash = field(default_factory=FileHash.empty)
     project_hashes: MutableMapping[str, FileHash] = field(default_factory=dict)
 
@@ -564,7 +562,6 @@ class Manifest(MacroMethods, DataClassMessagePackMixin, dbtClassMixin):
     macros: MutableMapping[str, ParsedMacro] = field(default_factory=dict)
     docs: MutableMapping[str, ParsedDocumentation] = field(default_factory=dict)
     exposures: MutableMapping[str, ParsedExposure] = field(default_factory=dict)
-    metrics: MutableMapping[str, ParsedMetric] = field(default_factory=dict)
     selectors: MutableMapping[str, Any] = field(default_factory=dict)
     files: MutableMapping[str, AnySourceFile] = field(default_factory=dict)
     metadata: ManifestMetadata = field(default_factory=ManifestMetadata)
@@ -632,9 +629,6 @@ class Manifest(MacroMethods, DataClassMessagePackMixin, dbtClassMixin):
     def update_exposure(self, new_exposure: ParsedExposure):
         _update_into(self.exposures, new_exposure)
 
-    def update_metric(self, new_metric: ParsedMetric):
-        _update_into(self.metrics, new_metric)
-
     def update_node(self, new_node: ManifestNode):
         _update_into(self.nodes, new_node)
 
@@ -651,10 +645,6 @@ class Manifest(MacroMethods, DataClassMessagePackMixin, dbtClassMixin):
             'exposures': {
                 k: v.to_dict(omit_none=False)
                 for k, v in self.exposures.items()
-            },
-            'metrics': {
-                k: v.to_dict(omit_none=False)
-                for k, v in self.metrics.items()
             },
             'nodes': {
                 k: v.to_dict(omit_none=False)
@@ -708,12 +698,7 @@ class Manifest(MacroMethods, DataClassMessagePackMixin, dbtClassMixin):
 
     def get_resource_fqns(self) -> Mapping[str, PathSet]:
         resource_fqns: Dict[str, Set[Tuple[str, ...]]] = {}
-        all_resources = chain(
-            self.exposures.values(),
-            self.nodes.values(),
-            self.sources.values(),
-            self.metrics.values()
-        )
+        all_resources = chain(self.exposures.values(), self.nodes.values(), self.sources.values())
         for resource in all_resources:
             resource_type_plural = resource.resource_type.pluralize()
             if resource_type_plural not in resource_fqns:
@@ -741,7 +726,6 @@ class Manifest(MacroMethods, DataClassMessagePackMixin, dbtClassMixin):
             macros={k: _deepcopy(v) for k, v in self.macros.items()},
             docs={k: _deepcopy(v) for k, v in self.docs.items()},
             exposures={k: _deepcopy(v) for k, v in self.exposures.items()},
-            metrics={k: _deepcopy(v) for k, v in self.metrics.items()},
             selectors={k: _deepcopy(v) for k, v in self.selectors.items()},
             metadata=self.metadata,
             disabled={k: _deepcopy(v) for k, v in self.disabled.items()},
@@ -754,7 +738,6 @@ class Manifest(MacroMethods, DataClassMessagePackMixin, dbtClassMixin):
             self.nodes.values(),
             self.sources.values(),
             self.exposures.values(),
-            self.metrics.values(),
         ))
         forward_edges, backward_edges = build_node_edges(edge_members)
         self.child_map = forward_edges
@@ -776,7 +759,6 @@ class Manifest(MacroMethods, DataClassMessagePackMixin, dbtClassMixin):
             macros=self.macros,
             docs=self.docs,
             exposures=self.exposures,
-            metrics=self.metrics,
             selectors=self.selectors,
             metadata=self.metadata,
             disabled=self.disabled,
@@ -796,8 +778,6 @@ class Manifest(MacroMethods, DataClassMessagePackMixin, dbtClassMixin):
             return self.sources[unique_id]
         elif unique_id in self.exposures:
             return self.exposures[unique_id]
-        elif unique_id in self.metrics:
-            return self.metrics[unique_id]
         else:
             # something terrible has happened
             raise dbt.exceptions.InternalException(
@@ -1026,11 +1006,6 @@ class Manifest(MacroMethods, DataClassMessagePackMixin, dbtClassMixin):
         self.exposures[exposure.unique_id] = exposure
         source_file.exposures.append(exposure.unique_id)
 
-    def add_metric(self, source_file: SchemaSourceFile, metric: ParsedMetric):
-        _check_duplicates(metric, self.metrics)
-        self.metrics[metric.unique_id] = metric
-        source_file.metrics.append(metric.unique_id)
-
     def add_disabled_nofile(self, node: CompileResultNode):
         # There can be multiple disabled nodes for the same unique_id
         if node.unique_id in self.disabled:
@@ -1067,7 +1042,6 @@ class Manifest(MacroMethods, DataClassMessagePackMixin, dbtClassMixin):
             self.macros,
             self.docs,
             self.exposures,
-            self.metrics,
             self.selectors,
             self.files,
             self.metadata,
@@ -1123,11 +1097,6 @@ class WritableManifest(ArtifactMixin):
     exposures: Mapping[UniqueID, ParsedExposure] = field(
         metadata=dict(description=(
             'The exposures defined in the dbt project and its dependencies'
-        ))
-    )
-    metrics: Mapping[UniqueID, ParsedMetric] = field(
-        metadata=dict(description=(
-            'The metrics defined in the dbt project and its dependencies'
         ))
     )
     selectors: Mapping[UniqueID, Any] = field(

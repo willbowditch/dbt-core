@@ -91,7 +91,6 @@ class Profile(HasCredentials):
     user_config: UserConfig
     threads: int
     credentials: Credentials
-    profile_env_vars: Dict[str, Any]
 
     def __init__(
         self,
@@ -109,7 +108,6 @@ class Profile(HasCredentials):
         self.user_config = user_config
         self.threads = threads
         self.credentials = credentials
-        self.profile_env_vars = {}  # never available on init
 
     def to_profile_info(
         self, serialize_credentials: bool = False

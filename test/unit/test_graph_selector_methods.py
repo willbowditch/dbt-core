@@ -12,7 +12,6 @@ from dbt.contracts.graph.parsed import (
     ParsedMacro,
     ParsedModelNode,
     ParsedExposure,
-    ParsedMetric,
     ParsedSeedNode,
     ParsedSingularTestNode,
     ParsedGenericTestNode,
@@ -22,7 +21,7 @@ from dbt.contracts.graph.parsed import (
     ColumnInfo,
 )
 from dbt.contracts.graph.manifest import Manifest
-from dbt.contracts.graph.unparsed import ExposureType, ExposureOwner, MetricFilter
+from dbt.contracts.graph.unparsed import ExposureType, ExposureOwner
 from dbt.contracts.state import PreviousState
 from dbt.node_types import NodeType
 from dbt.graph.selector_methods import (
@@ -37,7 +36,6 @@ from dbt.graph.selector_methods import (
     TestTypeSelectorMethod,
     StateSelectorMethod,
     ExposureSelectorMethod,
-    MetricSelectorMethod,
 )
 import dbt.exceptions
 import dbt.contracts.graph.parsed
@@ -344,35 +342,6 @@ def make_exposure(pkg, name, path=None, fqn_extras=None, owner=None):
     )
 
 
-def make_metric(pkg, name, path=None):
-    if path is None:
-        path = 'schema.yml'
-
-    return ParsedMetric(
-        name=name,
-        path='schema.yml',
-        package_name=pkg,
-        root_path='/usr/src/app',
-        original_file_path=path,
-        unique_id=f'metric.{pkg}.{name}',
-        fqn=[pkg, 'metrics', name],
-        label='New Customers',
-        model='ref("multi")',
-        description="New customers",
-        type='count',
-        sql="user_id",
-        timestamp="signup_date",
-        time_grains=['day', 'week', 'month'],
-        dimensions=['plan', 'country'],
-        filters=[MetricFilter(
-           field="is_paying",
-           value=True,
-           operator="=",
-        )],
-        meta={'is_okr': True},
-        tags=['okrs'],
-    )
-
 
 @pytest.fixture
 def macro_test_unique():
@@ -602,7 +571,6 @@ def manifest(seed, source, ephemeral_model, view_model, table_model, ext_source,
         docs={},
         files={},
         exposures={},
-        metrics={},
         disabled=[],
         selectors={},
     )
@@ -611,7 +579,7 @@ def manifest(seed, source, ephemeral_model, view_model, table_model, ext_source,
 
 def search_manifest_using_method(manifest, method, selection):
     selected = method.search(set(manifest.nodes) | set(
-        manifest.sources) | set(manifest.exposures) | set(manifest.metrics), selection)
+        manifest.sources) | set(manifest.exposures), selection)
     results = {manifest.expect(uid).search_name for uid in selected}
     return results
 
@@ -765,18 +733,6 @@ def test_select_exposure(manifest):
         manifest, method, 'my_exposure') == {'my_exposure'}
     assert not search_manifest_using_method(
         manifest, method, 'not_my_exposure')
-
-
-def test_select_metric(manifest):
-    metric = make_metric('test', 'my_metric')
-    manifest.metrics[metric.unique_id] = metric
-    methods = MethodManager(manifest, None)
-    method = methods.get_method('metric', [])
-    assert isinstance(method, MetricSelectorMethod)
-    assert search_manifest_using_method(
-        manifest, method, 'my_metric') == {'my_metric'}
-    assert not search_manifest_using_method(
-        manifest, method, 'not_my_metric')
 
 
 @pytest.fixture

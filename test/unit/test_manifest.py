@@ -21,14 +21,12 @@ from dbt.contracts.graph.parsed import (
     ParsedSeedNode,
     ParsedSourceDefinition,
     ParsedExposure,
-    ParsedMetric
 )
 
 from dbt.contracts.graph.unparsed import (
     ExposureType,
     ExposureOwner,
-    MaturityType,
-    MetricFilter
+    MaturityType
 )
 
 from dbt.contracts.graph.compiled import CompiledModelNode
@@ -92,37 +90,6 @@ class ManifestTest(unittest.TestCase):
                 root_path='',
                 path='my_exposure.sql',
                 original_file_path='my_exposure.sql'
-            )
-        }
-
-        self.metrics = {
-            'metric.root.my_metric': ParsedMetric(
-                name='new_customers',
-                label='New Customers',
-                model='ref("multi")',
-                description="New customers",
-                type='count',
-                sql="user_id",
-                timestamp="signup_date",
-                time_grains=['day', 'week', 'month'],
-                dimensions=['plan', 'country'],
-                filters=[MetricFilter(
-                   field="is_paying",
-                   value='True',
-                   operator="=",
-                )],
-                meta={'is_okr': True},
-                tags=['okrs'],
-                resource_type=NodeType.Metric,
-                depends_on=DependsOn(nodes=['model.root.multi']),
-                refs=[['multi']],
-                sources=[],
-                fqn=['root', 'my_metric'],
-                unique_id='metric.root.my_metric',
-                package_name='root',
-                root_path='',
-                path='my_metric.yml',
-                original_file_path='my_metric.yml'
             )
         }
 
@@ -276,8 +243,6 @@ class ManifestTest(unittest.TestCase):
         }
         for exposure in self.exposures.values():
             exposure.validate(exposure.to_dict(omit_none=True))
-        for metric in self.metrics.values():
-            metric.validate(metric.to_dict(omit_none=True))
         for node in self.nested_nodes.values():
             node.validate(node.to_dict(omit_none=True))
         for source in self.sources.values():
@@ -292,7 +257,7 @@ class ManifestTest(unittest.TestCase):
     def test__no_nodes(self):
         manifest = Manifest(
             nodes={}, sources={}, macros={}, docs={}, disabled={}, files={},
-            exposures={}, metrics={}, selectors={},
+            exposures={}, selectors={},
             metadata=ManifestMetadata(generated_at=datetime.utcnow()),
         )
         self.assertEqual(
@@ -302,7 +267,6 @@ class ManifestTest(unittest.TestCase):
                 'sources': {},
                 'macros': {},
                 'exposures': {},
-                'metrics': {},
                 'selectors': {},
                 'parent_map': {},
                 'child_map': {},
@@ -323,7 +287,7 @@ class ManifestTest(unittest.TestCase):
         nodes = copy.copy(self.nested_nodes)
         manifest = Manifest(
             nodes=nodes, sources={}, macros={}, docs={}, disabled={}, files={},
-            exposures={}, metrics={}, selectors={},
+            exposures={}, selectors={},
             metadata=ManifestMetadata(generated_at=datetime.utcnow()),
         )
         serialized = manifest.writable_manifest().to_dict(omit_none=True)
@@ -388,21 +352,17 @@ class ManifestTest(unittest.TestCase):
 
     def test__build_flat_graph(self):
         exposures = copy.copy(self.exposures)
-        metrics = copy.copy(self.metrics)
         nodes = copy.copy(self.nested_nodes)
         sources = copy.copy(self.sources)
         manifest = Manifest(nodes=nodes, sources=sources, macros={}, docs={},
-                            disabled={}, files={}, exposures=exposures,
-                            metrics=metrics, selectors={})
+                            disabled={}, files={}, exposures=exposures, selectors={})
         manifest.build_flat_graph()
         flat_graph = manifest.flat_graph
         flat_exposures = flat_graph['exposures']
-        flat_metrics = flat_graph['metrics']
         flat_nodes = flat_graph['nodes']
         flat_sources = flat_graph['sources']
-        self.assertEqual(set(flat_graph), set(['exposures', 'nodes', 'sources', 'metrics']))
+        self.assertEqual(set(flat_graph), set(['exposures', 'nodes', 'sources']))
         self.assertEqual(set(flat_exposures), set(self.exposures))
-        self.assertEqual(set(flat_metrics), set(self.metrics))
         self.assertEqual(set(flat_nodes), set(self.nested_nodes))
         self.assertEqual(set(flat_sources), set(self.sources))
         for node in flat_nodes.values():
@@ -452,7 +412,6 @@ class ManifestTest(unittest.TestCase):
                 'sources': {},
                 'macros': {},
                 'exposures': {},
-                'metrics': {},
                 'selectors': {},
                 'parent_map': {},
                 'child_map': {},
@@ -500,12 +459,8 @@ class ManifestTest(unittest.TestCase):
             checksum=FileHash.empty(),
         )
         manifest = Manifest(nodes=nodes, sources=self.sources, macros={}, docs={},
-                            disabled={}, files={}, exposures=self.exposures,
-                            metrics=self.metrics, selectors={})
+                            disabled={}, files={}, exposures=self.exposures, selectors={})
         expect = {
-            'metrics': frozenset([
-                ('root', 'my_metric')
-            ]),
             'exposures': frozenset([
                 ('root', 'my_exposure')
             ]),
@@ -699,7 +654,6 @@ class MixedManifestTest(unittest.TestCase):
                 'macros': {},
                 'sources': {},
                 'exposures': {},
-                'metrics': {},
                 'selectors': {},
                 'parent_map': {},
                 'child_map': {},
@@ -789,7 +743,7 @@ class MixedManifestTest(unittest.TestCase):
         manifest.build_flat_graph()
         flat_graph = manifest.flat_graph
         flat_nodes = flat_graph['nodes']
-        self.assertEqual(set(flat_graph), set(['exposures', 'metrics', 'nodes', 'sources']))
+        self.assertEqual(set(flat_graph), set(['exposures', 'nodes', 'sources']))
         self.assertEqual(set(flat_nodes), set(self.nested_nodes))
         compiled_count = 0
         for node in flat_nodes.values():
@@ -834,7 +788,6 @@ class TestManifestSearch(unittest.TestCase):
             disabled={},
             files={},
             exposures={},
-            metrics={},
             selectors={},
         )
 
@@ -856,7 +809,6 @@ def make_manifest(nodes=[], sources=[], macros=[], docs=[]):
         disabled={},
         files={},
         exposures={},
-        metrics={},
         selectors={},
     )
 

@@ -19,7 +19,7 @@ from dbt.context.context_config import (
 )
 from dbt.context.configured import generate_schema_yml_context, SchemaYamlVars
 from dbt.context.providers import (
-    generate_parse_exposure, generate_parse_metrics, generate_test_context
+    generate_parse_exposure, generate_test_context
 )
 from dbt.context.macro_resolver import MacroResolver
 from dbt.contracts.files import FileHash, SchemaSourceFile
@@ -30,7 +30,6 @@ from dbt.contracts.graph.parsed import (
     ParsedMacroPatch,
     UnpatchedSourceDefinition,
     ParsedExposure,
-    ParsedMetric,
 )
 from dbt.contracts.graph.unparsed import (
     HasColumnDocs,
@@ -42,7 +41,6 @@ from dbt.contracts.graph.unparsed import (
     UnparsedMacroUpdate,
     UnparsedNodeUpdate,
     UnparsedExposure,
-    UnparsedMetric,
     UnparsedSourceDefinition,
 )
 from dbt.exceptions import (
@@ -59,7 +57,6 @@ from dbt.parser.generic_test_builders import (
     TestBuilder, GenericTestBlock, TargetBlock, YamlBlock,
     TestBlock, Testable
 )
-from dbt.ui import warning_tag
 from dbt.utils import (
     get_pseudo_test_path, coerce_dict_str
 )
@@ -541,14 +538,8 @@ class SchemaParser(SimpleParser[GenericTestBlock, ParsedGenericTestNode]):
             # parse exposures
             if 'exposures' in dct:
                 exp_parser = ExposureParser(self, yaml_block)
-                for exposure_node in exp_parser.parse():
-                    self.manifest.add_exposure(yaml_block.file, exposure_node)
-
-            # parse metrics
-            if 'metrics' in dct:
-                metric_parser = MetricParser(self, yaml_block)
-                for metric_node in metric_parser.parse():
-                    self.manifest.add_metric(yaml_block.file, metric_node)
+                for node in exp_parser.parse():
+                    self.manifest.add_exposure(yaml_block.file, node)
 
 
 def check_format_version(
@@ -895,13 +886,11 @@ class NodePatchParser(
                     # re-application of the patch in partial parsing.
                     node.patch_path = source_file.file_id
             else:
-                msg = (
+                raise ParsingException(
                     f"Did not find matching node for patch with name '{patch.name}' "
                     f"in the '{patch.yaml_key}' section of "
                     f"file '{source_file.path.original_file_path}'"
                 )
-                warn_or_error(msg, log_fmt=warning_tag('{}'))
-                return
 
         # patches can't be overwritten
         node = self.manifest.nodes.get(unique_id)
@@ -1027,61 +1016,3 @@ class ExposureParser(YamlReader):
                 raise ParsingException(msg) from exc
             parsed = self.parse_exposure(unparsed)
             yield parsed
-
-
-class MetricParser(YamlReader):
-    def __init__(self, schema_parser: SchemaParser, yaml: YamlBlock):
-        super().__init__(schema_parser, yaml, NodeType.Metric.pluralize())
-        self.schema_parser = schema_parser
-        self.yaml = yaml
-
-    def parse_metric(self, unparsed: UnparsedMetric) -> ParsedMetric:
-        package_name = self.project.project_name
-        unique_id = f'{NodeType.Metric}.{package_name}.{unparsed.name}'
-        path = self.yaml.path.relative_path
-
-        fqn = self.schema_parser.get_fqn_prefix(path)
-        fqn.append(unparsed.name)
-
-        parsed = ParsedMetric(
-            package_name=package_name,
-            root_path=self.project.project_root,
-            path=path,
-            original_file_path=self.yaml.path.original_file_path,
-            unique_id=unique_id,
-            fqn=fqn,
-            model=unparsed.model,
-            name=unparsed.name,
-            description=unparsed.description,
-            label=unparsed.label,
-            type=unparsed.type,
-            sql=unparsed.sql,
-            timestamp=unparsed.timestamp,
-            dimensions=unparsed.dimensions,
-            time_grains=unparsed.time_grains,
-            filters=unparsed.filters,
-            meta=unparsed.meta,
-            tags=unparsed.tags,
-        )
-
-        ctx = generate_parse_metrics(
-            parsed,
-            self.root_project,
-            self.schema_parser.manifest,
-            package_name,
-        )
-        model_ref = '{{ ' + unparsed.model + ' }}'
-        get_rendered(
-            model_ref, ctx, parsed, capture_macros=True
-        )
-        return parsed
-
-    def parse(self) -> Iterable[ParsedMetric]:
-        for data in self.get_key_dicts():
-            try:
-                UnparsedMetric.validate(data)
-                unparsed = UnparsedMetric.from_dict(data)
-            except (ValidationError, JSONValidationException) as exc:
-                msg = error_context(self.yaml.path, self.key, data, exc)
-                raise ParsingException(msg) from exc
-            yield self.parse_metric(unparsed)

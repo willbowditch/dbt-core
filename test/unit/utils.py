@@ -11,7 +11,6 @@ from unittest import TestCase
 import agate
 import pytest
 from dbt.dataclass_schema import ValidationError
-from dbt.config.project import PartialProject
 
 
 def normalize(path):
@@ -47,7 +46,7 @@ def profile_from_dict(profile, profile_name, cli_vars='{}'):
     if not isinstance(cli_vars, dict):
         cli_vars = parse_cli_vars(cli_vars)
 
-    renderer = ProfileRenderer(cli_vars)
+    renderer = ProfileRenderer(generate_base_context(cli_vars))
     return Profile.from_raw_profile_info(
         profile,
         profile_name,
@@ -63,18 +62,13 @@ def project_from_dict(project, profile, packages=None, selectors=None, cli_vars=
     if not isinstance(cli_vars, dict):
         cli_vars = parse_cli_vars(cli_vars)
 
-    renderer = DbtProjectYamlRenderer(profile, cli_vars)
+    renderer = DbtProjectYamlRenderer(generate_target_context(profile, cli_vars))
 
     project_root = project.pop('project-root', os.getcwd())
 
-    partial = PartialProject.from_dicts(
-        project_root=project_root,
-        project_dict=project,
-        packages_dict=packages,
-        selectors_dict=selectors,
-    )
-    return partial.render(renderer)
-
+    return Project.render_from_dict(
+            project_root, project, packages, selectors, renderer
+        )
 
 
 def config_from_parts_or_dicts(project, profile, packages=None, selectors=None, cli_vars='{}'):

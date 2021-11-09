@@ -124,7 +124,6 @@ class CompilerTest(unittest.TestCase):
             disabled=[],
             files={},
             exposures={},
-            metrics={},
             selectors={},
         )
 
@@ -187,7 +186,6 @@ class CompilerTest(unittest.TestCase):
             disabled=[],
             files={},
             exposures={},
-            metrics={},
             selectors={},
         )
 
@@ -262,7 +260,6 @@ class CompilerTest(unittest.TestCase):
             disabled=[],
             files={},
             exposures={},
-            metrics={},
             selectors={},
         )
 
@@ -363,7 +360,6 @@ class CompilerTest(unittest.TestCase):
             disabled=[],
             files={},
             exposures={},
-            metrics={},
             selectors={},
         )
 
@@ -455,7 +451,6 @@ class CompilerTest(unittest.TestCase):
             disabled=[],
             files={},
             exposures={},
-            metrics={},
             selectors={},
         )
 
@@ -542,7 +537,6 @@ class CompilerTest(unittest.TestCase):
             disabled=[],
             files={},
             exposures={},
-            metrics={},
             selectors={},
         )
 

@@ -556,8 +556,8 @@ class TestDocsGenerate(DBTIntegrationTest):
     def _verify_generic_macro_structure(self, manifest):
         # just test a known global macro to avoid having to update this every
         # time they change.
-        self.assertIn('macro.dbt.get_quoted_csv', manifest['macros'])
-        macro = manifest['macros']['macro.dbt.get_quoted_csv']
+        self.assertIn('macro.dbt.column_list', manifest['macros'])
+        macro = manifest['macros']['macro.dbt.column_list']
         self.assertEqual(
             set(macro),
             {
@@ -574,7 +574,7 @@ class TestDocsGenerate(DBTIntegrationTest):
             if k not in {'macro_sql'}
         }
         # Windows means we can't hard-code these.
-        helpers_path = Normalized('macros/materializations/models/incremental/column_helpers.sql')
+        helpers_path = Normalized('macros/materializations/helpers.sql')
         root_path = Normalized(os.path.join(
             self.dbt_core_install_root, 'include', 'global_project'
         ))
@@ -584,8 +584,8 @@ class TestDocsGenerate(DBTIntegrationTest):
                 'original_file_path': helpers_path,
                 'package_name': 'dbt',
                 'root_path': root_path,
-                'name': 'get_quoted_csv',
-                'unique_id': 'macro.dbt.get_quoted_csv',
+                'name': 'column_list',
+                'unique_id': 'macro.dbt.column_list',
                 'created_at': ANY,
                 'tags': [],
                 'resource_type': 'macro',
@@ -1181,7 +1181,6 @@ class TestDocsGenerate(DBTIntegrationTest):
                     'tags': []
                 }
             },
-            'metrics': {},
             'selectors': {},
             'parent_map': {
                 'model.test.model': ['seed.test.seed'],
@@ -1600,7 +1599,6 @@ class TestDocsGenerate(DBTIntegrationTest):
                     'url': 'http://example.com/notebook/1'
                 },
             },
-            'metrics': {},
             'selectors': {},
             'docs': {
                 'dbt.__overview__': ANY,
@@ -1804,7 +1802,7 @@ class TestDocsGenerate(DBTIntegrationTest):
         manifest = _read_json('./target/manifest.json')
 
         manifest_keys = frozenset({
-            'nodes', 'sources', 'macros', 'parent_map', 'child_map', 'metrics',
+            'nodes', 'sources', 'macros', 'parent_map', 'child_map',
             'docs', 'metadata', 'docs', 'disabled', 'exposures', 'selectors',
         })
 
