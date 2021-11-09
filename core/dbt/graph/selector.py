@@ -83,8 +83,8 @@ class NodeSelector(MethodManager):
             source_status_values_to_exclude = {'error'}
         elif spec.value == 'error':
             source_status_values_to_exclude = {'pass','warn'}
-        else: 
-            source_status_values_to_exclude = {'pass','warn','error'}
+        else:
+            source_status_values_to_exclude = set()
 
         excluded_source_nodes = set()
         for source_status in source_status_values_to_exclude:
