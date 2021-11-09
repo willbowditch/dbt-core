@@ -134,7 +134,9 @@ class NodeSelector(MethodManager):
             if direct_nodes_excluded != set():
                 logger.info(
                     f"\nThe '{spec.method}' selector specified in '{spec.raw}' will"
-                    f" exclude these nodes: \n{direct_nodes_excluded}\n"
+                    f" exclude the below nodes:\n"
+                    f"\nDirect Nodes: \n{direct_nodes_excluded}\n"
+                    f"\nIndirect Nodes: \n{indirect_nodes_excluded}\n"
                     f"\nThese source nodes: '{collected_excluded}' must have '{spec.method}:{spec.value}'"
                     f" for the excluded nodes to run."
                     f"\nNote: Concurrent selectors may include the excluded nodes(ex: source_status:warn+ source_status:pass+)"
