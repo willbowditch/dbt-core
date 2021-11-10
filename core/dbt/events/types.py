@@ -290,7 +290,7 @@ class SystemStdErrMsg(DebugLevel, Cli, File):
 
 @dataclass
 class SystemReportReturnCode(DebugLevel, Cli, File):
-    code: int
+    returncode: int
 
     def message(self) -> str:
         return f"command return code={self.code}"
@@ -2123,7 +2123,7 @@ if 1 == 0:
     SystemExecutingCmd(cmd=[""])
     SystemStdOutMsg(bmsg=b"")
     SystemStdErrMsg(bmsg=b"")
-    SystemReportReturnCode(code=0)
+    SystemReportReturnCode(returncode=0)
     SelectorReportInvalidSelector(
         selector_methods={"": ""}, spec_method="", raw_spec=""
     )
@@ -2189,7 +2189,7 @@ if 1 == 0:
     SystemExecutingCmd(cmd=[''])
     SystemStdOutMsg(bmsg=b'')
     SystemStdErrMsg(bmsg=b'')
-    SystemReportReturnCode(code=0)
+    SystemReportReturnCode(returncode=0)
     SelectorAlertUpto3UnusedNodes(node_names=[])
     SelectorAlertAllUnusedNodes(node_names=[])
     SelectorReportInvalidSelector(selector_methods={'': ''}, spec_method='', raw_spec='')

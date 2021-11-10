@@ -55,7 +55,13 @@ class Event(metaclass=ABCMeta):
     # fields that should be on all events with their default implementations
     ts: datetime = datetime.now()
     pid: int = os.getpid()
-    # code: int
+
+    # four digit string code that uniquely identifies this type of event
+    # uniqueness and valid characters are enforced by tests
+    @classmethod
+    @abstractmethod
+    def code(cls) -> str:
+        raise Exception("msg not implemented for event")
 
     # do not define this yourself. inherit it from one of the above level types.
     @abstractmethod
@@ -66,7 +72,7 @@ class Event(metaclass=ABCMeta):
     # Must override yourself
     @abstractmethod
     def message(self) -> str:
-        raise Exception("msg not implemented for cli event")
+        raise Exception("msg not implemented for event")
 
     # returns a dictionary representation of the event fields. You must specify which of the
     # available messages you would like to use (i.e. - e.message, e.cli_msg(), e.file_msg())
@@ -77,7 +83,8 @@ class Event(metaclass=ABCMeta):
         return {
             'pid': self.pid,
             'msg': msg,
-            'level': level if len(level) == 5 else f"{level} "
+            'level': level if len(level) == 5 else f"{level} ",
+            'code': self.code()
         }
 
 

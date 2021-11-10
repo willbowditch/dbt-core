@@ -112,9 +112,10 @@ def scrub_secrets(msg: str, secrets: List[str]) -> str:
 def create_text_log_line(e: Event, msg: str) -> str:
     color_tag: str = '' if this.format_color else Style.RESET_ALL
     ts: str = e.ts.strftime("%H:%M:%S")
+    code: str = e.code()
     scrubbed_msg: str = scrub_secrets(msg, env_secrets())
     level: str = e.level_tag()
-    log_line: str = f"{color_tag}{ts} | [ {level} ] | {scrubbed_msg}"
+    log_line: str = f"{color_tag}{ts} | [ {level} ] | {code}: {scrubbed_msg}"
     return log_line
 
 
