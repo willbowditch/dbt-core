@@ -1,7 +1,7 @@
 
 from colorama import Style
 import dbt.events.functions as this  # don't worry I hate it too.
-from dbt.events.types import Cli, Event, File, ShowException
+from dbt.events.base_types import Cli, Event, File, ShowException
 import dbt.flags as flags
 # TODO this will need to move eventually
 from dbt.logger import SECRET_ENV_PREFIX, make_log_dir_if_missing, GLOBAL_LOGGER
