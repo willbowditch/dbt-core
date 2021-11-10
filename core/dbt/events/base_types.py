@@ -5,7 +5,11 @@ import os
 from typing import Any
 
 
-# types to represent log levels
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# These base types define the _required structure_ for the concrete event #
+# types defined in types.py                                               #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
 
 # in preparation for #3977
 class TestLevel():
