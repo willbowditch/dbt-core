@@ -8,11 +8,12 @@ from dbt.logger import SECRET_ENV_PREFIX, make_log_dir_if_missing, GLOBAL_LOGGER
 import io
 from io import StringIO, TextIOWrapper
 import json
+import logbook
 import logging
 from logging import Logger
 from logging.handlers import RotatingFileHandler
 import os
-from typing import List
+from typing import List, Union
 
 
 # create the global file logger with no configuration
@@ -135,7 +136,7 @@ def create_log_line(e: Event, json_fmt: bool, cli_dest: bool) -> str:
 
 # allows for resuse of this obnoxious if else tree.
 # do not use for exceptions, it doesn't pass along exc_info, stack_info, or extra
-def send_to_logger(l: Logger, level_tag: str, log_line: str):
+def send_to_logger(l: Union[Logger, logbook.Logger], level_tag: str, log_line: str):
     if level_tag == 'test':
         # TODO after implmenting #3977 send to new test level
         l.debug(log_line)
@@ -215,20 +216,8 @@ def fire_event(e: Event) -> None:
     # backwards compatibility for plugins that require old logger (dbt-rpc)
     if flags.ENABLE_LEGACY_LOGGER:
         log_line = create_log_line(e, json_fmt=this.format_json, cli_dest=False)
-        level_tag = e.level_tag()
-        if level_tag == 'debug':
-            GLOBAL_LOGGER.debug(log_line)
-        elif level_tag == 'info':
-            GLOBAL_LOGGER.info(log_line)
-        elif level_tag == 'warn':
-            GLOBAL_LOGGER.warn(log_line)
-        elif level_tag == 'error':
-            GLOBAL_LOGGER.error(log_line)
-        else:
-            raise AssertionError(
-                f"While attempting to log {log_line}, encountered the unhandled level: {level_tag}"
-            )
-        return
+        send_to_logger(GLOBAL_LOGGER, e.level_tag(), log_line)
+        return  # exit the function to avoid using the current logger
 
     # always logs debug level regardless of user input
     if isinstance(e, File):
