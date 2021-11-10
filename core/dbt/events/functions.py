@@ -210,8 +210,6 @@ def send_exc_to_logger(
 # to files, etc.)
 def fire_event(e: Event) -> None:
     # TODO manage history in phase 2:  EVENT_HISTORY.append(e)
-    # explicitly checking the debug flag here so that potentially expensive-to-construct
-    # log messages are not constructed if debug messages are never shown.
 
     # backwards compatibility for plugins that require old logger (dbt-rpc)
     if flags.ENABLE_LEGACY_LOGGER:
@@ -226,8 +224,11 @@ def fire_event(e: Event) -> None:
         send_to_logger(FILE_LOG, level_tag=e.level_tag(), log_line=log_line)
 
     if isinstance(e, Cli):
+        # explicitly checking the debug flag here so that potentially expensive-to-construct
+        # log messages are not constructed if debug messages are never shown.
         if e.level_tag() == 'debug' and not flags.DEBUG:
             return  # eat the message in case it was one of the expensive ones
+
         log_line = create_log_line(e, json_fmt=this.format_json, cli_dest=True)
         if not isinstance(e, ShowException):
             send_to_logger(STDOUT_LOG, level_tag=e.level_tag(), log_line=log_line)
