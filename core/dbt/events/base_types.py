@@ -49,6 +49,7 @@ class ShowException():
         self.extra: Any = None
 
 
+# TODO move this in a later commit
 # The following classes represent the data necessary to describe a
 # particular event to both human readable logs, and machine reliable
 # event streams. classes extend superclasses that indicate what
@@ -73,6 +74,18 @@ class Event(metaclass=ABCMeta):
     @abstractmethod
     def message(self) -> str:
         raise Exception("msg not implemented for cli event")
+
+    # returns a dictionary representation of the event fields. You must specify which of the
+    # available messages you would like to use (i.e. - e.message, e.cli_msg(), e.file_msg())
+    # used for constructing json formatted events. includes secrets which must be scrubbed at
+    # the usage site.
+    def to_dict(self, msg: str) -> dict:
+        level = self.level_tag()
+        return {
+            'pid': self.pid,
+            'msg': msg,
+            'level': level if len(level) == 5 else f"{level} "
+        }
 
 
 class File(Event, metaclass=ABCMeta):

@@ -106,31 +106,24 @@ def scrub_secrets(msg: str, secrets: List[str]) -> str:
     return scrubbed
 
 
-# translates an Event to a completely formatted output log_line
-# json=True -> json formatting
-# json=False -> text formatting
-# cli=True -> cli formatting
-# cli=False -> file formatting
-def create_log_line(e: Event, json_fmt: bool, cli_dest: bool) -> str:
-    level = e.level_tag()
-    values: dict = {
-        'pid': e.pid,
-        'msg': '',
-        'level': level if len(level) == 5 else f"{level} "
-    }
-    if cli_dest and isinstance(e, Cli):
-        values['msg'] = scrub_secrets(e.cli_msg(), env_secrets())
-    elif not cli_dest and isinstance(e, File):
-        values['msg'] = scrub_secrets(e.file_msg(), env_secrets())
+# translates an Event to a completely formatted text-based log line
+# you have to specify which message you want. (i.e. - e.message, e.cli_msg(), e.file_msg())
+# type hinting everything as strings so we don't get any unintentional string conversions via str()
+def create_text_log_line(e: Event, msg: str) -> str:
+    color_tag: str = '' if this.format_color else Style.RESET_ALL
+    ts: str = e.ts.strftime("%H:%M:%S")
+    scrubbed_msg: str = scrub_secrets(msg, env_secrets())
+    level: str = e.level_tag()
+    log_line: str = f"{color_tag}{ts} | [ {level} ] | {scrubbed_msg}"
+    return log_line
 
-    if json_fmt:
-        values['ts'] = e.ts.isoformat()
-        log_line = json.dumps(values, sort_keys=True)
-    else:
-        values['ts'] = e.ts.strftime("%H:%M:%S")
-        color_tag = '' if this.format_color else Style.RESET_ALL
-        log_line = f"{color_tag}{values['ts']} | [ {values['level']} ] | {values['msg']}"
 
+# translates an Event to a completely formatted json log line
+# you have to specify which message you want. (i.e. - e.message, e.cli_msg(), e.file_msg())
+def create_json_log_line(e: Event, msg: str) -> str:
+    values = e.to_dict(scrub_secrets(msg, env_secrets()))
+    values['ts'] = e.ts.isoformat()
+    log_line = json.dumps(values, sort_keys=True)
     return log_line
 
 
@@ -213,13 +206,20 @@ def fire_event(e: Event) -> None:
 
     # backwards compatibility for plugins that require old logger (dbt-rpc)
     if flags.ENABLE_LEGACY_LOGGER:
-        log_line = create_log_line(e, json_fmt=this.format_json, cli_dest=False)
+        # using Event::message because the legacy logger didn't differentiate messages by
+        # destination
+        log_line = (
+            create_json_log_line(e, msg=e.message())
+            if this.format_json else
+            create_text_log_line(e, msg=e.message())
+        )
+
         send_to_logger(GLOBAL_LOGGER, e.level_tag(), log_line)
-        return  # exit the function to avoid using the current logger
+        return  # exit the function to avoid using the current logger as well
 
     # always logs debug level regardless of user input
     if isinstance(e, File):
-        log_line = create_log_line(e, json_fmt=this.format_json, cli_dest=False)
+        log_line = create_json_log_line(e, msg=e.file_msg())
         # doesn't send exceptions to exception logger
         send_to_logger(FILE_LOG, level_tag=e.level_tag(), log_line=log_line)
 
@@ -229,7 +229,7 @@ def fire_event(e: Event) -> None:
         if e.level_tag() == 'debug' and not flags.DEBUG:
             return  # eat the message in case it was one of the expensive ones
 
-        log_line = create_log_line(e, json_fmt=this.format_json, cli_dest=True)
+        log_line = create_json_log_line(e, msg=e.cli_msg())
         if not isinstance(e, ShowException):
             send_to_logger(STDOUT_LOG, level_tag=e.level_tag(), log_line=log_line)
         # CliEventABC and ShowException
