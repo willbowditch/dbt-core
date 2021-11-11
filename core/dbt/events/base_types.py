@@ -49,14 +49,6 @@ class ShowException():
         self.extra: Any = None
 
 
-# TODO move this in a later commit
-# The following classes represent the data necessary to describe a
-# particular event to both human readable logs, and machine reliable
-# event streams. classes extend superclasses that indicate what
-# destinations they are intended for, which mypy uses to enforce
-# that the necessary methods are defined.
-
-
 # top-level superclass for all events
 class Event(metaclass=ABCMeta):
     # fields that should be on all events with their default implementations

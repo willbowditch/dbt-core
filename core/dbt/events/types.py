@@ -10,6 +10,13 @@ from dbt.node_types import NodeType
 from typing import Any, Callable, cast, Dict, List, Optional, Set, Union
 
 
+# The classes in this file represent the data necessary to describe a
+# particular event to both human readable logs, and machine reliable
+# event streams. classes extend superclasses that indicate what
+# destinations they are intended for, which mypy uses to enforce
+# that the necessary methods are defined.
+
+
 @dataclass
 class AdapterEventBase():
     name: str
