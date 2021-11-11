@@ -53,6 +53,7 @@ class ShowException():
 # top-level superclass for all events
 class Event(metaclass=ABCMeta):
     # fields that should be on all events with their default implementations
+    log_version: int = 1
     ts: datetime = datetime.now()
     pid: int = os.getpid()
     # code: int
@@ -77,7 +78,8 @@ class Event(metaclass=ABCMeta):
         return {
             'pid': self.pid,
             'msg': msg,
-            'level': level if len(level) == 5 else f"{level} "
+            'level': level if len(level) == 5 else f"{level} ",
+            'log_version': self.log_version
         }
 
 
