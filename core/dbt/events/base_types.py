@@ -49,6 +49,7 @@ class ShowException():
         self.extra: Any = None
 
 
+# TODO add exhaustiveness checking for subclasses
 # top-level superclass for all events
 class Event(metaclass=ABCMeta):
     # fields that should be on all events with their default implementations
