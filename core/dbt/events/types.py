@@ -1,3 +1,4 @@
+from abc import ABCMeta
 import argparse
 from dataclasses import dataclass
 from dbt.events.stubs import _CachedRelation, AdapterResponse, BaseRelation, _ReferenceKey
@@ -17,28 +18,30 @@ from typing import Any, Callable, cast, Dict, List, Optional, Set, Union
 # that the necessary methods are defined.
 
 
-@dataclass
-class AdapterEventBase():
-    name: str
-    raw_msg: str
+# can't use @dataclass because of https://github.com/python/mypy/issues/5374
+class AdapterEventBase(Cli, File, metaclass=ABCMeta):
+
+    def __init__(self, name: str, raw_msg: str):
+        self.name = name
+        self.raw_msg = raw_msg
 
     def message(self) -> str:
         return f"{self.name} adapter: {self.raw_msg}"
 
 
-class AdapterEventDebug(DebugLevel, AdapterEventBase, Cli, File, ShowException):
+class AdapterEventDebug(DebugLevel, ShowException, AdapterEventBase):
     pass
 
 
-class AdapterEventInfo(InfoLevel, AdapterEventBase, Cli, File, ShowException):
+class AdapterEventInfo(InfoLevel, ShowException, AdapterEventBase):
     pass
 
 
-class AdapterEventWarning(WarnLevel, AdapterEventBase, Cli, File, ShowException):
+class AdapterEventWarning(WarnLevel, ShowException, AdapterEventBase):
     pass
 
 
-class AdapterEventError(ErrorLevel, AdapterEventBase, Cli, File, ShowException):
+class AdapterEventError(ErrorLevel, ShowException, AdapterEventBase):
     pass
 
 
