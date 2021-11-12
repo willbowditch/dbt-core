@@ -61,18 +61,18 @@ class Event(metaclass=ABCMeta):
     @classmethod
     @abstractmethod
     def code(cls) -> str:
-        raise Exception("msg not implemented for event")
+        raise Exception("code() not implemented for event")
 
     # do not define this yourself. inherit it from one of the above level types.
     @abstractmethod
     def level_tag(self) -> str:
-        raise Exception("level_tag not implemented for event")
+        raise Exception("level_tag() not implemented for event")
 
     # Solely the human readable message. Timestamps and formatting will be added by the logger.
     # Must override yourself
     @abstractmethod
     def message(self) -> str:
-        raise Exception("msg not implemented for event")
+        raise Exception("message() not implemented for event")
 
     # returns a dictionary representation of the event fields. You must specify which of the
     # available messages you would like to use (i.e. - e.message, e.cli_msg(), e.file_msg())
