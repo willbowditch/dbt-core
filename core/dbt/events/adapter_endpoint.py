@@ -17,7 +17,7 @@ class AdapterLogger():
         stack_info: Any = None,
         extra: Any = None
     ):
-        event = AdapterEventDebug(name=self.name, raw_msg=msg)
+        event = AdapterEventDebug(self.name, msg)
 
         event.exc_info = exc_info
         event.stack_info = stack_info
@@ -32,7 +32,7 @@ class AdapterLogger():
         stack_info: Any = None,
         extra: Any = None
     ):
-        event = AdapterEventInfo(name=self.name, raw_msg=msg)
+        event = AdapterEventInfo(self.name, msg)
 
         event.exc_info = exc_info
         event.stack_info = stack_info
@@ -47,7 +47,7 @@ class AdapterLogger():
         stack_info: Any = None,
         extra: Any = None
     ):
-        event = AdapterEventWarning(name=self.name, raw_msg=msg)
+        event = AdapterEventWarning(self.name, msg)
 
         event.exc_info = exc_info
         event.stack_info = stack_info
@@ -62,7 +62,7 @@ class AdapterLogger():
         stack_info: Any = None,
         extra: Any = None
     ):
-        event = AdapterEventError(name=self.name, raw_msg=msg)
+        event = AdapterEventError(self.name, msg)
 
         event.exc_info = exc_info
         event.stack_info = stack_info
@@ -77,7 +77,7 @@ class AdapterLogger():
         stack_info: Any = None,
         extra: Any = None
     ):
-        event = AdapterEventError(name=self.name, raw_msg=msg)
+        event = AdapterEventError(self.name, msg)
 
         event.exc_info = exc_info
         event.stack_info = stack_info
