@@ -290,10 +290,10 @@ class SystemStdErrMsg(DebugLevel, Cli, File):
 
 @dataclass
 class SystemReportReturnCode(DebugLevel, Cli, File):
-    returncode: int
+    returncode: str
 
     def message(self) -> str:
-        return f"command return code={self.code}"
+        return f"command return code={self.returncode}"
 
 
 @dataclass
