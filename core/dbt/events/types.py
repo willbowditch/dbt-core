@@ -1,4 +1,3 @@
-from abc import ABCMeta
 import argparse
 from dataclasses import dataclass
 from dbt.events.stubs import _CachedRelation, AdapterResponse, BaseRelation, _ReferenceKey
@@ -8,7 +7,9 @@ from dbt.events.base_types import (
 )
 from dbt.events.format import format_fancy_output_line, pluralize
 from dbt.node_types import NodeType
-from typing import Any, Callable, cast, Dict, List, Optional, Set, Union
+from io import StringIO
+from logging import Formatter, getLogger, StreamHandler
+from typing import Any, Callable, cast, Dict, List, Optional, Set, Tuple, Union
 
 
 # The classes in this file represent the data necessary to describe a
@@ -18,15 +19,38 @@ from typing import Any, Callable, cast, Dict, List, Optional, Set, Union
 # that the necessary methods are defined.
 
 
-# can't use @dataclass because of https://github.com/python/mypy/issues/5374
-class AdapterEventBase(Cli, File, metaclass=ABCMeta):
+# can't use ABCs with @dataclass because of https://github.com/python/mypy/issues/5374
+@dataclass
+class AdapterEventBase(Cli, File):
+    name: str
+    args: Tuple[Any, ...]
+    kwargs: dict
 
-    def __init__(self, name: str, raw_msg: str):
-        self.name = name
-        self.raw_msg = raw_msg
+    # instead of having this inherit from one of the level classes
+    def level_tag(self) -> str:
+        raise Exception("level_tag not implemented for AdapterEventBase")
 
     def message(self) -> str:
-        return f"{self.name} adapter: {self.raw_msg}"
+        # this class shouldn't be createable, but we can't make it an ABC because of a mypy bug
+        if type(self).__name__ == 'AdapterEventBase':
+            raise Exception(
+                'attempted to create a message for AdapterEventBase which cannot be created'
+            )
+
+        # to be backwards compatable with the logbook interface our adapters are used to, we send
+        # the messages to a std lib logger and capture the output to a string buffer to render the
+        # very permissive `*args, **kwargs` interface.
+        capture_buf = StringIO()
+        tmp_logger = getLogger('tmp_logger')
+        passthrough_formatter = Formatter(fmt="%(message)s")
+        tmp_handler = StreamHandler(capture_buf)
+        tmp_handler.setFormatter(passthrough_formatter)
+        tmp_logger.addHandler(tmp_handler)
+
+        # logger level doesn't matter since the formatter is only outputting the message
+        tmp_logger.info(*self.args, **self.kwargs)
+        msg = capture_buf.getvalue()
+        return f"{self.name} adapter: {msg}"
 
 
 class AdapterEventDebug(DebugLevel, ShowException, AdapterEventBase):
