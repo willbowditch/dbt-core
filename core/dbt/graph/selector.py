@@ -137,7 +137,7 @@ class NodeSelector(MethodManager):
                 warn_or_error(f"The '{spec.method}' selector specified in '{spec.raw}' will exclude the below nodes:")
                 warn_or_error(f"Direct Nodes: {direct_nodes_excluded}")
                 warn_or_error(f"Indirect Nodes: {indirect_nodes_excluded}")
-                warn_or_error(f"These source nodes: '{collected_excluded}' require '{spec.method}:{spec.value}' for the excluded nodes to run")
+                warn_or_error(f"These source nodes: '{collected_excluded}' require 'status:{spec.value}' for the excluded nodes to run")
                 warn_or_error("Note: Concurrent selectors may include the excluded nodes(ex: source_refresh:warn+ source_refresh:pass+)")
                 warn_or_error("")
 
