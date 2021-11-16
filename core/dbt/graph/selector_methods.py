@@ -48,7 +48,7 @@ class MethodName(StrEnum):
     Exposure = 'exposure'
     Metric = 'metric'
     Result = 'result'
-    SourceStatus = 'source_status'
+    SourceRefresh = 'source_refresh'
 
 
 def is_selected_node(fqn: List[str], node_selector: str):
@@ -578,7 +578,7 @@ class ResultSelectorMethod(SelectorMethod):
             if node in matches:
                 yield node
 
-class SourceStatusSelectorMethod(SelectorMethod):
+class SourceRefreshSelectorMethod(SelectorMethod):
     def search(
         self, included_nodes: Set[UniqueId], selector: str
     ) -> Iterator[UniqueId]:
@@ -610,7 +610,7 @@ class MethodManager:
         MethodName.Exposure: ExposureSelectorMethod,
         MethodName.Metric: MetricSelectorMethod,
         MethodName.Result: ResultSelectorMethod,
-        MethodName.SourceStatus: SourceStatusSelectorMethod,
+        MethodName.SourceRefresh: SourceRefreshSelectorMethod,
     }
 
     def __init__(

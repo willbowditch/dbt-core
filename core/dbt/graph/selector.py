@@ -108,7 +108,7 @@ class NodeSelector(MethodManager):
         nodes = self.graph.nodes()
         try:
             collected = self.select_included(nodes, spec)
-            if spec.method == 'source_status':
+            if spec.method == 'source_refresh':
                 collected_excluded = self.select_excluded_source_nodes(nodes, spec)
             
         except InvalidSelectorException:
@@ -124,7 +124,7 @@ class NodeSelector(MethodManager):
             selected=(collected | neighbors),
             indirect_selection=spec.indirect_selection
         )
-        if spec.method == 'source_status':
+        if spec.method == 'source_refresh':
             neighbors_excluded = self.collect_specified_neighbors(spec, collected_excluded)
             direct_nodes_excluded, indirect_nodes_excluded = self.expand_selection(
                 selected=(collected_excluded | neighbors_excluded),
@@ -138,7 +138,7 @@ class NodeSelector(MethodManager):
                 warn_or_error(f"Direct Nodes: {direct_nodes_excluded}")
                 warn_or_error(f"Indirect Nodes: {indirect_nodes_excluded}")
                 warn_or_error(f"These source nodes: '{collected_excluded}' require '{spec.method}:{spec.value}' for the excluded nodes to run")
-                warn_or_error("Note: Concurrent selectors may include the excluded nodes(ex: source_status:warn+ source_status:pass+)")
+                warn_or_error("Note: Concurrent selectors may include the excluded nodes(ex: source_refresh:warn+ source_refresh:pass+)")
                 warn_or_error("")
 
         return direct_nodes, indirect_nodes
