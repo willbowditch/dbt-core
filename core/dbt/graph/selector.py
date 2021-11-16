@@ -17,8 +17,6 @@ from dbt.contracts.graph.compiled import GraphMemberNode
 from dbt.contracts.graph.manifest import Manifest
 from dbt.contracts.state import PreviousState
 
-from dbt.logger import GLOBAL_LOGGER as logger
-
 
 def get_package_names(nodes):
     return set([node.split(".")[1] for node in nodes])
@@ -134,17 +132,14 @@ class NodeSelector(MethodManager):
             )
             direct_nodes = direct_nodes - direct_nodes_excluded
             indirect_nodes = indirect_nodes - indirect_nodes_excluded
-            if direct_nodes_excluded != set():
-                logger.info(
-                    f"\nThe '{spec.method}' selector specified in '{spec.raw}' will"
-                    f" exclude the below nodes:\n"
-                    f"\nDirect Nodes: \n{direct_nodes_excluded}\n"
-                    f"\nIndirect Nodes: \n{indirect_nodes_excluded}\n"
-                    f"\nThese source nodes: '{collected_excluded}' require '{spec.method}:{spec.value}'"
-                    f" for the excluded nodes to run."
-                    f"\nNote: Concurrent selectors may include the excluded nodes(ex: source_status:warn+ source_status:pass+)"
-                    f"\n ----------------"
-                )
+
+            if direct_nodes_excluded != None:
+                warn_or_error(f"The '{spec.method}' selector specified in '{spec.raw}' will exclude the below nodes:")
+                warn_or_error(f"Direct Nodes: {direct_nodes_excluded}")
+                warn_or_error(f"Indirect Nodes: {indirect_nodes_excluded}")
+                warn_or_error(f"These source nodes: '{collected_excluded}' require '{spec.method}:{spec.value}' for the excluded nodes to run")
+                warn_or_error("Note: Concurrent selectors may include the excluded nodes(ex: source_status:warn+ source_status:pass+)")
+                warn_or_error("")
 
         return direct_nodes, indirect_nodes
 
