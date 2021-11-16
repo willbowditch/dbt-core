@@ -3,9 +3,10 @@ from typing import Set, List, Optional, Tuple
 from .graph import Graph, UniqueId
 from .queue import GraphQueue
 from .selector_methods import MethodManager
-from .selector_spec import SelectionCriteria, SelectionSpec
+from .selector_spec import SelectionCriteria, SelectionSpec, IndirectSelection
 
-from dbt.logger import GLOBAL_LOGGER as logger
+from dbt.events.functions import fire_event
+from dbt.events.types import SelectorReportInvalidSelector
 from dbt.node_types import NodeType
 from dbt.exceptions import (
     InternalException,
@@ -111,17 +112,17 @@ class NodeSelector(MethodManager):
                 collected_excluded = self.select_excluded_source_nodes(nodes, spec)
             
         except InvalidSelectorException:
-            valid_selectors = ", ".join(self.SELECTOR_METHODS)
-            logger.info(
-                f"The '{spec.method}' selector specified in {spec.raw} is "
-                f"invalid. Must be one of [{valid_selectors}]"
-            )
+            fire_event(SelectorReportInvalidSelector(
+                selector_methods=self.SELECTOR_METHODS,
+                spec_method=spec.method,
+                raw_spec=spec.raw
+            ))
             return set(), set()
 
         neighbors = self.collect_specified_neighbors(spec, collected)
         direct_nodes, indirect_nodes = self.expand_selection(
             selected=(collected | neighbors),
-            eagerly_expand=spec.eagerly_expand
+            indirect_selection=spec.indirect_selection
         )
         if spec.method == 'source_status':
             neighbors_excluded = self.collect_specified_neighbors(spec, collected_excluded)
@@ -249,7 +250,8 @@ class NodeSelector(MethodManager):
         }
 
     def expand_selection(
-        self, selected: Set[UniqueId], eagerly_expand: bool = True
+        self, selected: Set[UniqueId],
+        indirect_selection: IndirectSelection = IndirectSelection.Eager
     ) -> Tuple[Set[UniqueId], Set[UniqueId]]:
         # Test selection by default expands to include an implicitly/indirectly selected tests.
         # `dbt test -m model_a` also includes tests that directly depend on `model_a`.
@@ -262,7 +264,7 @@ class NodeSelector(MethodManager):
         #  - If ANY parent is missing, return it separately. We'll keep it around
         #    for later and see if its other parents show up.
         # Users can opt out of inclusive EAGER mode by passing --indirect-selection cautious
-        # CLI argument or by specifying `eagerly_expand: true` in a yaml selector
+        # CLI argument or by specifying `indirect_selection: true` in a yaml selector
 
         direct_nodes = set(selected)
         indirect_nodes = set()
@@ -272,7 +274,10 @@ class NodeSelector(MethodManager):
                 node = self.manifest.nodes[unique_id]
                 if can_select_indirectly(node):
                     # should we add it in directly?
-                    if eagerly_expand or set(node.depends_on.nodes) <= set(selected):
+                    if (
+                        indirect_selection == IndirectSelection.Eager or
+                        set(node.depends_on.nodes) <= set(selected)
+                    ):
                         direct_nodes.add(unique_id)
                     # if not:
                     else:

@@ -7,10 +7,11 @@ from dbt.contracts.graph.unparsed import UnparsedMacro
 from dbt.contracts.graph.parsed import ParsedMacro
 from dbt.contracts.files import FilePath, SourceFile
 from dbt.exceptions import CompilationException
-from dbt.logger import GLOBAL_LOGGER as logger
+from dbt.events.functions import fire_event
+from dbt.events.types import MacroFileParse
 from dbt.node_types import NodeType
 from dbt.parser.base import BaseParser
-from dbt.parser.search import FileBlock, FilesystemSearcher
+from dbt.parser.search import FileBlock, filesystem_search
 from dbt.utils import MACRO_PREFIX
 
 
@@ -18,11 +19,11 @@ class MacroParser(BaseParser[ParsedMacro]):
     # This is only used when creating a MacroManifest separate
     # from the normal parsing flow.
     def get_paths(self) -> List[FilePath]:
-        return list(FilesystemSearcher(
+        return filesystem_search(
             project=self.project,
             relative_dirs=self.project.macro_paths,
             extension='.sql',
-        ))
+        )
 
     @property
     def resource_type(self) -> NodeType:
@@ -96,7 +97,7 @@ class MacroParser(BaseParser[ParsedMacro]):
         source_file = block.file
         assert isinstance(source_file.contents, str)
         original_file_path = source_file.path.original_file_path
-        logger.debug("Parsing {}".format(original_file_path))
+        fire_event(MacroFileParse(path=original_file_path))
 
         # this is really only used for error messages
         base_node = UnparsedMacro(
