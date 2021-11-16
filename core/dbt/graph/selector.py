@@ -17,6 +17,8 @@ from dbt.contracts.graph.compiled import GraphMemberNode
 from dbt.contracts.graph.manifest import Manifest
 from dbt.contracts.state import PreviousState
 
+from dbt.logger import GLOBAL_LOGGER as logger
+
 
 def get_package_names(nodes):
     return set([node.split(".")[1] for node in nodes])
@@ -128,7 +130,7 @@ class NodeSelector(MethodManager):
             neighbors_excluded = self.collect_specified_neighbors(spec, collected_excluded)
             direct_nodes_excluded, indirect_nodes_excluded = self.expand_selection(
                 selected=(collected_excluded | neighbors_excluded),
-                eagerly_expand=spec.eagerly_expand
+                indirect_selection=spec.indirect_selection
             )
             direct_nodes = direct_nodes - direct_nodes_excluded
             indirect_nodes = indirect_nodes - indirect_nodes_excluded
