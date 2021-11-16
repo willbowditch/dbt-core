@@ -28,7 +28,7 @@ class AdapterEventBase(Cli, File):
 
     # instead of having this inherit from one of the level classes
     def level_tag(self) -> str:
-        raise Exception("level_tag not implemented for AdapterEventBase")
+        raise Exception("level_tag should never be called on AdapterEventBase")
 
     def message(self) -> str:
         # this class shouldn't be createable, but we can't make it an ABC because of a mypy bug
@@ -53,19 +53,19 @@ class AdapterEventBase(Cli, File):
         return f"{self.name} adapter: {msg}"
 
 
-class AdapterEventDebug(DebugLevel, ShowException, AdapterEventBase):
+class AdapterEventDebug(DebugLevel, AdapterEventBase, ShowException):
     pass
 
 
-class AdapterEventInfo(InfoLevel, ShowException, AdapterEventBase):
+class AdapterEventInfo(InfoLevel, AdapterEventBase, ShowException):
     pass
 
 
-class AdapterEventWarning(WarnLevel, ShowException, AdapterEventBase):
+class AdapterEventWarning(WarnLevel, AdapterEventBase, ShowException):
     pass
 
 
-class AdapterEventError(ErrorLevel, ShowException, AdapterEventBase):
+class AdapterEventError(ErrorLevel, AdapterEventBase, ShowException):
     pass
 
 

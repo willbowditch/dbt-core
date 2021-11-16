@@ -11,7 +11,7 @@ class AdapterLogger():
     name: str
 
     def debug(self, *args, **kwargs):
-        event = AdapterEventDebug(self.name, *args, **kwargs)
+        event = AdapterEventDebug(self.name, args, kwargs)
 
         event.exc_info = or_none(kwargs, 'exc_info')
         event.stack_info = or_none(kwargs, 'stack_info')
@@ -20,7 +20,7 @@ class AdapterLogger():
         fire_event(event)
 
     def info(self, *args, **kwargs):
-        event = AdapterEventInfo(self.name, *args, **kwargs)
+        event = AdapterEventInfo(self.name, args, kwargs)
 
         event.exc_info = or_none(kwargs, 'exc_info')
         event.stack_info = or_none(kwargs, 'stack_info')
@@ -29,7 +29,7 @@ class AdapterLogger():
         fire_event(event)
 
     def warning(self, *args, **kwargs):
-        event = AdapterEventWarning(self.name, *args, **kwargs)
+        event = AdapterEventWarning(self.name, args, kwargs)
 
         event.exc_info = or_none(kwargs, 'exc_info')
         event.stack_info = or_none(kwargs, 'stack_info')
@@ -38,7 +38,7 @@ class AdapterLogger():
         fire_event(event)
 
     def error(self, *args, **kwargs):
-        event = AdapterEventError(self.name, *args, **kwargs)
+        event = AdapterEventError(self.name, args, kwargs)
 
         event.exc_info = or_none(kwargs, 'exc_info')
         event.stack_info = or_none(kwargs, 'stack_info')
@@ -47,7 +47,7 @@ class AdapterLogger():
         fire_event(event)
 
     def exception(self, *args, **kwargs):
-        event = AdapterEventError(self.name, *args, **kwargs)
+        event = AdapterEventError(self.name, args, kwargs)
 
         # defaulting exc_info=True if it is empty is what makes this method different
         x = or_none(kwargs, 'exc_info')
