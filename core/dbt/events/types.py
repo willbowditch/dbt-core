@@ -18,6 +18,20 @@ from typing import Any, Callable, cast, Dict, List, Optional, Set, Tuple, Union
 # destinations they are intended for, which mypy uses to enforce
 # that the necessary methods are defined.
 
+# Event codes used here follow this table
+#
+# | Code |     Description     |
+# |:----:|:-------------------:|
+# | A    | Pre-project loading |
+# | E    | DB adapter          |
+# | I    | Project parsing     |
+# | M    | Deps generation     |
+# | Q    | Node processing     |
+# | W    | Node testing        |
+# | Y    | Post processing     |
+# | Z    | Misc                |
+#
+# The basic idea is that event codes roughly translate to the natural order of running a dbt task
 
 # can't use ABCs with @dataclass because of https://github.com/python/mypy/issues/5374
 @dataclass
@@ -54,22 +68,27 @@ class AdapterEventBase(Cli, File):
 
 
 class AdapterEventDebug(DebugLevel, AdapterEventBase, ShowException):
+    code: str = "E001"
     pass
 
 
 class AdapterEventInfo(InfoLevel, AdapterEventBase, ShowException):
+    code: str = "E002"
     pass
 
 
 class AdapterEventWarning(WarnLevel, AdapterEventBase, ShowException):
+    code: str = "E003"
     pass
 
 
 class AdapterEventError(ErrorLevel, AdapterEventBase, ShowException):
+    code: str = "E004"
     pass
 
 
 class MainKeyboardInterrupt(InfoLevel, Cli):
+    code: str = "Z001"
     def message(self) -> str:
         return "ctrl-c"
 
@@ -77,6 +96,7 @@ class MainKeyboardInterrupt(InfoLevel, Cli):
 # will log to a file if the file logger is configured
 @dataclass
 class MainEncounteredError(ErrorLevel, Cli):
+    code: str = "Z002"
     e: BaseException
 
     def message(self) -> str:
@@ -85,6 +105,7 @@ class MainEncounteredError(ErrorLevel, Cli):
 
 @dataclass
 class MainStackTrace(DebugLevel, Cli):
+    code: str = "Z003"
     stack_trace: str
 
     def message(self) -> str:
@@ -93,6 +114,7 @@ class MainStackTrace(DebugLevel, Cli):
 
 @dataclass
 class MainReportVersion(InfoLevel, Cli, File):
+    code: str = "A001"
     v: str  # could be VersionSpecifier instead if we resolved some circular imports
 
     def message(self):
@@ -101,6 +123,7 @@ class MainReportVersion(InfoLevel, Cli, File):
 
 @dataclass
 class MainReportArgs(DebugLevel, Cli, File):
+    code: str = "A002"
     args: argparse.Namespace
 
     def message(self):
@@ -109,6 +132,7 @@ class MainReportArgs(DebugLevel, Cli, File):
 
 @dataclass
 class MainTrackingUserState(DebugLevel, Cli):
+    code: str = "A003"
     user_state: str
 
     def message(self):
@@ -116,52 +140,62 @@ class MainTrackingUserState(DebugLevel, Cli):
 
 
 class ParsingStart(InfoLevel, Cli, File):
+    code: str = "I001"
     def message(self) -> str:
         return "Start parsing."
 
 
 class ParsingCompiling(InfoLevel, Cli, File):
+    code: str = "I002"
     def message(self) -> str:
         return "Compiling."
 
 
 class ParsingWritingManifest(InfoLevel, Cli, File):
+    code: str = "I003"
     def message(self) -> str:
         return "Writing manifest."
 
 
 class ParsingDone(InfoLevel, Cli, File):
+    code: str = "I004"
     def message(self) -> str:
         return "Done."
 
 
 class ManifestDependenciesLoaded(InfoLevel, Cli, File):
+    code: str = "I005"
     def message(self) -> str:
         return "Dependencies loaded"
 
 
 class ManifestLoaderCreated(InfoLevel, Cli, File):
+    code: str = "I006"
     def message(self) -> str:
         return "ManifestLoader created"
 
 
 class ManifestLoaded(InfoLevel, Cli, File):
+    code: str = "I007"
     def message(self) -> str:
         return "Manifest loaded"
 
 
 class ManifestChecked(InfoLevel, Cli, File):
+    code: str = "I008"
     def message(self) -> str:
         return "Manifest checked"
 
 
 class ManifestFlatGraphBuilt(InfoLevel, Cli, File):
+    code: str = "I009"
     def message(self) -> str:
         return "Flat graph built"
 
 
 @dataclass
 class ReportPerformancePath(InfoLevel, Cli, File):
+    code: str = "I010"
     path: str
 
     def message(self) -> str:
@@ -170,6 +204,7 @@ class ReportPerformancePath(InfoLevel, Cli, File):
 
 @dataclass
 class GitSparseCheckoutSubdirectory(DebugLevel, Cli, File):
+    code: str = "M001"
     subdir: str
 
     def message(self) -> str:
@@ -178,6 +213,7 @@ class GitSparseCheckoutSubdirectory(DebugLevel, Cli, File):
 
 @dataclass
 class GitProgressCheckoutRevision(DebugLevel, Cli, File):
+    code: str = "M002"
     revision: str
 
     def message(self) -> str:
@@ -186,6 +222,7 @@ class GitProgressCheckoutRevision(DebugLevel, Cli, File):
 
 @dataclass
 class GitProgressUpdatingExistingDependency(DebugLevel, Cli, File):
+    code: str = "M003"
     dir: str
 
     def message(self) -> str:
@@ -194,6 +231,7 @@ class GitProgressUpdatingExistingDependency(DebugLevel, Cli, File):
 
 @dataclass
 class GitProgressPullingNewDependency(DebugLevel, Cli, File):
+    code: str = "M004"
     dir: str
 
     def message(self) -> str:
@@ -202,6 +240,7 @@ class GitProgressPullingNewDependency(DebugLevel, Cli, File):
 
 @dataclass
 class GitNothingToDo(DebugLevel, Cli, File):
+    code: str = "M005"
     sha: str
 
     def message(self) -> str:
@@ -210,6 +249,7 @@ class GitNothingToDo(DebugLevel, Cli, File):
 
 @dataclass
 class GitProgressUpdatedCheckoutRange(DebugLevel, Cli, File):
+    code: str = "M006"
     start_sha: str
     end_sha: str
 
@@ -219,6 +259,7 @@ class GitProgressUpdatedCheckoutRange(DebugLevel, Cli, File):
 
 @dataclass
 class GitProgressCheckedOutAt(DebugLevel, Cli, File):
+    code: str = "M007"
     end_sha: str
 
     def message(self) -> str:
@@ -227,6 +268,7 @@ class GitProgressCheckedOutAt(DebugLevel, Cli, File):
 
 @dataclass
 class RegistryProgressMakingGETRequest(DebugLevel, Cli, File):
+    code: str = "M008"
     url: str
 
     def message(self) -> str:
@@ -235,6 +277,7 @@ class RegistryProgressMakingGETRequest(DebugLevel, Cli, File):
 
 @dataclass
 class RegistryProgressGETResponse(DebugLevel, Cli, File):
+    code: str = "M009"
     url: str
     resp_code: int
 
@@ -245,6 +288,7 @@ class RegistryProgressGETResponse(DebugLevel, Cli, File):
 # TODO this was actually `logger.exception(...)` not `logger.error(...)`
 @dataclass
 class SystemErrorRetrievingModTime(ErrorLevel, Cli, File):
+    code: str = "Z004"
     path: str
 
     def message(self) -> str:
@@ -253,6 +297,7 @@ class SystemErrorRetrievingModTime(ErrorLevel, Cli, File):
 
 @dataclass
 class SystemCouldNotWrite(DebugLevel, Cli, File):
+    code: str = "Z005"
     path: str
     reason: str
     exc: Exception
@@ -266,6 +311,7 @@ class SystemCouldNotWrite(DebugLevel, Cli, File):
 
 @dataclass
 class SystemExecutingCmd(DebugLevel, Cli, File):
+    code: str = "Z006"
     cmd: List[str]
 
     def message(self) -> str:
@@ -274,6 +320,7 @@ class SystemExecutingCmd(DebugLevel, Cli, File):
 
 @dataclass
 class SystemStdOutMsg(DebugLevel, Cli, File):
+    code: str = "Z007"
     bmsg: bytes
 
     def message(self) -> str:
@@ -282,6 +329,7 @@ class SystemStdOutMsg(DebugLevel, Cli, File):
 
 @dataclass
 class SystemStdErrMsg(DebugLevel, Cli, File):
+    code: str = "Z008"
     bmsg: bytes
 
     def message(self) -> str:
@@ -290,14 +338,16 @@ class SystemStdErrMsg(DebugLevel, Cli, File):
 
 @dataclass
 class SystemReportReturnCode(DebugLevel, Cli, File):
+    code: str = "Z009"
     returncode: str
 
     def message(self) -> str:
         return f"command return code={self.returncode}"
 
-
+# TODO remove?? Not called outside of this file
 @dataclass
 class SelectorAlertUpto3UnusedNodes(InfoLevel, Cli, File):
+    code: str = "I_NEED_A_CODE"
     node_names: List[str]
 
     def message(self) -> str:
@@ -311,9 +361,10 @@ class SelectorAlertUpto3UnusedNodes(InfoLevel, Cli, File):
             f"\n  - {summary_nodes_str}{and_more_str}"
         )
 
-
+# TODO remove?? Not called outside of this file
 @dataclass
 class SelectorAlertAllUnusedNodes(DebugLevel, Cli, File):
+    code: str = "I_NEED_A_CODE"
     node_names: List[str]
 
     def message(self) -> str:
@@ -326,6 +377,7 @@ class SelectorAlertAllUnusedNodes(DebugLevel, Cli, File):
 
 @dataclass
 class SelectorReportInvalidSelector(InfoLevel, Cli, File):
+    code: str = "M010"
     selector_methods: dict
     spec_method: str
     raw_spec: str
@@ -340,6 +392,7 @@ class SelectorReportInvalidSelector(InfoLevel, Cli, File):
 
 @dataclass
 class MacroEventInfo(InfoLevel, Cli, File):
+    code: str = "M011"
     msg: str
 
     def message(self) -> str:
@@ -348,6 +401,7 @@ class MacroEventInfo(InfoLevel, Cli, File):
 
 @dataclass
 class MacroEventDebug(DebugLevel, Cli, File):
+    code: str = "M012"
     msg: str
 
     def message(self) -> str:
@@ -356,6 +410,7 @@ class MacroEventDebug(DebugLevel, Cli, File):
 
 @dataclass
 class NewConnection(DebugLevel, Cli, File):
+    code: str = "E001"
     conn_type: str
     conn_name: str
 
@@ -365,6 +420,7 @@ class NewConnection(DebugLevel, Cli, File):
 
 @dataclass
 class ConnectionReused(DebugLevel, Cli, File):
+    code: str = "E002"
     conn_name: str
 
     def message(self) -> str:
@@ -373,6 +429,7 @@ class ConnectionReused(DebugLevel, Cli, File):
 
 @dataclass
 class ConnectionLeftOpen(DebugLevel, Cli, File):
+    code: str = "E003"
     conn_name: Optional[str]
 
     def message(self) -> str:
@@ -381,6 +438,7 @@ class ConnectionLeftOpen(DebugLevel, Cli, File):
 
 @dataclass
 class ConnectionClosed(DebugLevel, Cli, File):
+    code: str = "E004"
     conn_name: Optional[str]
 
     def message(self) -> str:
@@ -389,6 +447,7 @@ class ConnectionClosed(DebugLevel, Cli, File):
 
 @dataclass
 class RollbackFailed(ShowException, DebugLevel, Cli, File):
+    code: str = "E005"
     conn_name: Optional[str]
 
     def message(self) -> str:
@@ -398,6 +457,7 @@ class RollbackFailed(ShowException, DebugLevel, Cli, File):
 # TODO: can we combine this with ConnectionClosed?
 @dataclass
 class ConnectionClosed2(DebugLevel, Cli, File):
+    code: str = "E006"
     conn_name: Optional[str]
 
     def message(self) -> str:
@@ -407,6 +467,7 @@ class ConnectionClosed2(DebugLevel, Cli, File):
 # TODO: can we combine this with ConnectionLeftOpen?
 @dataclass
 class ConnectionLeftOpen2(DebugLevel, Cli, File):
+    code: str = "E006"
     conn_name: Optional[str]
 
     def message(self) -> str:
@@ -415,6 +476,7 @@ class ConnectionLeftOpen2(DebugLevel, Cli, File):
 
 @dataclass
 class Rollback(DebugLevel, Cli, File):
+    code: str = "E007"
     conn_name: Optional[str]
 
     def message(self) -> str:
@@ -423,6 +485,7 @@ class Rollback(DebugLevel, Cli, File):
 
 @dataclass
 class CacheMiss(DebugLevel, Cli, File):
+    code: str = "E008"
     conn_name: Any  # TODO mypy says this is `Callable[[], str]`??  ¯\_(ツ)_/¯
     database: Optional[str]
     schema: str
@@ -436,6 +499,7 @@ class CacheMiss(DebugLevel, Cli, File):
 
 @dataclass
 class ListRelations(DebugLevel, Cli, File):
+    code: str = "E009"
     database: Optional[str]
     schema: str
     relations: List[BaseRelation]
@@ -446,6 +510,7 @@ class ListRelations(DebugLevel, Cli, File):
 
 @dataclass
 class ConnectionUsed(DebugLevel, Cli, File):
+    code: str = "E010"
     conn_type: str
     conn_name: Optional[str]
 
@@ -455,6 +520,7 @@ class ConnectionUsed(DebugLevel, Cli, File):
 
 @dataclass
 class SQLQuery(DebugLevel, Cli, File):
+    code: str = "E011"
     conn_name: Optional[str]
     sql: str
 
@@ -464,6 +530,7 @@ class SQLQuery(DebugLevel, Cli, File):
 
 @dataclass
 class SQLQueryStatus(DebugLevel, Cli, File):
+    code: str = "E012"
     status: Union[AdapterResponse, str]
     elapsed: float
 
@@ -473,6 +540,7 @@ class SQLQueryStatus(DebugLevel, Cli, File):
 
 @dataclass
 class SQLCommit(DebugLevel, Cli, File):
+    code: str = "E013"
     conn_name: str
 
     def message(self) -> str:
@@ -481,6 +549,7 @@ class SQLCommit(DebugLevel, Cli, File):
 
 @dataclass
 class ColTypeChange(DebugLevel, Cli, File):
+    code: str = "E014"
     orig_type: str
     new_type: str
     table: str
@@ -491,6 +560,7 @@ class ColTypeChange(DebugLevel, Cli, File):
 
 @dataclass
 class SchemaCreation(DebugLevel, Cli, File):
+    code: str = "E015"
     relation: BaseRelation
 
     def message(self) -> str:
@@ -499,6 +569,7 @@ class SchemaCreation(DebugLevel, Cli, File):
 
 @dataclass
 class SchemaDrop(DebugLevel, Cli, File):
+    code: str = "E016"
     relation: BaseRelation
 
     def message(self) -> str:
@@ -509,6 +580,7 @@ class SchemaDrop(DebugLevel, Cli, File):
 # see: core/dbt/adapters/cache.py _add_link vs add_link
 @dataclass
 class UncachedRelation(DebugLevel, Cli, File):
+    code: str = "E017"
     dep_key: _ReferenceKey
     ref_key: _ReferenceKey
 
@@ -522,6 +594,7 @@ class UncachedRelation(DebugLevel, Cli, File):
 
 @dataclass
 class AddLink(DebugLevel, Cli, File):
+    code: str = "E018"
     dep_key: _ReferenceKey
     ref_key: _ReferenceKey
 
@@ -531,6 +604,7 @@ class AddLink(DebugLevel, Cli, File):
 
 @dataclass
 class AddRelation(DebugLevel, Cli, File):
+    code: str = "E019"
     relation: _CachedRelation
 
     def message(self) -> str:
@@ -539,6 +613,7 @@ class AddRelation(DebugLevel, Cli, File):
 
 @dataclass
 class DropMissingRelation(DebugLevel, Cli, File):
+    code: str = "E020"
     relation: _ReferenceKey
 
     def message(self) -> str:
@@ -547,6 +622,7 @@ class DropMissingRelation(DebugLevel, Cli, File):
 
 @dataclass
 class DropCascade(DebugLevel, Cli, File):
+    code: str = "E020"
     dropped: _ReferenceKey
     consequences: Set[_ReferenceKey]
 
@@ -556,6 +632,7 @@ class DropCascade(DebugLevel, Cli, File):
 
 @dataclass
 class DropRelation(DebugLevel, Cli, File):
+    code: str = "E021"
     dropped: _ReferenceKey
 
     def message(self) -> str:
@@ -564,6 +641,7 @@ class DropRelation(DebugLevel, Cli, File):
 
 @dataclass
 class UpdateReference(DebugLevel, Cli, File):
+    code: str = "E022"
     old_key: _ReferenceKey
     new_key: _ReferenceKey
     cached_key: _ReferenceKey
@@ -575,6 +653,7 @@ class UpdateReference(DebugLevel, Cli, File):
 
 @dataclass
 class TemporaryRelation(DebugLevel, Cli, File):
+    code: str = "E023"
     key: _ReferenceKey
 
     def message(self) -> str:
@@ -583,6 +662,7 @@ class TemporaryRelation(DebugLevel, Cli, File):
 
 @dataclass
 class RenameSchema(DebugLevel, Cli, File):
+    code: str = "E024"
     old_key: _ReferenceKey
     new_key: _ReferenceKey
 
@@ -592,6 +672,7 @@ class RenameSchema(DebugLevel, Cli, File):
 
 @dataclass
 class DumpBeforeAddGraph(DebugLevel, Cli, File):
+    code: str = "E025"
     graph_func: Callable[[], Dict[str, List[str]]]
 
     def message(self) -> str:
@@ -603,6 +684,7 @@ class DumpBeforeAddGraph(DebugLevel, Cli, File):
 
 @dataclass
 class DumpAfterAddGraph(DebugLevel, Cli, File):
+    code: str = "E026"
     graph_func: Callable[[], Dict[str, List[str]]]
 
     def message(self) -> str:
@@ -613,6 +695,7 @@ class DumpAfterAddGraph(DebugLevel, Cli, File):
 
 @dataclass
 class DumpBeforeRenameSchema(DebugLevel, Cli, File):
+    code: str = "E027"
     graph_func: Callable[[], Dict[str, List[str]]]
 
     def message(self) -> str:
@@ -623,6 +706,7 @@ class DumpBeforeRenameSchema(DebugLevel, Cli, File):
 
 @dataclass
 class DumpAfterRenameSchema(DebugLevel, Cli, File):
+    code: str = "E028"
     graph_func: Callable[[], Dict[str, List[str]]]
 
     def message(self) -> str:
@@ -633,6 +717,7 @@ class DumpAfterRenameSchema(DebugLevel, Cli, File):
 
 @dataclass
 class AdapterImportError(InfoLevel, Cli, File):
+    code: str = "E029"
     exc: ModuleNotFoundError
 
     def message(self) -> str:
@@ -641,12 +726,14 @@ class AdapterImportError(InfoLevel, Cli, File):
 
 @dataclass
 class PluginLoadError(ShowException, DebugLevel, Cli, File):
+    code: str = "E030"
     def message(self):
         pass
 
 
 @dataclass
 class NewConnectionOpening(DebugLevel, Cli, File):
+    code: str = "E031"
     connection_state: str
 
     def message(self) -> str:
@@ -654,12 +741,14 @@ class NewConnectionOpening(DebugLevel, Cli, File):
 
 
 class TimingInfoCollected(DebugLevel, Cli, File):
+    code: str = "Z010"
     def message(self) -> str:
         return "finished collecting timing info"
 
 
 @dataclass
 class MergedFromState(DebugLevel, Cli, File):
+    code: str = "A004"
     nbr_merged: int
     sample: List
 
@@ -669,6 +758,7 @@ class MergedFromState(DebugLevel, Cli, File):
 
 @dataclass
 class MissingProfileTarget(InfoLevel, Cli, File):
+    code: str = "A005"
     profile_name: str
     target_name: str
 
@@ -678,6 +768,7 @@ class MissingProfileTarget(InfoLevel, Cli, File):
 
 @dataclass
 class ProfileLoadError(ShowException, DebugLevel, Cli, File):
+    code: str = "A006"
     exc: Exception
 
     def message(self) -> str:
@@ -686,6 +777,7 @@ class ProfileLoadError(ShowException, DebugLevel, Cli, File):
 
 @dataclass
 class ProfileNotFound(InfoLevel, Cli, File):
+    code: str = "A007"
     profile_name: Optional[str]
 
     def message(self) -> str:
@@ -693,12 +785,15 @@ class ProfileNotFound(InfoLevel, Cli, File):
 
 
 class InvalidVarsYAML(ErrorLevel, Cli, File):
+    code: str = "A008"
     def message(self) -> str:
         return "The YAML provided in the --vars argument is not valid.\n"
 
 
+# TODO: Remove? (appears to be uncalled)
 @dataclass
 class CatchRunException(ShowException, DebugLevel, Cli, File):
+    code: str = "I_NEED_A_CODE"
     build_path: Any
     exc: Exception
 
@@ -715,16 +810,19 @@ class CatchRunException(ShowException, DebugLevel, Cli, File):
         return error
 
 
+# TODO: Remove? (appears to be uncalled)
 @dataclass
 class HandleInternalException(ShowException, DebugLevel, Cli, File):
+    code: str = "I_NEED_A_CODE"
     exc: Exception
 
     def message(self) -> str:
         return str(self.exc)
 
-
+# TODO: Remove? (appears to be uncalled)
 @dataclass
 class MessageHandleGenericException(ErrorLevel, Cli, File):
+    code: str = "I_NEED_A_CODE"
     build_path: str
     unique_id: str
     exc: Exception
@@ -739,15 +837,17 @@ class MessageHandleGenericException(ErrorLevel, Cli, File):
             error=str(self.exc).strip()
         )
 
-
+# TODO: Remove? (appears to be uncalled)
 @dataclass
 class DetailsHandleGenericException(ShowException, DebugLevel, Cli, File):
+    code: str = "I_NEED_A_CODE"
     def message(self) -> str:
         return ''
 
 
 @dataclass
 class GenericTestFileParse(DebugLevel, Cli, File):
+    code: str = "I011"
     path: str
 
     def message(self) -> str:
@@ -756,6 +856,7 @@ class GenericTestFileParse(DebugLevel, Cli, File):
 
 @dataclass
 class MacroFileParse(DebugLevel, Cli, File):
+    code: str = "I012"
     path: str
 
     def message(self) -> str:
@@ -763,12 +864,14 @@ class MacroFileParse(DebugLevel, Cli, File):
 
 
 class PartialParsingFullReparseBecauseOfError(InfoLevel, Cli, File):
+    code: str = "I013"
     def message(self) -> str:
         return "Partial parsing enabled but an error occurred. Switching to a full re-parse."
 
 
 @dataclass
 class PartialParsingExceptionFile(DebugLevel, Cli, File):
+    code: str = "I014"
     file: str
 
     def message(self) -> str:
@@ -777,6 +880,7 @@ class PartialParsingExceptionFile(DebugLevel, Cli, File):
 
 @dataclass
 class PartialParsingFile(DebugLevel, Cli, File):
+    code: str = "I015"
     file_dict: Dict
 
     def message(self) -> str:
@@ -785,6 +889,7 @@ class PartialParsingFile(DebugLevel, Cli, File):
 
 @dataclass
 class PartialParsingException(DebugLevel, Cli, File):
+    code: str = "I016"
     exc_info: Dict
 
     def message(self) -> str:
@@ -792,27 +897,32 @@ class PartialParsingException(DebugLevel, Cli, File):
 
 
 class PartialParsingSkipParsing(DebugLevel, Cli, File):
+    code: str = "I017"
     def message(self) -> str:
         return "Partial parsing enabled, no changes found, skipping parsing"
 
 
 class PartialParsingMacroChangeStartFullParse(InfoLevel, Cli, File):
+    code: str = "I018"
     def message(self) -> str:
         return "Change detected to override macro used during parsing. Starting full parse."
 
 
 class PartialParsingProjectEnvVarsChanged(InfoLevel, Cli, File):
+    code: str = "I019"
     def message(self) -> str:
         return "Unable to do partial parsing because env vars used in dbt_project.yml have changed"
 
 
 class PartialParsingProfileEnvVarsChanged(InfoLevel, Cli, File):
+    code: str = "I020"
     def message(self) -> str:
         return "Unable to do partial parsing because env vars used in profiles.yml have changed"
 
 
 @dataclass
 class PartialParsingDeletedMetric(DebugLevel, Cli, File):
+    code: str = "I021"
     id: str
 
     def message(self) -> str:
@@ -821,6 +931,7 @@ class PartialParsingDeletedMetric(DebugLevel, Cli, File):
 
 @dataclass
 class ManifestWrongMetadataVersion(DebugLevel, Cli, File):
+    code: str = "I022"
     version: str
 
     def message(self) -> str:
@@ -830,6 +941,7 @@ class ManifestWrongMetadataVersion(DebugLevel, Cli, File):
 
 @dataclass
 class PartialParsingVersionMismatch(InfoLevel, Cli, File):
+    code: str = "I023"
     saved_version: str
     current_version: str
 
@@ -840,33 +952,39 @@ class PartialParsingVersionMismatch(InfoLevel, Cli, File):
 
 
 class PartialParsingFailedBecauseConfigChange(InfoLevel, Cli, File):
+    code: str = "I024"
     def message(self) -> str:
         return ("Unable to do partial parsing because config vars, "
                 "config profile, or config target have changed")
 
 
 class PartialParsingFailedBecauseProfileChange(InfoLevel, Cli, File):
+    code: str = "I025"
     def message(self) -> str:
         return ("Unable to do partial parsing because profile has changed")
 
 
 class PartialParsingFailedBecauseNewProjectDependency(InfoLevel, Cli, File):
+    code: str = "I026"
     def message(self) -> str:
         return ("Unable to do partial parsing because a project dependency has been added")
 
 
 class PartialParsingFailedBecauseHashChanged(InfoLevel, Cli, File):
+    code: str = "I027"
     def message(self) -> str:
         return ("Unable to do partial parsing because a project config has changed")
 
 
 class PartialParsingNotEnabled(DebugLevel, Cli, File):
+    code: str = "I028"
     def message(self) -> str:
         return ("Partial parsing not enabled")
 
 
 @dataclass
 class ParsedFileLoadFailed(ShowException, DebugLevel, Cli, File):
+    code: str = "I029"
     path: str
     exc: Exception
 
@@ -875,12 +993,14 @@ class ParsedFileLoadFailed(ShowException, DebugLevel, Cli, File):
 
 
 class PartialParseSaveFileNotFound(InfoLevel, Cli, File):
+    code: str = "I030"
     def message(self) -> str:
         return ("Partial parse save file not found. Starting full parse.")
 
 
 @dataclass
 class StaticParserCausedJinjaRendering(DebugLevel, Cli, File):
+    code: str = "I031"
     path: str
 
     def message(self) -> str:
@@ -891,6 +1011,7 @@ class StaticParserCausedJinjaRendering(DebugLevel, Cli, File):
 #       the `TestLevel` logger once we implement it.  Some will probably stay `DebugLevel`.
 @dataclass
 class UsingExperimentalParser(DebugLevel, Cli, File):
+    code: str = "I032"
     path: str
 
     def message(self) -> str:
@@ -899,6 +1020,7 @@ class UsingExperimentalParser(DebugLevel, Cli, File):
 
 @dataclass
 class SampleFullJinjaRendering(DebugLevel, Cli, File):
+    code: str = "I033"
     path: str
 
     def message(self) -> str:
@@ -907,6 +1029,7 @@ class SampleFullJinjaRendering(DebugLevel, Cli, File):
 
 @dataclass
 class StaticParserFallbackJinjaRendering(DebugLevel, Cli, File):
+    code: str = "I034"
     path: str
 
     def message(self) -> str:
@@ -915,6 +1038,7 @@ class StaticParserFallbackJinjaRendering(DebugLevel, Cli, File):
 
 @dataclass
 class StaticParsingMacroOverrideDetected(DebugLevel, Cli, File):
+    code: str = "I035"
     path: str
 
     def message(self) -> str:
@@ -923,6 +1047,7 @@ class StaticParsingMacroOverrideDetected(DebugLevel, Cli, File):
 
 @dataclass
 class StaticParserSuccess(DebugLevel, Cli, File):
+    code: str = "I036"
     path: str
 
     def message(self) -> str:
@@ -931,6 +1056,7 @@ class StaticParserSuccess(DebugLevel, Cli, File):
 
 @dataclass
 class StaticParserFailure(DebugLevel, Cli, File):
+    code: str = "I037"
     path: str
 
     def message(self) -> str:
@@ -939,6 +1065,7 @@ class StaticParserFailure(DebugLevel, Cli, File):
 
 @dataclass
 class ExperimentalParserSuccess(DebugLevel, Cli, File):
+    code: str = "I038"
     path: str
 
     def message(self) -> str:
@@ -947,6 +1074,7 @@ class ExperimentalParserSuccess(DebugLevel, Cli, File):
 
 @dataclass
 class ExperimentalParserFailure(DebugLevel, Cli, File):
+    code: str = "I039"
     path: str
 
     def message(self) -> str:
@@ -955,6 +1083,7 @@ class ExperimentalParserFailure(DebugLevel, Cli, File):
 
 @dataclass
 class PartialParsingEnabled(DebugLevel, Cli, File):
+    code: str = "I040"
     deleted: int
     added: int
     changed: int
@@ -968,6 +1097,7 @@ class PartialParsingEnabled(DebugLevel, Cli, File):
 
 @dataclass
 class PartialParsingAddedFile(DebugLevel, Cli, File):
+    code: str = "I041"
     file_id: str
 
     def message(self) -> str:
@@ -976,6 +1106,7 @@ class PartialParsingAddedFile(DebugLevel, Cli, File):
 
 @dataclass
 class PartialParsingDeletedFile(DebugLevel, Cli, File):
+    code: str = "I042"
     file_id: str
 
     def message(self) -> str:
@@ -984,6 +1115,7 @@ class PartialParsingDeletedFile(DebugLevel, Cli, File):
 
 @dataclass
 class PartialParsingUpdatedFile(DebugLevel, Cli, File):
+    code: str = "I043"
     file_id: str
 
     def message(self) -> str:
@@ -992,6 +1124,7 @@ class PartialParsingUpdatedFile(DebugLevel, Cli, File):
 
 @dataclass
 class PartialParsingNodeMissingInSourceFile(DebugLevel, Cli, File):
+    code: str = "I044"
     source_file: str
 
     def message(self) -> str:
@@ -1000,6 +1133,7 @@ class PartialParsingNodeMissingInSourceFile(DebugLevel, Cli, File):
 
 @dataclass
 class PartialParsingMissingNodes(DebugLevel, Cli, File):
+    code: str = "I045"
     file_id: str
 
     def message(self) -> str:
@@ -1008,6 +1142,7 @@ class PartialParsingMissingNodes(DebugLevel, Cli, File):
 
 @dataclass
 class PartialParsingChildMapMissingUniqueID(DebugLevel, Cli, File):
+    code: str = "I046"
     unique_id: str
 
     def message(self) -> str:
@@ -1016,6 +1151,7 @@ class PartialParsingChildMapMissingUniqueID(DebugLevel, Cli, File):
 
 @dataclass
 class PartialParsingUpdateSchemaFile(DebugLevel, Cli, File):
+    code: str = "I047"
     file_id: str
 
     def message(self) -> str:
@@ -1024,6 +1160,7 @@ class PartialParsingUpdateSchemaFile(DebugLevel, Cli, File):
 
 @dataclass
 class PartialParsingDeletedSource(DebugLevel, Cli, File):
+    code: str = "I048"
     unique_id: str
 
     def message(self) -> str:
@@ -1032,6 +1169,7 @@ class PartialParsingDeletedSource(DebugLevel, Cli, File):
 
 @dataclass
 class PartialParsingDeletedExposure(DebugLevel, Cli, File):
+    code: str = "I049"
     unique_id: str
 
     def message(self) -> str:
@@ -1040,6 +1178,7 @@ class PartialParsingDeletedExposure(DebugLevel, Cli, File):
 
 @dataclass
 class InvalidDisabledSourceInTestNode(WarnLevel, Cli, File):
+    code: str = "I050"
     msg: str
 
     def message(self) -> str:
@@ -1048,6 +1187,7 @@ class InvalidDisabledSourceInTestNode(WarnLevel, Cli, File):
 
 @dataclass
 class InvalidRefInTestNode(WarnLevel, Cli, File):
+    code: str = "I051"
     msg: str
 
     def message(self) -> str:
@@ -1056,6 +1196,7 @@ class InvalidRefInTestNode(WarnLevel, Cli, File):
 
 @dataclass
 class RunningOperationCaughtError(ErrorLevel, Cli, File):
+    code: str = "Q001"
     exc: Exception
 
     def message(self) -> str:
@@ -1064,6 +1205,7 @@ class RunningOperationCaughtError(ErrorLevel, Cli, File):
 
 @dataclass
 class RunningOperationUncaughtError(ErrorLevel, Cli, File):
+    code: str = "W001"
     exc: Exception
 
     def message(self) -> str:
@@ -1071,12 +1213,14 @@ class RunningOperationUncaughtError(ErrorLevel, Cli, File):
 
 
 class DbtProjectError(ErrorLevel, Cli, File):
+    code: str = "A009"
     def message(self) -> str:
         return "Encountered an error while reading the project:"
 
 
 @dataclass
 class DbtProjectErrorException(ErrorLevel, Cli, File):
+    code: str = "A010"
     exc: Exception
 
     def message(self) -> str:
@@ -1084,12 +1228,14 @@ class DbtProjectErrorException(ErrorLevel, Cli, File):
 
 
 class DbtProfileError(ErrorLevel, Cli, File):
+    code: str = "A011"
     def message(self) -> str:
         return "Encountered an error while reading profiles:"
 
 
 @dataclass
 class DbtProfileErrorException(ErrorLevel, Cli, File):
+    code: str = "A012"
     exc: Exception
 
     def message(self) -> str:
@@ -1097,12 +1243,14 @@ class DbtProfileErrorException(ErrorLevel, Cli, File):
 
 
 class ProfileListTitle(InfoLevel, Cli, File):
+    code: str = "A013"
     def message(self) -> str:
         return "Defined profiles:"
 
 
 @dataclass
 class ListSingleProfile(InfoLevel, Cli, File):
+    code: str = "A014"
     profile: str
 
     def message(self) -> str:
@@ -1110,11 +1258,13 @@ class ListSingleProfile(InfoLevel, Cli, File):
 
 
 class NoDefinedProfiles(InfoLevel, Cli, File):
+    code: str = "A015"
     def message(self) -> str:
         return "There are no profiles defined in your profiles.yml file"
 
 
 class ProfileHelpMessage(InfoLevel, Cli, File):
+    code: str = "A016"
     def message(self) -> str:
         PROFILES_HELP_MESSAGE = """
 For more information on configuring profiles, please consult the dbt docs:
@@ -1126,6 +1276,7 @@ https://docs.getdbt.com/docs/configure-your-profile
 
 @dataclass
 class CatchableExceptionOnRun(ShowException, DebugLevel, Cli, File):
+    code: str = "W002"
     exc: Exception
 
     def message(self) -> str:
@@ -1134,6 +1285,7 @@ class CatchableExceptionOnRun(ShowException, DebugLevel, Cli, File):
 
 @dataclass
 class InternalExceptionOnRun(DebugLevel, Cli, File):
+    code: str = "W003"
     build_path: str
     exc: Exception
 
@@ -1155,12 +1307,14 @@ the error persists, open an issue at https://github.com/dbt-labs/dbt-core
 # at the error level - or whatever other level chosen.  Used in multiple places.
 @dataclass
 class PrintDebugStackTrace(ShowException, DebugLevel, Cli, File):
+    code: str = "Z011"
     def message(self) -> str:
         return ""
 
 
 @dataclass
 class GenericExceptionOnRun(ErrorLevel, Cli, File):
+    code: str = "W004"
     build_path: str
     unique_id: str
     exc: Exception
@@ -1178,6 +1332,7 @@ class GenericExceptionOnRun(ErrorLevel, Cli, File):
 
 @dataclass
 class NodeConnectionReleaseError(ShowException, DebugLevel, Cli, File):
+    code: str = "W005"
     node_name: str
     exc: Exception
 
@@ -1188,6 +1343,7 @@ class NodeConnectionReleaseError(ShowException, DebugLevel, Cli, File):
 
 @dataclass
 class CheckCleanPath(InfoLevel, Cli):
+    code: str = "Z012"
     path: str
 
     def message(self) -> str:
@@ -1196,6 +1352,7 @@ class CheckCleanPath(InfoLevel, Cli):
 
 @dataclass
 class ConfirmCleanPath(InfoLevel, Cli):
+    code: str = "Z013"
     path: str
 
     def message(self) -> str:
@@ -1204,6 +1361,7 @@ class ConfirmCleanPath(InfoLevel, Cli):
 
 @dataclass
 class ProtectedCleanPath(InfoLevel, Cli):
+    code: str = "Z014"
     path: str
 
     def message(self) -> str:
@@ -1211,6 +1369,7 @@ class ProtectedCleanPath(InfoLevel, Cli):
 
 
 class FinishedCleanPaths(InfoLevel, Cli):
+    code: str = "Z015"
     def message(self) -> str:
         return "Finished cleaning all paths."
 
