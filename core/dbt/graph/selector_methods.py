@@ -612,7 +612,7 @@ class SourceRefreshSelectorMethod(SelectorMethod): #TODO: this requires Selector
                 matches_not_fresh.add(unique_id)
 
         if matches_not_fresh:
-            warn_or_error(f"{matches_not_fresh} sources will not refresh, max_loaded_at date must be greater than previous state")
+            warn_or_error(f"{matches_not_fresh} sources will not refresh other nodes, max_loaded_at date must be greater than previous state")
         
         for node, real_node in self.all_nodes(included_nodes):
             if node in matches:
