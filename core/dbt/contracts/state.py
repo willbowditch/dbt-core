@@ -48,7 +48,6 @@ class CurrentState:
         self.sources: Optional[FreshnessExecutionResultArtifact] = None
 
         sources_path = self.path / 'sources.json'
-        print(sources_path)
         if sources_path.exists() and sources_path.is_file():
             try:
                 self.sources = FreshnessExecutionResultArtifact.read(str(sources_path))
