@@ -585,13 +585,13 @@ class SourceRefreshSelectorMethod(SelectorMethod): #TODO: this requires Selector
     ) -> Iterator[UniqueId]:
         self.current_state = CurrentState(path=Path('target')) #TODO: fix this by importing target_path later
 
-        if self.previous_state is None or self.previous_state.sources.results is None:
+        if self.previous_state is None or self.previous_state.sources is None:
             raise InternalException(
-                'No previous state comparison results in sources.json'
+                'No previous state comparison freshness results in sources.json'
             )
-        elif self.current_state is None or self.current_state.sources.results is None:
+        elif self.current_state is None or self.current_state.sources is None:
             raise InternalException(
-                'No current state comparison results in sources.json'
+                'No current state comparison freshness results in sources.json'
             )
         current_state_sources = {
             result.unique_id:result.max_loaded_at for result in self.current_state.sources.results
