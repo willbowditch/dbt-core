@@ -1841,10 +1841,11 @@ class QueryCancelationUnsupported(InfoLevel, Cli, File):
 
 @dataclass
 class ConcurrencyLine(InfoLevel, Cli, File):
-    concurrency_line: str
+    num_threads: int
+    target_name: str
 
     def message(self) -> str:
-        return self.concurrency_line
+        return f"Concurrency: {self.num_threads} threads (target='{self.target_name}')"
 
 
 @dataclass
@@ -2276,7 +2277,7 @@ if 1 == 0:
     NodeStart(unique_id='')
     NodeFinished(unique_id='')
     QueryCancelationUnsupported(type='')
-    ConcurrencyLine(concurrency_line='')
+    ConcurrencyLine(num_threads=0, target_name='')
     StarterProjectPath(dir='')
     ConfigFolderDirectory(dir='')
     NoSampleProfileFound(adapter='')
