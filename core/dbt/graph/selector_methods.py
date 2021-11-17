@@ -22,7 +22,7 @@ from dbt.contracts.graph.parsed import (
     ParsedGenericTestNode,
     ParsedSourceDefinition,
 )
-from dbt.contracts.state import PreviousState
+from dbt.contracts.state import PreviousState, CurrentState
 from dbt.exceptions import (
     InternalException,
     RuntimeException,
@@ -582,14 +582,37 @@ class SourceRefreshSelectorMethod(SelectorMethod):
     def search(
         self, included_nodes: Set[UniqueId], selector: str
     ) -> Iterator[UniqueId]:
+        self.current_state = CurrentState(path=Path('target')) #TODO: fix this by importing target_path later
+
         if self.previous_state is None or self.previous_state.sources.results is None:
             raise InternalException(
-                'No comparison results in sources.json'
+                'No previous state comparison results in sources.json'
             )
-        matches = set(
-            result.unique_id for result in self.previous_state.sources.results
+        elif self.current_state is None or self.current_state.sources.results is None:
+            raise InternalException(
+                'No current state comparison results in sources.json'
+            )
+        current_state_sources = {
+            result.unique_id:result.max_loaded_at for result in self.current_state.sources.results
             if result.status == selector
-        )
+        }
+        previous_state_sources = {
+            result.unique_id:result.max_loaded_at for result in self.previous_state.sources.results
+        }
+
+        matches = set()
+        matches_not_fresh = set()
+        for unique_id in current_state_sources:
+            if unique_id not in previous_state_sources:
+                matches.add(unique_id)
+            elif current_state_sources[unique_id] > previous_state_sources[unique_id]:
+                matches.add(unique_id)
+            else:
+                matches_not_fresh.add(unique_id)
+
+        if matches_not_fresh:
+            warn_or_error(f"{matches_not_fresh} sources will not refresh, max_loaded_at date must be greater than previous state")
+        
         for node, real_node in self.all_nodes(included_nodes):
             if node in matches:
                 yield node
