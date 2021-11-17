@@ -3,6 +3,7 @@ from colorama import Style
 import dbt.events.functions as this  # don't worry I hate it too.
 from dbt.events.base_types import Cli, Event, File, ShowException
 import dbt.flags as flags
+import dbt.ui as ui
 # TODO this will need to move eventually
 from dbt.logger import SECRET_ENV_PREFIX, make_log_dir_if_missing, GLOBAL_LOGGER
 import io
@@ -110,6 +111,19 @@ def scrub_secrets(msg: str, secrets: List[str]) -> str:
 T_Event = TypeVar('T_Event', bound=Event)
 
 
+def format_level(level):
+    fixed_width = level.ljust(5)
+    # TODO turn off all color everwhere for file + JSON
+    if not this.format_color:
+        return fixed_width
+    elif level == 'warn':
+        return ui.yellow(fixed_width)
+    elif level == 'error':
+        return ui.red(fixed_width)
+    else:
+        return fixed_width
+
+
 # translates an Event to a completely formatted text-based log line
 # you have to specify which message you want. (i.e. - e.message, e.cli_msg(), e.file_msg())
 # type hinting everything as strings so we don't get any unintentional string conversions via str()
@@ -117,7 +131,7 @@ def create_text_log_line(e: T_Event, msg_fn: Callable[[T_Event], str]) -> str:
     color_tag: str = '' if this.format_color else Style.RESET_ALL
     ts: str = e.ts.strftime("%H:%M:%S")
     scrubbed_msg: str = scrub_secrets(msg_fn(e), env_secrets())
-    level: str = e.level_tag()
+    level: str = format_level(e.level_tag())
     log_line: str = f"{color_tag}{ts} | [ {level} ] | {scrubbed_msg}"
     return log_line
 

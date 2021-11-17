@@ -94,7 +94,7 @@ class GitPinnedPackage(GitPackageMixin, PinnedPackage):
                 'The git package "{}" \n\tis {}.\n\tThis can introduce '
                 'breaking changes into your project without warning!\n\nSee {}'
                 .format(self.git, self.unpinned_msg(), PIN_PACKAGE_URL),
-                log_fmt=ui.yellow('WARNING: {}')
+                log_fmt=ui.warning_tag('{}')
             )
         loaded = Project.from_project_root(path, renderer)
         return ProjectPackageMetadata.from_project(loaded)

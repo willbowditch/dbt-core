@@ -961,7 +961,7 @@ class MacroPatchParser(NonSourceParser[UnparsedMacroUpdate, ParsedMacroPatch]):
         macro = self.manifest.macros.get(unique_id)
         if not macro:
             warn_or_error(
-                f'WARNING: Found patch for macro "{patch.name}" '
+                f'Found patch for macro "{patch.name}" '
                 f'which was not found'
             )
             return

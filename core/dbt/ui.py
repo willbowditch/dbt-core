@@ -66,4 +66,6 @@ def line_wrap_message(
 
 
 def warning_tag(msg: str) -> str:
-    return f'[{yellow("WARNING")}]: {msg}'
+    # duplicative now that new structured logs include levels
+    # return f'[{yellow("WARNING")}]: {msg}'
+    return msg
