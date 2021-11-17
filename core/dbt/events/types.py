@@ -652,7 +652,7 @@ class ProfileNotFound(InfoLevel, Cli, File):
 
 class InvalidVarsYAML(ErrorLevel, Cli, File):
     def message(self) -> str:
-        return "The YAML provided in the --vars argument is not valid.\n"
+        return "The YAML provided in the --vars argument is not valid."
 
 
 @dataclass
@@ -1237,7 +1237,7 @@ class DepsNotifyUpdatesAvailable(InfoLevel, Cli, File):
     packages: List[str]
 
     def message(self) -> str:
-        return ('\nUpdates available for packages: {} \
+        return ('Updates available for packages: {} \
                 \nUpdate your versions in packages.yml, then run dbt deps'.format(self.packages))
 
 
@@ -1249,7 +1249,9 @@ class DatabaseErrorRunning(InfoLevel, Cli, File):
         return f"Database error while running {self.hook_type}"
 
 
-class EmptyLine(InfoLevel, Cli, File):
+class EmptyLine(InfoLevel, Cli):
+    # ignore in file
+    # TODO: ignore if JSON formatted?
     def message(self) -> str:
         return ''
 
@@ -1329,7 +1331,7 @@ class ServingDocsAccessInfo(InfoLevel, Cli, File):
 
 class ServingDocsExitInfo(InfoLevel, Cli, File):
     def message(self) -> str:
-        return "Press Ctrl+C to exit.\n\n"
+        return "Press Ctrl+C to exit."
 
 
 @dataclass
@@ -1375,7 +1377,7 @@ class StatsLine(InfoLevel, Cli, File):
     stats: Dict
 
     def message(self) -> str:
-        stats_line = ("\nDone. PASS={pass} WARN={warn} ERROR={error} SKIP={skip} TOTAL={total}")
+        stats_line = ("Done. PASS={pass} WARN={warn} ERROR={error} SKIP={skip} TOTAL={total}")
         return stats_line.format(**self.stats)
 
 
