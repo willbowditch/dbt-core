@@ -579,7 +579,7 @@ class ResultSelectorMethod(SelectorMethod):
             if node in matches:
                 yield node
 
-class SourceRefreshSelectorMethod(SelectorMethod):
+class SourceRefreshSelectorMethod(SelectorMethod): #TODO: this requires SelectorMethod to have current_state as an argument. currently, this works because it's all hard-coded
     def search(
         self, included_nodes: Set[UniqueId], selector: str
     ) -> Iterator[UniqueId]:
