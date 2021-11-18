@@ -90,7 +90,7 @@ class NodeSelector(MethodManager):
         excluded_source_nodes = set()
         for source_status in source_status_values_to_exclude:
             source_nodes = method.search(included_nodes, source_status)
-            excluded_source_nodes.update(source_nodes)
+            excluded_source_nodes.update(set(source_nodes))
         
         return excluded_source_nodes
 
@@ -125,6 +125,7 @@ class NodeSelector(MethodManager):
             indirect_selection=spec.indirect_selection
         )
         if spec.method == 'source_refresh':
+            print(f"collected_excluded: {collected_excluded}")
             neighbors_excluded = self.collect_specified_neighbors(spec, collected_excluded)
             direct_nodes_excluded, indirect_nodes_excluded = self.expand_selection(
                 selected=(collected_excluded | neighbors_excluded),
