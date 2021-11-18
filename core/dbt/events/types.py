@@ -66,29 +66,35 @@ class AdapterEventBase(Cli, File):
         msg = capture_buf.getvalue()
         return f"{self.name} adapter: {msg}"
 
+
 @dataclass
 class AdapterEventDebug(DebugLevel, AdapterEventBase, ShowException):
     code: str = "E001"
     pass
+
 
 @dataclass
 class AdapterEventInfo(InfoLevel, AdapterEventBase, ShowException):
     code: str = "E002"
     pass
 
+
 @dataclass
 class AdapterEventWarning(WarnLevel, AdapterEventBase, ShowException):
     code: str = "E003"
     pass
+
 
 @dataclass
 class AdapterEventError(ErrorLevel, AdapterEventBase, ShowException):
     code: str = "E004"
     pass
 
+
 @dataclass
 class MainKeyboardInterrupt(InfoLevel, Cli):
     code: str = "Z001"
+
     def message(self) -> str:
         return "ctrl-c"
 
@@ -138,57 +144,75 @@ class MainTrackingUserState(DebugLevel, Cli):
     def message(self):
         return f"Tracking: {self.user_state}"
 
+
 @dataclass
 class ParsingStart(InfoLevel, Cli, File):
     code: str = "I001"
+
     def message(self) -> str:
         return "Start parsing."
+
 
 @dataclass
 class ParsingCompiling(InfoLevel, Cli, File):
     code: str = "I002"
+
     def message(self) -> str:
         return "Compiling."
+
 
 @dataclass
 class ParsingWritingManifest(InfoLevel, Cli, File):
     code: str = "I003"
+
     def message(self) -> str:
         return "Writing manifest."
+
 
 @dataclass
 class ParsingDone(InfoLevel, Cli, File):
     code: str = "I004"
+
     def message(self) -> str:
         return "Done."
+
 
 @dataclass
 class ManifestDependenciesLoaded(InfoLevel, Cli, File):
     code: str = "I005"
+
     def message(self) -> str:
         return "Dependencies loaded"
+
 
 @dataclass
 class ManifestLoaderCreated(InfoLevel, Cli, File):
     code: str = "I006"
+
     def message(self) -> str:
         return "ManifestLoader created"
+
 
 @dataclass
 class ManifestLoaded(InfoLevel, Cli, File):
     code: str = "I007"
+
     def message(self) -> str:
         return "Manifest loaded"
+
 
 @dataclass
 class ManifestChecked(InfoLevel, Cli, File):
     code: str = "I008"
+
     def message(self) -> str:
         return "Manifest checked"
+
 
 @dataclass
 class ManifestFlatGraphBuilt(InfoLevel, Cli, File):
     code: str = "I009"
+
     def message(self) -> str:
         return "Flat graph built"
 
@@ -345,6 +369,8 @@ class SystemReportReturnCode(DebugLevel, Cli, File):
         return f"command return code={self.returncode}"
 
 # TODO remove?? Not called outside of this file
+
+
 @dataclass
 class SelectorAlertUpto3UnusedNodes(InfoLevel, Cli, File):
     node_names: List[str]
@@ -362,6 +388,8 @@ class SelectorAlertUpto3UnusedNodes(InfoLevel, Cli, File):
         )
 
 # TODO remove?? Not called outside of this file
+
+
 @dataclass
 class SelectorAlertAllUnusedNodes(DebugLevel, Cli, File):
     node_names: List[str]
@@ -727,6 +755,7 @@ class AdapterImportError(InfoLevel, Cli, File):
 @dataclass
 class PluginLoadError(ShowException, DebugLevel, Cli, File):
     code: str = "E030"
+
     def message(self):
         pass
 
@@ -743,7 +772,7 @@ class NewConnectionOpening(DebugLevel, Cli, File):
 @dataclass
 class TimingInfoCollected(DebugLevel, Cli, File):
     code: str = "Z010"
-    
+
     def message(self) -> str:
         return "finished collecting timing info"
 
@@ -789,6 +818,7 @@ class ProfileNotFound(InfoLevel, Cli, File):
 @dataclass
 class InvalidVarsYAML(ErrorLevel, Cli, File):
     code: str = "A008"
+
     def message(self) -> str:
         return "The YAML provided in the --vars argument is not valid.\n"
 
@@ -823,6 +853,8 @@ class HandleInternalException(ShowException, DebugLevel, Cli, File):
         return str(self.exc)
 
 # TODO: Remove? (appears to be uncalled)
+
+
 @dataclass
 class MessageHandleGenericException(ErrorLevel, Cli, File):
     build_path: str
@@ -841,9 +873,12 @@ class MessageHandleGenericException(ErrorLevel, Cli, File):
         )
 
 # TODO: Remove? (appears to be uncalled)
+
+
 @dataclass
 class DetailsHandleGenericException(ShowException, DebugLevel, Cli, File):
     code: str = "I_NEED_A_CODE"
+
     def message(self) -> str:
         return ''
 
@@ -865,9 +900,11 @@ class MacroFileParse(DebugLevel, Cli, File):
     def message(self) -> str:
         return f"Parsing {self.path}"
 
+
 @dataclass
 class PartialParsingFullReparseBecauseOfError(InfoLevel, Cli, File):
     code: str = "I013"
+
     def message(self) -> str:
         return "Partial parsing enabled but an error occurred. Switching to a full re-parse."
 
@@ -898,27 +935,35 @@ class PartialParsingException(DebugLevel, Cli, File):
     def message(self) -> str:
         return f"PP exception info: {self.exc_info}"
 
+
 @dataclass
 class PartialParsingSkipParsing(DebugLevel, Cli, File):
     code: str = "I017"
+
     def message(self) -> str:
         return "Partial parsing enabled, no changes found, skipping parsing"
+
 
 @dataclass
 class PartialParsingMacroChangeStartFullParse(InfoLevel, Cli, File):
     code: str = "I018"
+
     def message(self) -> str:
         return "Change detected to override macro used during parsing. Starting full parse."
+
 
 @dataclass
 class PartialParsingProjectEnvVarsChanged(InfoLevel, Cli, File):
     code: str = "I019"
+
     def message(self) -> str:
         return "Unable to do partial parsing because env vars used in dbt_project.yml have changed"
+
 
 @dataclass
 class PartialParsingProfileEnvVarsChanged(InfoLevel, Cli, File):
     code: str = "I020"
+
     def message(self) -> str:
         return "Unable to do partial parsing because env vars used in profiles.yml have changed"
 
@@ -957,7 +1002,7 @@ class PartialParsingVersionMismatch(InfoLevel, Cli, File):
 @dataclass
 class PartialParsingFailedBecauseConfigChange(InfoLevel, Cli, File):
     code: str = "I024"
-    
+
     def message(self) -> str:
         return ("Unable to do partial parsing because config vars, "
                 "config profile, or config target have changed")
@@ -966,6 +1011,7 @@ class PartialParsingFailedBecauseConfigChange(InfoLevel, Cli, File):
 @dataclass
 class PartialParsingFailedBecauseProfileChange(InfoLevel, Cli, File):
     code: str = "I025"
+
     def message(self) -> str:
         return ("Unable to do partial parsing because profile has changed")
 
@@ -973,6 +1019,7 @@ class PartialParsingFailedBecauseProfileChange(InfoLevel, Cli, File):
 @dataclass
 class PartialParsingFailedBecauseNewProjectDependency(InfoLevel, Cli, File):
     code: str = "I026"
+
     def message(self) -> str:
         return ("Unable to do partial parsing because a project dependency has been added")
 
@@ -980,6 +1027,7 @@ class PartialParsingFailedBecauseNewProjectDependency(InfoLevel, Cli, File):
 @dataclass
 class PartialParsingFailedBecauseHashChanged(InfoLevel, Cli, File):
     code: str = "I027"
+
     def message(self) -> str:
         return ("Unable to do partial parsing because a project config has changed")
 
@@ -987,6 +1035,7 @@ class PartialParsingFailedBecauseHashChanged(InfoLevel, Cli, File):
 @dataclass
 class PartialParsingNotEnabled(DebugLevel, Cli, File):
     code: str = "I028"
+
     def message(self) -> str:
         return ("Partial parsing not enabled")
 
@@ -1004,6 +1053,7 @@ class ParsedFileLoadFailed(ShowException, DebugLevel, Cli, File):
 @dataclass
 class PartialParseSaveFileNotFound(InfoLevel, Cli, File):
     code: str = "I030"
+
     def message(self) -> str:
         return ("Partial parse save file not found. Starting full parse.")
 
@@ -1225,6 +1275,7 @@ class RunningOperationUncaughtError(ErrorLevel, Cli, File):
 @dataclass
 class DbtProjectError(ErrorLevel, Cli, File):
     code: str = "A009"
+
     def message(self) -> str:
         return "Encountered an error while reading the project:"
 
@@ -1241,6 +1292,7 @@ class DbtProjectErrorException(ErrorLevel, Cli, File):
 @dataclass
 class DbtProfileError(ErrorLevel, Cli, File):
     code: str = "A011"
+
     def message(self) -> str:
         return "Encountered an error while reading profiles:"
 
@@ -1257,6 +1309,7 @@ class DbtProfileErrorException(ErrorLevel, Cli, File):
 @dataclass
 class ProfileListTitle(InfoLevel, Cli, File):
     code: str = "A013"
+
     def message(self) -> str:
         return "Defined profiles:"
 
@@ -1273,6 +1326,7 @@ class ListSingleProfile(InfoLevel, Cli, File):
 @dataclass
 class NoDefinedProfiles(InfoLevel, Cli, File):
     code: str = "A015"
+
     def message(self) -> str:
         return "There are no profiles defined in your profiles.yml file"
 
@@ -1280,6 +1334,7 @@ class NoDefinedProfiles(InfoLevel, Cli, File):
 @dataclass
 class ProfileHelpMessage(InfoLevel, Cli, File):
     code: str = "A016"
+
     def message(self) -> str:
         PROFILES_HELP_MESSAGE = """
 For more information on configuring profiles, please consult the dbt docs:
@@ -1323,6 +1378,7 @@ the error persists, open an issue at https://github.com/dbt-labs/dbt-core
 @dataclass
 class PrintDebugStackTrace(ShowException, DebugLevel, Cli, File):
     code: str = "Z011"
+
     def message(self) -> str:
         return ""
 
@@ -1370,6 +1426,7 @@ class ConfirmCleanPath(InfoLevel, Cli):
     path: str
 
     code: str = "Z013"
+
     def message(self) -> str:
         return f"Cleaned {self.path}/*"
 
@@ -1386,6 +1443,7 @@ class ProtectedCleanPath(InfoLevel, Cli):
 @dataclass
 class FinishedCleanPaths(InfoLevel, Cli):
     code: str = "Z015"
+
     def message(self) -> str:
         return "Finished cleaning all paths."
 
@@ -1407,9 +1465,11 @@ class OpenCommand(InfoLevel, Cli, File):
 
         return message
 
+
 @dataclass
 class DepsNoPackagesFound(InfoLevel, Cli, File):
     code: str = "M013"
+
     def message(self) -> str:
         return 'Warning: No packages were found in packages.yml'
 
@@ -1444,6 +1504,7 @@ class DepsUpdateAvailable(InfoLevel, Cli, File):
 @dataclass
 class DepsUTD(InfoLevel, Cli, File):
     code: str = "M017"
+
     def message(self) -> str:
         return "  Up to date!"
 
@@ -1479,6 +1540,7 @@ class DatabaseErrorRunning(InfoLevel, Cli, File):
 @dataclass
 class EmptyLine(InfoLevel, Cli, File):
     code: str = "Z017"
+
     def message(self) -> str:
         return ''
 
@@ -1526,6 +1588,7 @@ class CatalogWritten(InfoLevel, Cli, File):
 @dataclass
 class CannotGenerateDocs(InfoLevel, Cli, File):
     code: str = "E036"
+
     def message(self) -> str:
         return "compile failed, cannot generate docs"
 
@@ -1533,6 +1596,7 @@ class CannotGenerateDocs(InfoLevel, Cli, File):
 @dataclass
 class BuildingCatalog(InfoLevel, Cli, File):
     code: str = "E037"
+
     def message(self) -> str:
         return "Building catalog"
 
@@ -1540,12 +1604,15 @@ class BuildingCatalog(InfoLevel, Cli, File):
 @dataclass
 class CompileComplete(InfoLevel, Cli, File):
     code: str = "Q002"
+
     def message(self) -> str:
         return "Done."
+
 
 @dataclass
 class FreshnessCheckComplete(InfoLevel, Cli, File):
     code: str = "Q003"
+
     def message(self) -> str:
         return "Done."
 
@@ -1572,6 +1639,7 @@ class ServingDocsAccessInfo(InfoLevel, Cli, File):
 @dataclass
 class ServingDocsExitInfo(InfoLevel, Cli, File):
     code: str = "Z020"
+
     def message(self) -> str:
         return "Press Ctrl+C to exit.\n\n"
 
@@ -2191,12 +2259,14 @@ class ProfileWrittenWithProjectTemplateYAML(InfoLevel, Cli, File):
                 "profile_template.yml and your supplied values. Run 'dbt debug' to "
                 "validate the connection.")
 
+
 @dataclass
 class SettingUpProfile(InfoLevel, Cli, File):
     code: str = "A023"
 
     def message(self) -> str:
         return "Setting up your profile."
+
 
 @dataclass
 class InvalidProfileTemplateYAML(InfoLevel, Cli, File):
@@ -2232,6 +2302,7 @@ class DepsSetDownloadDirectory(DebugLevel, Cli, File):
     def message(self) -> str:
         return f"Set downloads directory='{self.path}'"
 
+
 @dataclass
 class EnsureGitInstalled(ErrorLevel, Cli, File):
     code: str = "Z037"
@@ -2241,12 +2312,14 @@ class EnsureGitInstalled(ErrorLevel, Cli, File):
                 'information: '
                 'https://docs.getdbt.com/docs/package-management')
 
+
 @dataclass
 class DepsCreatingLocalSymlink(DebugLevel, Cli, File):
     code: str = "Z038"
 
     def message(self) -> str:
         return '  Creating symlink to local dependency.'
+
 
 @dataclass
 class DepsSymlinkNotAvailable(DebugLevel, Cli, File):
@@ -2260,6 +2333,7 @@ class DepsSymlinkNotAvailable(DebugLevel, Cli, File):
 class FoundStats(InfoLevel, Cli, File):
     stat_line: str
     code: str = "W006"
+
     def message(self) -> str:
         return f"Found {self.stat_line}"
 
@@ -2281,10 +2355,11 @@ class WritingInjectedSQLForNode(DebugLevel, Cli, File):
     def message(self) -> str:
         return f'Writing injected SQL for node "{self.unique_id}"'
 
+
 @dataclass
 class DisableTracking(WarnLevel, Cli, File):
     code: str = "Z040"
-    
+
     def message(self) -> str:
         return "Error sending message, disabling tracking"
 
@@ -2301,7 +2376,7 @@ class SendingEvent(DebugLevel, Cli):
 @dataclass
 class SendEventFailure(DebugLevel, Cli, File):
     code: str = "Z042"
-    
+
     def message(self) -> str:
         return "An error was encountered while trying to send an event"
 
@@ -2321,10 +2396,11 @@ class FlushEventsFailure(DebugLevel, Cli):
     def message(self) -> str:
         return "An error was encountered while trying to flush usage events"
 
+
 @dataclass
 class TrackingInitializeFailure(ShowException, DebugLevel, Cli, File):
     code: str = "Z045"
-    
+
     def message(self) -> str:
         return "Got an exception trying to initialize tracking"
 
