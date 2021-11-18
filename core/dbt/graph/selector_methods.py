@@ -606,7 +606,7 @@ class SourceRefreshSelectorMethod(SelectorMethod): #TODO: this requires Selector
         for unique_id in current_state_sources:
             if unique_id not in previous_state_sources:
                 matches.add(unique_id)
-            elif current_state_sources[unique_id] > previous_state_sources[unique_id]:
+            elif current_state_sources.get(unique_id) > previous_state_sources.get(unique_id):
                 matches.add(unique_id)
             else:
                 matches_not_fresh.add(unique_id)

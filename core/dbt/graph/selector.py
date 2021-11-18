@@ -133,7 +133,7 @@ class NodeSelector(MethodManager):
             direct_nodes = direct_nodes - direct_nodes_excluded
             indirect_nodes = indirect_nodes - indirect_nodes_excluded
 
-            if direct_nodes_excluded != None:
+            if direct_nodes_excluded:
                 warn_or_error(f"The '{spec.method}' selector specified in '{spec.raw}' will exclude the below nodes:")
                 warn_or_error(f"Direct Nodes: {direct_nodes_excluded}")
                 warn_or_error(f"Indirect Nodes: {indirect_nodes_excluded}")
