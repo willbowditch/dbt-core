@@ -125,7 +125,6 @@ class NodeSelector(MethodManager):
             indirect_selection=spec.indirect_selection
         )
         if spec.method == 'source_refresh':
-            print(f"collected_excluded: {collected_excluded}")
             neighbors_excluded = self.collect_specified_neighbors(spec, collected_excluded)
             direct_nodes_excluded, indirect_nodes_excluded = self.expand_selection(
                 selected=(collected_excluded | neighbors_excluded),
