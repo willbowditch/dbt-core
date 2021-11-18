@@ -593,10 +593,15 @@ class SourceRefreshSelectorMethod(SelectorMethod): #TODO: this requires Selector
             raise InternalException(
                 'No current state comparison freshness results in sources.json'
             )
-        current_state_sources = {
-            result.unique_id:result.max_loaded_at for result in self.current_state.sources.results
-            if result.status == selector
-        }
+        if selector=='fresh':
+            current_state_sources = {
+                result.unique_id:result.max_loaded_at for result in self.current_state.sources.results
+            }
+        else:
+            current_state_sources = {
+                result.unique_id:result.max_loaded_at for result in self.current_state.sources.results
+                if result.status == selector
+            }
         previous_state_sources = {
             result.unique_id:result.max_loaded_at for result in self.previous_state.sources.results
         }
