@@ -1,4 +1,4 @@
-from abc import ABCMeta, abstractmethod
+from abc import ABCMeta, abstractmethod, abstractproperty
 from dataclasses import dataclass
 from datetime import datetime
 import os
@@ -58,8 +58,8 @@ class Event(metaclass=ABCMeta):
 
     # four digit string code that uniquely identifies this type of event
     # uniqueness and valid characters are enforced by tests
+    @abstractproperty
     @classmethod
-    @abstractmethod
     def code(cls) -> str:
         raise Exception("code() not implemented for event")
 
@@ -84,7 +84,7 @@ class Event(metaclass=ABCMeta):
             'pid': self.pid,
             'msg': msg,
             'level': level if len(level) == 5 else f"{level} ",
-            'code': self.code()
+            'code': self.code
         }
 
 

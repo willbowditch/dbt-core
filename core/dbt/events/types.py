@@ -18,7 +18,7 @@ from typing import Any, Callable, cast, Dict, List, Optional, Set, Tuple, Union
 # destinations they are intended for, which mypy uses to enforce
 # that the necessary methods are defined.
 
-# Event codes used here follow this table
+# Event codes have prefixes which follow this table
 #
 # | Code |     Description     |
 # |:----:|:-------------------:|
@@ -30,11 +30,12 @@ from typing import Any, Callable, cast, Dict, List, Optional, Set, Tuple, Union
 # | W    | Node testing        |
 # | Y    | Post processing     |
 # | Z    | Misc                |
+# | T    | Test only           |
 #
 # The basic idea is that event codes roughly translate to the natural order of running a dbt task
 
 # can't use ABCs with @dataclass because of https://github.com/python/mypy/issues/5374
-@dataclass
+@dataclass  # type: ignore
 class AdapterEventBase(Cli, File):
     name: str
     args: Tuple[Any, ...]
@@ -362,7 +363,7 @@ class SystemStdErrMsg(DebugLevel, Cli, File):
 
 @dataclass
 class SystemReportReturnCode(DebugLevel, Cli, File):
-    returncode: str
+    returncode: int
     code: str = "Z009"
 
     def message(self) -> str:
@@ -374,7 +375,7 @@ class SystemReportReturnCode(DebugLevel, Cli, File):
 @dataclass
 class SelectorAlertUpto3UnusedNodes(InfoLevel, Cli, File):
     node_names: List[str]
-    code: str = "I_NEED_A_CODE"
+    code: str = "I_NEED_A_CODE_5"
 
     def message(self) -> str:
         summary_nodes_str = ("\n  - ").join(self.node_names[:3])
@@ -393,7 +394,7 @@ class SelectorAlertUpto3UnusedNodes(InfoLevel, Cli, File):
 @dataclass
 class SelectorAlertAllUnusedNodes(DebugLevel, Cli, File):
     node_names: List[str]
-    code: str = "I_NEED_A_CODE"
+    code: str = "I_NEED_A_CODE_6"
 
     def message(self) -> str:
         debug_nodes_str = ("\n  - ").join(self.node_names)
@@ -486,7 +487,7 @@ class RollbackFailed(ShowException, DebugLevel, Cli, File):
 @dataclass
 class ConnectionClosed2(DebugLevel, Cli, File):
     conn_name: Optional[str]
-    code: str = "E006"
+    code: str = "E038"
 
     def message(self) -> str:
         return f"On {self.conn_name}: Close"
@@ -642,7 +643,7 @@ class AddRelation(DebugLevel, Cli, File):
 @dataclass
 class DropMissingRelation(DebugLevel, Cli, File):
     relation: _ReferenceKey
-    code: str = "E020"
+    code: str = "E039"
 
     def message(self) -> str:
         return f"dropped a nonexistent relationship: {str(self.relation)}"
@@ -828,7 +829,7 @@ class InvalidVarsYAML(ErrorLevel, Cli, File):
 class CatchRunException(ShowException, DebugLevel, Cli, File):
     build_path: Any
     exc: Exception
-    code: str = "I_NEED_A_CODE"
+    code: str = "I_NEED_A_CODE_1"
 
     def message(self) -> str:
         INTERNAL_ERROR_STRING = """This is an error in dbt. Please try again. If the \
@@ -847,7 +848,7 @@ class CatchRunException(ShowException, DebugLevel, Cli, File):
 @dataclass
 class HandleInternalException(ShowException, DebugLevel, Cli, File):
     exc: Exception
-    code: str = "I_NEED_A_CODE"
+    code: str = "I_NEED_A_CODE_2"
 
     def message(self) -> str:
         return str(self.exc)
@@ -860,7 +861,7 @@ class MessageHandleGenericException(ErrorLevel, Cli, File):
     build_path: str
     unique_id: str
     exc: Exception
-    code: str = "I_NEED_A_CODE"
+    code: str = "I_NEED_A_CODE_3"
 
     def message(self) -> str:
         node_description = self.build_path
@@ -877,7 +878,7 @@ class MessageHandleGenericException(ErrorLevel, Cli, File):
 
 @dataclass
 class DetailsHandleGenericException(ShowException, DebugLevel, Cli, File):
-    code: str = "I_NEED_A_CODE"
+    code: str = "I_NEED_A_CODE_4"
 
     def message(self) -> str:
         return ''
@@ -1531,7 +1532,7 @@ class DepsNotifyUpdatesAvailable(InfoLevel, Cli, File):
 @dataclass
 class DatabaseErrorRunning(InfoLevel, Cli, File):
     hook_type: str
-    code: str = "E032"
+    code: str = "E040"
 
     def message(self) -> str:
         return f"Database error while running {self.hook_type}"
@@ -2477,7 +2478,6 @@ if 1 == 0:
     SystemExecutingCmd(cmd=[""])
     SystemStdOutMsg(bmsg=b"")
     SystemStdErrMsg(bmsg=b"")
-    SystemReportReturnCode(returncode=0)
     SelectorReportInvalidSelector(
         selector_methods={"": ""}, spec_method="", raw_spec=""
     )
