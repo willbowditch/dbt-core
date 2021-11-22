@@ -8,6 +8,8 @@ from dbt.exceptions import IncompatibleSchemaException, DbtProjectError
 from dbt.clients.system import load_file_contents
 from dbt.clients.yaml_helper import load_yaml_text
 from dbt.clients.system import path_exists
+from dbt.flags import PROFILES_DIR
+# from dbt.task.base import get_nearest_project_dir
 
 
 class PreviousState:
@@ -48,7 +50,7 @@ class PreviousState:
 # current state is more difficult because we have to read the project config first before this class is instantiated
 class CurrentState:
     def __init__(self):
-        self.project_root = self.get_project_root() #TODO: check if this is "allowed"
+        self.project_root = PROFILES_DIR #TODO: check if this is "allowed"
         self.sources: Optional[FreshnessExecutionResultArtifact] = None
 
         target_path = self.get_target_path(self.project_root)
@@ -61,16 +63,16 @@ class CurrentState:
                 exc.add_filename(str(sources_path))
                 raise
 
-    @staticmethod
-    def get_project_root() -> str:
-        #TODO: update this for profiles_dir instead of project_root, --config-dir, --profiles-dir
-        #TODO: pick a hierarchy of profiles_dir, config_dir, DBT_PROFILES_DIR, project_root,
-        dbt_profiles_dir = os.getenv('DBT_PROFILES_DIR')
-        if dbt_profiles_dir:
-            project_root = dbt_profiles_dir
-        else:
-            project_root = os.getcwd()
-        return project_root
+    # @staticmethod
+    # def get_project_root() -> str:
+    #     #TODO: update this for profiles_dir instead of project_root, --config-dir, --profiles-dir
+    #     #TODO: pick a hierarchy of profiles_dir, config_dir, DBT_PROFILES_DIR, project_root,
+    #     dbt_profiles_dir = os.getenv('DBT_PROFILES_DIR')
+    #     if dbt_profiles_dir:
+    #         project_root = dbt_profiles_dir
+    #     else:
+    #         project_root = os.getcwd()
+    #     return project_root
     
     def _load_yaml(self, path):
         contents = load_file_contents(path)
