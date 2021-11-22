@@ -582,7 +582,7 @@ class SourceFreshSelectorMethod(SelectorMethod): #TODO: this requires SelectorMe
     def search(
         self, included_nodes: Set[UniqueId], selector: str
     ) -> Iterator[UniqueId]:
-        self.current_state = CurrentState(path=Path('target')) #TODO: fix this by importing target_path later
+        self.current_state = CurrentState() #TODO: fix this by importing target_path later
 
         if self.previous_state is None or self.previous_state.sources is None:
             raise InternalException(
