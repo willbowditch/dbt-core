@@ -71,29 +71,6 @@ class NodeSelector(MethodManager):
         method = self.get_method(spec.method, spec.method_arguments)
         return set(method.search(included_nodes, spec.value))
 
-    def select_excluded_source_nodes(
-        self, included_nodes: Set[UniqueId], spec: SelectionCriteria,
-    ) -> Set[UniqueId]:
-        """Select the explicitly excluded source nodes, using the given spec. Return
-        the selected set of unique IDs.
-        """
-        method = self.get_method(spec.method, spec.method_arguments)
-        if spec.value == 'pass':
-            source_status_values_to_exclude = {'warn','error'}
-        elif spec.value == 'warn':
-            source_status_values_to_exclude = {'error'}
-        elif spec.value == 'error':
-            source_status_values_to_exclude = {'pass','warn'}
-        else:
-            source_status_values_to_exclude = set()
-
-        excluded_source_nodes = set()
-        for source_status in source_status_values_to_exclude:
-            source_nodes = method.search(included_nodes, source_status)
-            excluded_source_nodes.update(set(source_nodes))
-        
-        return excluded_source_nodes
-
     def get_nodes_from_criteria(
         self,
         spec: SelectionCriteria
@@ -108,9 +85,6 @@ class NodeSelector(MethodManager):
         nodes = self.graph.nodes()
         try:
             collected = self.select_included(nodes, spec)
-            if spec.method == 'source_refresh':
-                collected_excluded = self.select_excluded_source_nodes(nodes, spec)
-            
         except InvalidSelectorException:
             fire_event(SelectorReportInvalidSelector(
                 selector_methods=self.SELECTOR_METHODS,
@@ -124,23 +98,6 @@ class NodeSelector(MethodManager):
             selected=(collected | neighbors),
             indirect_selection=spec.indirect_selection
         )
-        if spec.method == 'source_refresh':
-            neighbors_excluded = self.collect_specified_neighbors(spec, collected_excluded)
-            direct_nodes_excluded, indirect_nodes_excluded = self.expand_selection(
-                selected=(collected_excluded | neighbors_excluded),
-                indirect_selection=spec.indirect_selection
-            )
-            direct_nodes = direct_nodes - direct_nodes_excluded
-            indirect_nodes = indirect_nodes - indirect_nodes_excluded
-
-            if direct_nodes_excluded:
-                warn_or_error(f"The '{spec.method}' selector specified in '{spec.raw}' will exclude the below nodes:")
-                warn_or_error(f"Direct Nodes: {direct_nodes_excluded}")
-                warn_or_error(f"Indirect Nodes: {indirect_nodes_excluded}")
-                warn_or_error(f"These source nodes: '{collected_excluded}' require 'status:{spec.value}' for the excluded nodes to run")
-                warn_or_error("Note: Concurrent selectors may include the excluded nodes(ex: source_refresh:warn+ source_refresh:pass+)")
-                warn_or_error("")
-
         return direct_nodes, indirect_nodes
 
     def collect_specified_neighbors(
