@@ -26,7 +26,6 @@ from dbt.contracts.state import PreviousState, CurrentState
 from dbt.exceptions import (
     InternalException,
     RuntimeException,
-    warn_or_error,
 )
 from dbt.node_types import NodeType
 
