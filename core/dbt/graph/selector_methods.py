@@ -49,7 +49,7 @@ class MethodName(StrEnum):
     Exposure = 'exposure'
     Metric = 'metric'
     Result = 'result'
-    SourceRefresh = 'source_refresh'
+    SourceFresh = 'source_fresh'
 
 
 def is_selected_node(fqn: List[str], node_selector: str):
@@ -579,7 +579,7 @@ class ResultSelectorMethod(SelectorMethod):
             if node in matches:
                 yield node
 
-class SourceRefreshSelectorMethod(SelectorMethod): #TODO: this requires SelectorMethod to have current_state as an argument. currently, this works because it's all hard-coded
+class SourceFreshSelectorMethod(SelectorMethod): #TODO: this requires SelectorMethod to have current_state as an argument. currently, this works because it's all hard-coded
     def search(
         self, included_nodes: Set[UniqueId], selector: str
     ) -> Iterator[UniqueId]:
@@ -593,31 +593,37 @@ class SourceRefreshSelectorMethod(SelectorMethod): #TODO: this requires Selector
             raise InternalException(
                 'No current state comparison freshness results in sources.json'
             )
-        if selector=='fresh':
-            current_state_sources = {
-                result.unique_id:result.max_loaded_at for result in self.current_state.sources.results
-            }
-        else:
-            current_state_sources = {
-                result.unique_id:result.max_loaded_at for result in self.current_state.sources.results
-                if result.status == selector
-            }
+
+        current_state_sources = {
+            result.unique_id:result.max_loaded_at for result in self.current_state.sources.results
+        }
         previous_state_sources = {
             result.unique_id:result.max_loaded_at for result in self.previous_state.sources.results
         }
 
         matches = set()
-        matches_not_fresh = set()
-        for unique_id in current_state_sources:
-            if unique_id not in previous_state_sources:
-                matches.add(unique_id)
-            elif current_state_sources.get(unique_id) > previous_state_sources.get(unique_id):
-                matches.add(unique_id)
-            else:
-                matches_not_fresh.add(unique_id)
-
-        if matches_not_fresh:
-            warn_or_error(f"{matches_not_fresh} sources will not refresh other nodes, max_loaded_at date must be greater than previous state")
+        no_matches = set()
+        if selector == 'yes':
+            for unique_id in current_state_sources:
+                if unique_id not in previous_state_sources:
+                    matches.add(unique_id)
+                elif current_state_sources.get(unique_id) > previous_state_sources.get(unique_id):
+                    matches.add(unique_id)
+                else:
+                    no_matches.add(unique_id)
+            if no_matches:
+                warn_or_error(f"{no_matches} sources will not refresh other nodes, max_loaded_at date must be greater than previous state")
+        
+        if selector == 'no':
+            for unique_id in current_state_sources:
+                if unique_id not in previous_state_sources:
+                    matches.add(unique_id)
+                elif current_state_sources.get(unique_id) <= previous_state_sources.get(unique_id):
+                    matches.add(unique_id)
+                else:
+                    no_matches.add(unique_id)
+            if no_matches:
+                warn_or_error(f"{no_matches} sources will not refresh other nodes, max_loaded_at date must be less than or equal to previous state")
         
         for node, real_node in self.all_nodes(included_nodes):
             if node in matches:
@@ -639,7 +645,7 @@ class MethodManager:
         MethodName.Exposure: ExposureSelectorMethod,
         MethodName.Metric: MetricSelectorMethod,
         MethodName.Result: ResultSelectorMethod,
-        MethodName.SourceRefresh: SourceRefreshSelectorMethod,
+        MethodName.SourceFresh: SourceFreshSelectorMethod,
     }
 
     def __init__(
