@@ -63,6 +63,8 @@ class CurrentState:
 
     @staticmethod
     def get_project_root() -> str:
+        #TODO: update this for profiles_dir instead of project_root, --config-dir, --profiles-dir
+        #TODO: pick a hierarchy of profiles_dir, config_dir, DBT_PROFILES_DIR, project_root,
         dbt_profiles_dir = os.getenv('DBT_PROFILES_DIR')
         if dbt_profiles_dir:
             project_root = dbt_profiles_dir
