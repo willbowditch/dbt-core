@@ -602,28 +602,13 @@ class SourceFreshSelectorMethod(SelectorMethod): #TODO: this requires SelectorMe
         }
 
         matches = set()
-        no_matches = set()
-        if selector == 'yes':
-            for unique_id in current_state_sources:
-                if unique_id not in previous_state_sources:
-                    matches.add(unique_id)
-                elif current_state_sources.get(unique_id) > previous_state_sources.get(unique_id):
-                    matches.add(unique_id)
-                else:
-                    no_matches.add(unique_id)
-            if no_matches:
-                warn_or_error(f"{no_matches} sources will not refresh other nodes, max_loaded_at date must be greater than previous state")
-        
-        if selector == 'no':
-            for unique_id in current_state_sources:
-                if unique_id not in previous_state_sources:
-                    matches.add(unique_id)
-                elif current_state_sources.get(unique_id) <= previous_state_sources.get(unique_id):
-                    matches.add(unique_id)
-                else:
-                    no_matches.add(unique_id)
-            if no_matches:
-                warn_or_error(f"{no_matches} sources will not refresh other nodes, max_loaded_at date must be less than or equal to previous state")
+        for unique_id in current_state_sources:
+            if unique_id not in previous_state_sources:
+                matches.add(unique_id)
+            elif selector == 'yes' and current_state_sources.get(unique_id) > previous_state_sources.get(unique_id):
+                matches.add(unique_id)
+            elif selector == 'no' and current_state_sources.get(unique_id) <= previous_state_sources.get(unique_id):
+                matches.add(unique_id)
         
         for node, real_node in self.all_nodes(included_nodes):
             if node in matches:
