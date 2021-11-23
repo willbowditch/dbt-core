@@ -98,4 +98,4 @@ class CurrentState:
 
     def get_target_path(self, project_root: str) -> Path:
         project_dict = self._raw_project_from(project_root)
-        return Path(project_dict.get('target-path'))
+        return Path(project_dict.get('target-path','target'))
