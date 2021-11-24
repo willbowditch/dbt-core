@@ -1796,7 +1796,6 @@ class PrintStartLine(InfoLevel, Cli, File):
     description: str
     index: int
     total: int
-    status: str = 'RUN'
     code: str = "Z031"
 
     def message(self) -> str:
@@ -1816,7 +1815,6 @@ class PrintHookStartLine(InfoLevel, Cli, File):
     index: int
     total: int
     truncate: bool
-    status: str = 'RUN'
     code: str = "Z032"
 
     def message(self) -> str:
@@ -2179,7 +2177,6 @@ class NodeStart(DebugLevel, Cli, File, NodeInfo):
     unique_id: str
     report_node_data: ParsedModelNode
     # node_status: str
-    # run_state: str
     code: str = "Q023"
 
     def message(self) -> str:
@@ -2191,7 +2188,6 @@ class NodeFinished(DebugLevel, Cli, File, NodeInfo):
     unique_id: str
     report_node_data: ParsedModelNode
     # node_status: str
-    # run_state: str = run_states['success']
     code: str = "Q024"
 
     def message(self) -> str:
