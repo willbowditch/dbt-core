@@ -1,5 +1,6 @@
 import argparse
 from dataclasses import dataclass
+from datetime import datetime
 from dbt.events.stubs import (
     _CachedRelation,
     AdapterResponse,
@@ -2176,7 +2177,8 @@ class DefaultSelector(InfoLevel, Cli, File):
 class NodeStart(DebugLevel, Cli, File, NodeInfo):
     unique_id: str
     report_node_data: ParsedModelNode
-    # node_status: str
+    node_status: str
+    # node_started_at: datetime
     code: str = "Q023"
 
     def message(self) -> str:
@@ -2187,7 +2189,9 @@ class NodeStart(DebugLevel, Cli, File, NodeInfo):
 class NodeFinished(DebugLevel, Cli, File, NodeInfo):
     unique_id: str
     report_node_data: ParsedModelNode
-    # node_status: str
+    node_status: str
+    # node_started_at: datetime
+    #TODO: possibly pass entire RunResult
     code: str = "Q024"
 
     def message(self) -> str:
