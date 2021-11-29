@@ -2183,7 +2183,6 @@ class DefaultSelector(InfoLevel, Cli, File):
 class NodeStart(DebugLevel, Cli, File, NodeInfo):
     unique_id: str
     report_node_data: ParsedModelNode
-    # node_status: str
     code: str = "Q023"
 
     def message(self) -> str:
@@ -2194,7 +2193,6 @@ class NodeStart(DebugLevel, Cli, File, NodeInfo):
 class NodeFinished(DebugLevel, Cli, File, NodeInfo):
     unique_id: str
     report_node_data: ParsedModelNode
-    # node_status: str
     # TODO: possibly pass entire RunResult
     code: str = "Q024"
 
@@ -2221,6 +2219,26 @@ class ConcurrencyLine(InfoLevel, Cli, File):
 
     def message(self) -> str:
         return self.concurrency_line
+
+
+@dataclass
+class NodeCompiling(DebugLevel, Cli, File, NodeInfo):
+    unique_id: str
+    report_node_data: ParsedModelNode
+    code: str = "Q030"
+
+    def message(self) -> str:
+        return f"Began compiling node {self.unique_id}"
+
+
+@dataclass
+class NodeExecuting(DebugLevel, Cli, File, NodeInfo):
+    unique_id: str
+    report_node_data: ParsedModelNode
+    code: str = "Q031"
+
+    def message(self) -> str:
+        return f"Began executing node {self.unique_id}"
 
 
 @dataclass
@@ -2684,6 +2702,8 @@ if 1 == 0:
     NodeFinished(report_node_data=ParsedModelNode(), unique_id='')
     QueryCancelationUnsupported(type='')
     ConcurrencyLine(concurrency_line='')
+    NodeCompiling(report_node_data=ParsedModelNode(), unique_id='')
+    NodeExecuting(report_node_data=ParsedModelNode(), unique_id='')
     StarterProjectPath(dir='')
     ConfigFolderDirectory(dir='')
     NoSampleProfileFound(adapter='')
