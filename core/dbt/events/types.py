@@ -3,16 +3,15 @@ from dataclasses import dataclass
 from dbt.events.stubs import (
     _CachedRelation,
     AdapterResponse,
-    CompiledModelNode,
     BaseRelation,
     ParsedModelNode,
     _ReferenceKey
 )
 from dbt import ui
 from dbt.events.base_types import (
-    Cli, Event, File, DebugLevel, InfoLevel, WarnLevel, ErrorLevel, ShowException
+    Cli, Event, File, DebugLevel, InfoLevel, WarnLevel, ErrorLevel, ShowException, NodeInfo
 )
-from dbt.events.format import format_fancy_output_line, pluralize, node_states, node_statuses
+from dbt.events.format import format_fancy_output_line, pluralize
 from dbt.node_types import NodeType
 from typing import Any, Callable, cast, Dict, List, Optional, Set, Tuple, TypeVar, Union
 
@@ -1804,7 +1803,7 @@ class PrintStartLine(InfoLevel, Cli, File):
         msg = f"START {self.description}"
         return format_fancy_output_line(
             msg=msg,
-            status=self.status,
+            status='RUN',
             index=self.index,
             total=self.total
         )
@@ -1823,7 +1822,7 @@ class PrintHookStartLine(InfoLevel, Cli, File):
     def message(self) -> str:
         msg = f"START hook: {self.statement}"
         return format_fancy_output_line(msg=msg,
-                                        status=self.status,
+                                        status='RUN',
                                         index=self.index,
                                         total=self.total,
                                         truncate=self.truncate)
@@ -2176,11 +2175,11 @@ class DefaultSelector(InfoLevel, Cli, File):
 
 
 @dataclass
-class NodeStart(DebugLevel, Cli, File):
+class NodeStart(DebugLevel, Cli, File, NodeInfo):
     unique_id: str
     report_node_data: ParsedModelNode
-    node_status: str = node_statuses['running']
-    node_state: str = node_states['started']
+    # node_status: str
+    # run_state: str
     code: str = "Q023"
 
     def message(self) -> str:
@@ -2188,11 +2187,11 @@ class NodeStart(DebugLevel, Cli, File):
 
 
 @dataclass
-class NodeFinished(DebugLevel, Cli, File):
+class NodeFinished(DebugLevel, Cli, File, NodeInfo):
     unique_id: str
     report_node_data: ParsedModelNode
-    node_status: str = node_statuses['pass']
-    node_state: str = node_states['success']
+    # node_status: str
+    # run_state: str = run_states['success']
     code: str = "Q024"
 
     def message(self) -> str:
@@ -2200,7 +2199,7 @@ class NodeFinished(DebugLevel, Cli, File):
 
 
 @dataclass
-class QueryCancelationUnsupported(InfoLevel, Cli, File):
+class QueryCancelationUnsupported(InfoLevel, Cli, File, NodeInfo):
     type: str
     code: str = "Q025"
 
@@ -2460,18 +2459,6 @@ class GeneralWarningException(WarnLevel, Cli, File):
         if self.log_fmt is not None:
             return self.log_fmt.format(str(self.exc))
         return str(self.exc)
-
-
-# TODO: new event
-@dataclass
-class NodeStartModel(InfoLevel, Cli, File):
-    report_node_data: CompiledModelNode
-    code: str = "Z9999"  # TODO: set codes
-    node_status: str = node_statuses['running']
-    node_state: str = node_states['started']
-
-    def message(self) -> str:
-        return 'Start Model'
 
 
 # since mypy doesn't run on every file we need to suggest to mypy that every
