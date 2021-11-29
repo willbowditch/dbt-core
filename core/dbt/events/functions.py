@@ -154,7 +154,8 @@ def event_to_dict(e: T_Event, msg_fn: Callable[[T_Event], str]) -> dict:
         'level': level,
         'data': Optional[Dict[str, Any]],
         'event_data_serialized': True,
-        'invocation_id': e.get_invocation_id()
+        'invocation_id': e.get_invocation_id(),
+        'node_info': e.get_node_info()
     }
 
 
@@ -181,8 +182,10 @@ def create_json_log_line(e: T_Event, msg_fn: Callable[[T_Event], str]) -> str:
             in e.__dataclass_fields__.items()  # type: ignore[attr-defined]
             if type(y._field_type) == _FIELD_BASE
         }
+        values['data']['type'] = 'dataclass_attr'
     else:
         values['data'] = None
+
 
     # need to catch if any data is not serializable but still make sure as much of
     # the logs go out as possible
