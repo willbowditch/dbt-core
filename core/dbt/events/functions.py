@@ -2,7 +2,7 @@
 from colorama import Style
 from datetime import datetime
 import dbt.events.functions as this  # don't worry I hate it too.
-from dbt.events.base_types import Cli, Event, File, ShowException, NodeInfo
+from dbt.events.base_types import Cli, Event, File, ShowException, NodeInfo, Cache
 from dbt.events.types import EventBufferFull, T_Event
 import dbt.flags as flags
 # TODO this will need to move eventually
@@ -13,11 +13,12 @@ from io import StringIO, TextIOWrapper
 import logbook
 import logging
 from logging import Logger
+import sys
 from logging.handlers import RotatingFileHandler
 import os
 import uuid
 from typing import Any, Callable, Dict, List, Optional, Union
-from dataclasses import _FIELD_BASE, asdict  # type: ignore[attr-defined]
+import dataclasses
 from collections import deque
 
 
@@ -38,7 +39,7 @@ FILE_LOG.addHandler(null_handler)
 global STDOUT_LOG
 STDOUT_LOG = logging.getLogger('default_stdout')
 STDOUT_LOG.setLevel(logging.INFO)
-stdout_handler = logging.StreamHandler()
+stdout_handler = logging.StreamHandler(sys.stdout)
 stdout_handler.setLevel(logging.INFO)
 STDOUT_LOG.addHandler(stdout_handler)
 
@@ -64,7 +65,7 @@ def setup_event_logger(log_path, level_override=None):
     FORMAT = "%(message)s"
     stdout_passthrough_formatter = logging.Formatter(fmt=FORMAT)
 
-    stdout_handler = logging.StreamHandler()
+    stdout_handler = logging.StreamHandler(sys.stdout)
     stdout_handler.setFormatter(stdout_passthrough_formatter)
     stdout_handler.setLevel(level)
     # clear existing stdout TextIOWrapper stream handlers
@@ -131,16 +132,16 @@ def event_to_serializable_dict(
     data = dict()
     node_info = dict()
     if hasattr(e, '__dataclass_fields__'):
-        for field, value in e.__dataclass_fields__.items():  # type: ignore[attr-defined]
-            if isinstance(e, NodeInfo):
-                node_info = asdict(e.get_node_info())
-            if type(value._field_type) != _FIELD_BASE:
-                _json_value = e.fields_to_json(value)
+        for field, value in dataclasses.asdict(e).items():  # type: ignore[attr-defined]
+            _json_value = e.fields_to_json(value)
 
-                if not isinstance(_json_value, Exception):
-                    data[field] = _json_value
-                else:
-                    data[field] = f"JSON_SERIALIZE_FAILED: {type(value).__name__, 'NA'}"
+            if isinstance(e, NodeInfo):
+                node_info = dataclasses.asdict(e.get_node_info())
+
+            if not isinstance(_json_value, Exception):
+                data[field] = _json_value
+            else:
+                data[field] = f"JSON_SERIALIZE_FAILED: {type(value).__name__, 'NA'}"
 
     event_dict = {
         'type': 'log_line',
@@ -262,6 +263,9 @@ def send_exc_to_logger(
 # (i.e. - mutating the event history, printing to stdout, logging
 # to files, etc.)
 def fire_event(e: Event) -> None:
+    # skip logs when `--log-cache-events` is not passed
+    if isinstance(e, Cache) and not flags.LOG_CACHE_EVENTS:
+        return
     # if and only if the event history deque will be completely filled by this event
     # fire warning that old events are now being dropped
     global EVENT_HISTORY

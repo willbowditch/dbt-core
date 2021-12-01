@@ -10,11 +10,11 @@ from dbt.events.stubs import (
 )
 from dbt import ui
 from dbt.events.base_types import (
-    Cli, Event, File, DebugLevel, InfoLevel, WarnLevel, ErrorLevel, ShowException, NodeInfo
+    Cli, Event, File, DebugLevel, InfoLevel, WarnLevel, ErrorLevel, ShowException, NodeInfo, Cache
 )
 from dbt.events.format import format_fancy_output_line, pluralize
 from dbt.node_types import NodeType
-from typing import Any, Callable, Dict, List, Optional, Set, Tuple, TypeVar
+from typing import Any, Dict, List, Optional, Set, Tuple, TypeVar
 
 
 # The classes in this file represent the data necessary to describe a
@@ -117,7 +117,8 @@ class MainEncounteredError(ErrorLevel, Cli):
 
     # overriding default json serialization for this event
     def fields_to_json(self, val: Any) -> Any:
-        if val == self.e:
+        # equality on BaseException is not good enough of a comparison here
+        if isinstance(val, BaseException):
             return str(val)
 
         return val
@@ -635,7 +636,7 @@ class SchemaDrop(DebugLevel, Cli, File):
 # TODO pretty sure this is only ever called in dead code
 # see: core/dbt/adapters/cache.py _add_link vs add_link
 @dataclass
-class UncachedRelation(DebugLevel, Cli, File):
+class UncachedRelation(DebugLevel, Cli, File, Cache):
     dep_key: _ReferenceKey
     ref_key: _ReferenceKey
     code: str = "E022"
@@ -649,7 +650,7 @@ class UncachedRelation(DebugLevel, Cli, File):
 
 
 @dataclass
-class AddLink(DebugLevel, Cli, File):
+class AddLink(DebugLevel, Cli, File, Cache):
     dep_key: _ReferenceKey
     ref_key: _ReferenceKey
     code: str = "E023"
@@ -659,7 +660,7 @@ class AddLink(DebugLevel, Cli, File):
 
 
 @dataclass
-class AddRelation(DebugLevel, Cli, File):
+class AddRelation(DebugLevel, Cli, File, Cache):
     relation: _CachedRelation
     code: str = "E024"
 
@@ -668,14 +669,14 @@ class AddRelation(DebugLevel, Cli, File):
 
     # overriding default json serialization for this event
     def fields_to_json(self, val: Any) -> Any:
-        if val == self.relation:
+        if isinstance(val, _CachedRelation):
             return str(val)
 
         return val
 
 
 @dataclass
-class DropMissingRelation(DebugLevel, Cli, File):
+class DropMissingRelation(DebugLevel, Cli, File, Cache):
     relation: _ReferenceKey
     code: str = "E025"
 
@@ -684,7 +685,7 @@ class DropMissingRelation(DebugLevel, Cli, File):
 
 
 @dataclass
-class DropCascade(DebugLevel, Cli, File):
+class DropCascade(DebugLevel, Cli, File, Cache):
     dropped: _ReferenceKey
     consequences: Set[_ReferenceKey]
     code: str = "E026"
@@ -694,7 +695,7 @@ class DropCascade(DebugLevel, Cli, File):
 
 
 @dataclass
-class DropRelation(DebugLevel, Cli, File):
+class DropRelation(DebugLevel, Cli, File, Cache):
     dropped: _ReferenceKey
     code: str = "E027"
 
@@ -703,7 +704,7 @@ class DropRelation(DebugLevel, Cli, File):
 
 
 @dataclass
-class UpdateReference(DebugLevel, Cli, File):
+class UpdateReference(DebugLevel, Cli, File, Cache):
     old_key: _ReferenceKey
     new_key: _ReferenceKey
     cached_key: _ReferenceKey
@@ -715,7 +716,7 @@ class UpdateReference(DebugLevel, Cli, File):
 
 
 @dataclass
-class TemporaryRelation(DebugLevel, Cli, File):
+class TemporaryRelation(DebugLevel, Cli, File, Cache):
     key: _ReferenceKey
     code: str = "E029"
 
@@ -724,7 +725,7 @@ class TemporaryRelation(DebugLevel, Cli, File):
 
 
 @dataclass
-class RenameSchema(DebugLevel, Cli, File):
+class RenameSchema(DebugLevel, Cli, File, Cache):
     old_key: _ReferenceKey
     new_key: _ReferenceKey
     code: str = "E030"
@@ -734,80 +735,43 @@ class RenameSchema(DebugLevel, Cli, File):
 
 
 @dataclass
-class DumpBeforeAddGraph(DebugLevel, Cli, File):
-    graph_func: Callable[[], Dict[str, List[str]]]
+class DumpBeforeAddGraph(DebugLevel, Cli, File, Cache):
+    # large value. delay not necessary since every debug level message is logged anyway.
+    dump: Dict[str, List[str]]
     code: str = "E031"
 
     def message(self) -> str:
-        # workaround for https://github.com/python/mypy/issues/6910
-        # TODO remove when we've upgraded to a mypy version without that bug
-        func_returns = self.graph_func()  # type: ignore
-        return f"before adding : {func_returns}"
-
-    # TODO should we manually cache the graph here so it doesn't get called for the message
-    # and serialization separately??
-    #
-    # overriding default json serialization for this event
-    def fields_to_json(self, val: Any) -> Any:
-        if val == self.graph_func:  # type: ignore
-            return str(val())
-
-        return val
+        return f"before adding : {self.dump}"
 
 
 @dataclass
-class DumpAfterAddGraph(DebugLevel, Cli, File):
-    graph_func: Callable[[], Dict[str, List[str]]]
+class DumpAfterAddGraph(DebugLevel, Cli, File, Cache):
+    # large value. delay not necessary since every debug level message is logged anyway.
+    dump: Dict[str, List[str]]
     code: str = "E032"
 
     def message(self) -> str:
-        # workaround for https://github.com/python/mypy/issues/6910
-        func_returns = self.graph_func()  # type: ignore
-        return f"after adding: {func_returns}"
-
-    # TODO should we manually cache the graph here so it doesn't get called for the message
-    # and serialization separately??
-    #
-    # overriding default json serialization for this event
-    def fields_to_json(self, val: Any) -> Any:
-        if val == self.graph_func:  # type: ignore
-            return str(val())
-
-        return val
+        return f"after adding: {self.dump}"
 
 
 @dataclass
-class DumpBeforeRenameSchema(DebugLevel, Cli, File):
-    graph_func: Callable[[], Dict[str, List[str]]]
+class DumpBeforeRenameSchema(DebugLevel, Cli, File, Cache):
+    # large value. delay not necessary since every debug level message is logged anyway.
+    dump: Dict[str, List[str]]
     code: str = "E033"
 
     def message(self) -> str:
-        # workaround for https://github.com/python/mypy/issues/6910
-        func_returns = self.graph_func()  # type: ignore
-        return f"before rename: {func_returns}"
-
-    def fields_to_json(self, val: Any) -> Any:
-        if val == self.graph_func:  # type: ignore
-            return str(val())
-
-        return val
+        return f"before rename: {self.dump}"
 
 
 @dataclass
-class DumpAfterRenameSchema(DebugLevel, Cli, File):
-    graph_func: Callable[[], Dict[str, List[str]]]
+class DumpAfterRenameSchema(DebugLevel, Cli, File, Cache):
+    # large value. delay not necessary since every debug level message is logged anyway.
+    dump: Dict[str, List[str]]
     code: str = "E034"
 
     def message(self) -> str:
-        # workaround for https://github.com/python/mypy/issues/6910
-        func_returns = self.graph_func()  # type: ignore
-        return f"after rename: {func_returns}"
-
-    def fields_to_json(self, val: Any) -> Any:
-        if val == self.graph_func:  # type: ignore
-            return str(val())
-
-        return val
+        return f"after rename: {self.dump}"
 
 
 @dataclass
@@ -2664,9 +2628,6 @@ class EventBufferFull(WarnLevel, Cli, File):
 #
 # TODO remove these lines once we run mypy everywhere.
 if 1 == 0:
-    def dump_callable():
-        return {"": [""]}  # for instantiating `Dump...` methods which take callables.
-
     MainReportVersion('')
     MainKeyboardInterrupt()
     MainEncounteredError(BaseException(''))
@@ -2740,10 +2701,10 @@ if 1 == 0:
         old_key=_ReferenceKey(database="", schema="", identifier=""),
         new_key=_ReferenceKey(database="", schema="", identifier="")
     )
-    DumpBeforeAddGraph(dump_callable)
-    DumpAfterAddGraph(dump_callable)
-    DumpBeforeRenameSchema(dump_callable)
-    DumpAfterRenameSchema(dump_callable)
+    DumpBeforeAddGraph(dict())
+    DumpAfterAddGraph(dict())
+    DumpBeforeRenameSchema(dict())
+    DumpAfterRenameSchema(dict())
     AdapterImportError(ModuleNotFoundError())
     PluginLoadError()
     SystemReportReturnCode(returncode=0)
