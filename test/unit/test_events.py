@@ -108,10 +108,6 @@ class TestEventBuffer(TestCase):
     #         EVENT_HISTORY.count(UnitTestInfo(msg='Test Event 1', code='T006')) == 0
     #     )
 
-def dump_callable():
-    return dict()
-    
-
 def MockNode():
     return ParsedModelNode(
         alias='model_one',
@@ -221,15 +217,13 @@ sample_values = [
         old_key=_ReferenceKey(database="", schema="", identifier=""),
         new_key=_ReferenceKey(database="", schema="", identifier="")
     ),
-    DumpBeforeAddGraph(dump_callable),
-    DumpAfterAddGraph(dump_callable),
-    DumpBeforeRenameSchema(dump_callable),
-    DumpAfterRenameSchema(dump_callable),
+    DumpBeforeAddGraph(dict()),
+    DumpAfterAddGraph(dict()),
+    DumpBeforeRenameSchema(dict()),
+    DumpAfterRenameSchema(dict()),
     AdapterImportError(ModuleNotFoundError()),
     PluginLoadError(),
     SystemReportReturnCode(returncode=0),
-    SelectorAlertUpto3UnusedNodes(node_names=[]),
-    SelectorAlertAllUnusedNodes(node_names=[]),
     NewConnectionOpening(connection_state=''),
     TimingInfoCollected(),
     MergedFromState(nbr_merged=0, sample=[]),
@@ -275,8 +269,6 @@ sample_values = [
     PartialParsingDeletedExposure(unique_id=''),
     InvalidDisabledSourceInTestNode(msg=''),
     InvalidRefInTestNode(msg=''),
-    MessageHandleGenericException(build_path='', unique_id='', exc=Exception('')),
-    DetailsHandleGenericException(),
     RunningOperationCaughtError(exc=Exception('')),
     RunningOperationUncaughtError(exc=Exception('')),
     DbtProjectError(),
@@ -359,7 +351,7 @@ sample_values = [
     NodeExecuting(unique_id='', report_node_data=MockNode()),
     NodeFinished(unique_id='', report_node_data=MockNode(), run_result=''),
     QueryCancelationUnsupported(type=''),
-    ConcurrencyLine(concurrency_line=''),
+    ConcurrencyLine(num_threads=0, target_name=''),
     StarterProjectPath(dir=''),
     ConfigFolderDirectory(dir=''),
     NoSampleProfileFound(adapter=''),
@@ -395,8 +387,6 @@ sample_values = [
     MainReportArgs(Namespace()),
     RegistryProgressMakingGETRequest(''),
     DepsUTD(),
-    CatchRunException('', Exception('')),
-    HandleInternalException(Exception('')),
     PartialParsingNotEnabled(),
     SQlRunnerException(Exception('')),
     DropRelation(''),
@@ -429,7 +419,7 @@ class TestEventJSONSerialization(TestCase):
 
         # if we have everything we need to test, try to serialize everything
         for event in sample_values:
-            d = event_to_serializable_dict(event, lambda dt: dt.isoformat(), lambda x: x.message())
+            d = event_to_serializable_dict(event, lambda _: event.get_ts_rfc3339(), lambda x: x.message())
             try:
                 json.dumps(d)
             except TypeError as e:

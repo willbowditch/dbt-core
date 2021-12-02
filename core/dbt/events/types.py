@@ -115,14 +115,6 @@ class MainEncounteredError(ErrorLevel, Cli):
     def message(self) -> str:
         return f"Encountered an error:\n{str(self.e)}"
 
-    # overriding default json serialization for this event
-    def fields_to_json(self, val: Any) -> Any:
-        # equality on BaseException is not good enough of a comparison here
-        if isinstance(val, BaseException):
-            return str(val)
-
-        return val
-
 
 @dataclass
 class MainStackTrace(DebugLevel, Cli):
@@ -150,12 +142,9 @@ class MainReportArgs(DebugLevel, Cli, File):
     def message(self):
         return f"running dbt with arguments {str(self.args)}"
 
-    # overriding default json serialization for this event
-    def fields_to_json(self, val: Any) -> Any:
-        if isinstance(val, argparse.Namespace):
-            return str(val)
-
-        return val
+    @classmethod
+    def asdict(cls, data: list) -> dict:
+        return dict((k, str(v)) for k, v in data)
 
 
 @dataclass
@@ -354,13 +343,6 @@ class SystemCouldNotWrite(DebugLevel, Cli, File):
             f"{self.reason}\nexception: {self.exc}"
         )
 
-    # overriding default json serialization for this event
-    def fields_to_json(self, val: Any) -> Any:
-        if val == self.exc:
-            return str(val)
-
-        return val
-
 
 @dataclass
 class SystemExecutingCmd(DebugLevel, Cli, File):
@@ -396,40 +378,6 @@ class SystemReportReturnCode(DebugLevel, Cli, File):
 
     def message(self) -> str:
         return f"command return code={self.returncode}"
-
-# TODO remove?? Not called outside of this file
-
-
-@dataclass
-class SelectorAlertUpto3UnusedNodes(InfoLevel, Cli, File):
-    node_names: List[str]
-    code: str = "I_NEED_A_CODE_5"
-
-    def message(self) -> str:
-        summary_nodes_str = ("\n  - ").join(self.node_names[:3])
-        and_more_str = (
-            f"\n  - and {len(self.node_names) - 3} more" if len(self.node_names) > 4 else ""
-        )
-        return (
-            f"\nSome tests were excluded because at least one parent is not selected. "
-            f"Use the --greedy flag to include them."
-            f"\n  - {summary_nodes_str}{and_more_str}"
-        )
-
-# TODO remove?? Not called outside of this file
-
-
-@dataclass
-class SelectorAlertAllUnusedNodes(DebugLevel, Cli, File):
-    node_names: List[str]
-    code: str = "I_NEED_A_CODE_6"
-
-    def message(self) -> str:
-        debug_nodes_str = ("\n  - ").join(self.node_names)
-        return (
-            f"Full list of tests that were excluded:"
-            f"\n  - {debug_nodes_str}"
-        )
 
 
 @dataclass
@@ -542,7 +490,7 @@ class Rollback(DebugLevel, Cli, File):
 
 @dataclass
 class CacheMiss(DebugLevel, Cli, File):
-    conn_name: Any  # TODO mypy says this is `Callable[[], str]`??  ¯\_(ツ)_/¯
+    conn_name: str
     database: Optional[str]
     schema: str
     code: str = "E013"
@@ -563,6 +511,14 @@ class ListRelations(DebugLevel, Cli, File):
 
     def message(self) -> str:
         return f"with database={self.database}, schema={self.schema}, relations={self.relations}"
+
+    @classmethod
+    def asdict(cls, data: list) -> dict:
+        d = dict()
+        for k, v in data:
+            if type(v) == list:
+                d[k] = [str(x) for x in v]
+        return d
 
 
 @dataclass
@@ -623,6 +579,10 @@ class SchemaCreation(DebugLevel, Cli, File):
     def message(self) -> str:
         return f'Creating schema "{self.relation}"'
 
+    @classmethod
+    def asdict(cls, data: list) -> dict:
+        return dict((k, str(v)) for k, v in data)
+
 
 @dataclass
 class SchemaDrop(DebugLevel, Cli, File):
@@ -631,6 +591,10 @@ class SchemaDrop(DebugLevel, Cli, File):
 
     def message(self) -> str:
         return f'Dropping schema "{self.relation}".'
+
+    @classmethod
+    def asdict(cls, data: list) -> dict:
+        return dict((k, str(v)) for k, v in data)
 
 
 # TODO pretty sure this is only ever called in dead code
@@ -667,12 +631,9 @@ class AddRelation(DebugLevel, Cli, File, Cache):
     def message(self) -> str:
         return f"Adding relation: {str(self.relation)}"
 
-    # overriding default json serialization for this event
-    def fields_to_json(self, val: Any) -> Any:
-        if isinstance(val, _CachedRelation):
-            return str(val)
-
-        return val
+    @classmethod
+    def asdict(cls, data: list) -> dict:
+        return dict((k, str(v)) for k, v in data)
 
 
 @dataclass
@@ -692,6 +653,16 @@ class DropCascade(DebugLevel, Cli, File, Cache):
 
     def message(self) -> str:
         return f"drop {self.dropped} is cascading to {self.consequences}"
+
+    @classmethod
+    def asdict(cls, data: list) -> dict:
+        d = dict()
+        for k, v in data:
+            if isinstance(v, list):
+                d[k] = [str(x) for x in v]
+            else:
+                d[k] = str(v)  # type: ignore
+        return d
 
 
 @dataclass
@@ -782,11 +753,9 @@ class AdapterImportError(InfoLevel, Cli, File):
     def message(self) -> str:
         return f"Error importing adapter: {self.exc}"
 
-    def fields_to_json(self, val: Any) -> Any:
-        if val == self.exc:
-            return str(val())
-
-        return val
+    @classmethod
+    def asdict(cls, data: list) -> dict:
+        return dict((k, str(v)) for k, v in data)
 
 
 @dataclass
@@ -842,12 +811,6 @@ class ProfileLoadError(ShowException, DebugLevel, Cli, File):
     def message(self) -> str:
         return f"Profile not loaded due to error: {self.exc}"
 
-    def fields_to_json(self, val: Any) -> Any:
-        if val == self.exc:
-            return str(val)
-
-        return val
-
 
 @dataclass
 class ProfileNotFound(InfoLevel, Cli, File):
@@ -863,85 +826,7 @@ class InvalidVarsYAML(ErrorLevel, Cli, File):
     code: str = "A008"
 
     def message(self) -> str:
-        return "The YAML provided in the --vars argument is not valid.\n"
-
-
-# TODO: Remove? (appears to be uncalled)
-@dataclass
-class CatchRunException(ShowException, DebugLevel, Cli, File):
-    build_path: Any
-    exc: Exception
-    code: str = "I_NEED_A_CODE_1"
-
-    def message(self) -> str:
-        INTERNAL_ERROR_STRING = """This is an error in dbt. Please try again. If the \
-                            error persists, open an issue at https://github.com/dbt-labs/dbt-core
-                            """.strip()
-        prefix = f'Internal error executing {self.build_path}'
-        error = "{prefix}\n{error}\n\n{note}".format(
-                prefix=ui.red(prefix),
-                error=str(self.exc).strip(),
-                note=INTERNAL_ERROR_STRING
-        )
-        return error
-
-    def fields_to_json(self, val: Any) -> Any:
-        if val == self.exc:
-            return str(val)
-
-        return val
-
-
-# TODO: Remove? (appears to be uncalled)
-@dataclass
-class HandleInternalException(ShowException, DebugLevel, Cli, File):
-    exc: Exception
-    code: str = "I_NEED_A_CODE_2"
-
-    def message(self) -> str:
-        return str(self.exc)
-
-    def fields_to_json(self, val: Any) -> Any:
-        if val == self.exc:
-            return str(val)
-
-        return val
-
-# TODO: Remove? (appears to be uncalled)
-
-
-@dataclass
-class MessageHandleGenericException(ErrorLevel, Cli, File):
-    build_path: str
-    unique_id: str
-    exc: Exception
-    code: str = "I_NEED_A_CODE_3"
-
-    def message(self) -> str:
-        node_description = self.build_path
-        if node_description is None:
-            node_description = self.unique_id
-        prefix = "Unhandled error while executing {}".format(node_description)
-        return "{prefix}\n{error}".format(
-            prefix=ui.red(prefix),
-            error=str(self.exc).strip()
-        )
-
-    def fields_to_json(self, val: Any) -> Any:
-        if val == self.exc:
-            return str(val)
-
-        return val
-
-# TODO: Remove? (appears to be uncalled)
-
-
-@dataclass
-class DetailsHandleGenericException(ShowException, DebugLevel, Cli, File):
-    code: str = "I_NEED_A_CODE_4"
-
-    def message(self) -> str:
-        return ''
+        return "The YAML provided in the --vars argument is not valid."
 
 
 @dataclass
@@ -1109,12 +994,6 @@ class ParsedFileLoadFailed(ShowException, DebugLevel, Cli, File):
 
     def message(self) -> str:
         return f"Failed to load parsed file from disk at {self.path}: {self.exc}"
-
-    def fields_to_json(self, val: Any) -> Any:
-        if val == self.exc:
-            return str(val)
-
-        return val
 
 
 @dataclass
@@ -1329,12 +1208,6 @@ class RunningOperationCaughtError(ErrorLevel, Cli, File):
     def message(self) -> str:
         return f'Encountered an error while running operation: {self.exc}'
 
-    def fields_to_json(self, val: Any) -> Any:
-        if val == self.exc:
-            return str(val)
-
-        return val
-
 
 @dataclass
 class RunningOperationUncaughtError(ErrorLevel, Cli, File):
@@ -1343,12 +1216,6 @@ class RunningOperationUncaughtError(ErrorLevel, Cli, File):
 
     def message(self) -> str:
         return f'Encountered an error while running operation: {self.exc}'
-
-    def fields_to_json(self, val: Any) -> Any:
-        if val == self.exc:
-            return str(val)
-
-        return val
 
 
 @dataclass
@@ -1367,12 +1234,6 @@ class DbtProjectErrorException(ErrorLevel, Cli, File):
     def message(self) -> str:
         return f"  ERROR: {str(self.exc)}"
 
-    def fields_to_json(self, val: Any) -> Any:
-        if val == self.exc:
-            return str(val)
-
-        return val
-
 
 @dataclass
 class DbtProfileError(ErrorLevel, Cli, File):
@@ -1389,12 +1250,6 @@ class DbtProfileErrorException(ErrorLevel, Cli, File):
 
     def message(self) -> str:
         return f"  ERROR: {str(self.exc)}"
-
-    def fields_to_json(self, val: Any) -> Any:
-        if val == self.exc:
-            return str(val)
-
-        return val
 
 
 @dataclass
@@ -1443,12 +1298,6 @@ class CatchableExceptionOnRun(ShowException, DebugLevel, Cli, File):
     def message(self) -> str:
         return str(self.exc)
 
-    def fields_to_json(self, val: Any) -> Any:
-        if val == self.exc:
-            return str(val)
-
-        return val
-
 
 @dataclass
 class InternalExceptionOnRun(DebugLevel, Cli, File):
@@ -1468,12 +1317,6 @@ the error persists, open an issue at https://github.com/dbt-labs/dbt-core
             error=str(self.exc).strip(),
             note=INTERNAL_ERROR_STRING
         )
-
-    def fields_to_json(self, val: Any) -> Any:
-        if val == self.exc:
-            return str(val)
-
-        return val
 
 
 # This prints the stack trace at the debug level while allowing just the nice exception message
@@ -1503,12 +1346,6 @@ class GenericExceptionOnRun(ErrorLevel, Cli, File):
             error=str(self.exc).strip()
         )
 
-    def fields_to_json(self, val: Any) -> Any:
-        if val == self.exc:
-            return str(val)
-
-        return val
-
 
 @dataclass
 class NodeConnectionReleaseError(ShowException, DebugLevel, Cli, File):
@@ -1519,12 +1356,6 @@ class NodeConnectionReleaseError(ShowException, DebugLevel, Cli, File):
     def message(self) -> str:
         return ('Error releasing connection for node {}: {!s}'
                 .format(self.node_name, self.exc))
-
-    def fields_to_json(self, val: Any) -> Any:
-        if val == self.exc:
-            return str(val)
-
-        return val
 
 
 @dataclass
@@ -1639,7 +1470,7 @@ class DepsNotifyUpdatesAvailable(InfoLevel, Cli, File):
     code: str = "M019"
 
     def message(self) -> str:
-        return ('\nUpdates available for packages: {} \
+        return ('Updates available for packages: {} \
                 \nUpdate your versions in packages.yml, then run dbt deps'.format(self.packages))
 
 
@@ -1756,7 +1587,7 @@ class ServingDocsExitInfo(InfoLevel, Cli, File):
     code: str = "Z020"
 
     def message(self) -> str:
-        return "Press Ctrl+C to exit.\n\n"
+        return "Press Ctrl+C to exit."
 
 
 @dataclass
@@ -1807,7 +1638,7 @@ class StatsLine(InfoLevel, Cli, File):
     code: str = "Z023"
 
     def message(self) -> str:
-        stats_line = ("\nDone. PASS={pass} WARN={warn} ERROR={error} SKIP={skip} TOTAL={total}")
+        stats_line = ("Done. PASS={pass} WARN={warn} ERROR={error} SKIP={skip} TOTAL={total}")
         return stats_line.format(**self.stats)
 
 
@@ -1845,12 +1676,6 @@ class SQlRunnerException(ShowException, DebugLevel, Cli, File):
 
     def message(self) -> str:
         return f"Got an exception: {self.exc}"
-
-    def fields_to_json(self, val: Any) -> Any:
-        if val == self.exc:
-            return str(val)
-
-        return val
 
 
 @dataclass
@@ -2322,6 +2147,10 @@ class NodeFinished(DebugLevel, Cli, File, NodeInfo):
     def message(self) -> str:
         return f"Finished running node {self.unique_id}"
 
+    @classmethod
+    def asdict(cls, data: list) -> dict:
+        return dict((k, str(v)) for k, v in data)
+
 
 @dataclass
 class QueryCancelationUnsupported(InfoLevel, Cli, File):
@@ -2337,11 +2166,12 @@ class QueryCancelationUnsupported(InfoLevel, Cli, File):
 
 @dataclass
 class ConcurrencyLine(InfoLevel, Cli, File):
-    concurrency_line: str
+    num_threads: int
+    target_name: str
     code: str = "Q026"
 
     def message(self) -> str:
-        return self.concurrency_line
+        return f"Concurrency: {self.num_threads} threads (target='{self.target_name}')"
 
 
 @dataclass
@@ -2606,12 +2436,6 @@ class GeneralWarningException(WarnLevel, Cli, File):
             return self.log_fmt.format(str(self.exc))
         return str(self.exc)
 
-    def fields_to_json(self, val: Any) -> Any:
-        if val == self.exc:
-            return str(val)
-
-        return val
-
 
 @dataclass
 class EventBufferFull(WarnLevel, Cli, File):
@@ -2708,8 +2532,6 @@ if 1 == 0:
     AdapterImportError(ModuleNotFoundError())
     PluginLoadError()
     SystemReportReturnCode(returncode=0)
-    SelectorAlertUpto3UnusedNodes(node_names=[])
-    SelectorAlertAllUnusedNodes(node_names=[])
     NewConnectionOpening(connection_state='')
     TimingInfoCollected()
     MergedFromState(nbr_merged=0, sample=[])
@@ -2755,8 +2577,6 @@ if 1 == 0:
     PartialParsingDeletedExposure(unique_id='')
     InvalidDisabledSourceInTestNode(msg='')
     InvalidRefInTestNode(msg='')
-    MessageHandleGenericException(build_path='', unique_id='', exc=Exception(''))
-    DetailsHandleGenericException()
     RunningOperationCaughtError(exc=Exception(''))
     RunningOperationUncaughtError(exc=Exception(''))
     DbtProjectError()
@@ -2952,7 +2772,7 @@ if 1 == 0:
     NodeStart(report_node_data=ParsedModelNode(), unique_id='')
     NodeFinished(report_node_data=ParsedModelNode(), unique_id='', run_result=RunResult())
     QueryCancelationUnsupported(type='')
-    ConcurrencyLine(concurrency_line='')
+    ConcurrencyLine(num_threads=0, target_name='')
     NodeCompiling(report_node_data=ParsedModelNode(), unique_id='')
     NodeExecuting(report_node_data=ParsedModelNode(), unique_id='')
     StarterProjectPath(dir='')
