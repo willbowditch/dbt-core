@@ -1,11 +1,11 @@
 import argparse
 from dataclasses import dataclass
+from dbt.adapters.reference_keys import _make_key, _ReferenceKey
 from dbt.events.stubs import (
     _CachedRelation,
     BaseRelation,
-    ParsedModelNode,
     ParsedHookNode,
-    _ReferenceKey,
+    ParsedModelNode,
     RunResult
 )
 from dbt import ui
@@ -506,7 +506,7 @@ class CacheMiss(DebugLevel, Cli, File):
 class ListRelations(DebugLevel, Cli, File):
     database: Optional[str]
     schema: str
-    relations: List[BaseRelation]
+    relations: List[_ReferenceKey]
     code: str = "E014"
 
     def message(self) -> str:
@@ -543,7 +543,7 @@ class SQLQuery(DebugLevel, Cli, File):
 
 @dataclass
 class SQLQueryStatus(DebugLevel, Cli, File):
-    status: str  # could include AdapterResponse if we resolve circular imports
+    status: str
     elapsed: float
     code: str = "E017"
 
@@ -573,20 +573,16 @@ class ColTypeChange(DebugLevel, Cli, File):
 
 @dataclass
 class SchemaCreation(DebugLevel, Cli, File):
-    relation: BaseRelation
+    relation: _ReferenceKey
     code: str = "E020"
 
     def message(self) -> str:
         return f'Creating schema "{self.relation}"'
 
-    @classmethod
-    def asdict(cls, data: list) -> dict:
-        return dict((k, str(v)) for k, v in data)
-
 
 @dataclass
 class SchemaDrop(DebugLevel, Cli, File):
-    relation: BaseRelation
+    relation: _ReferenceKey
     code: str = "E021"
 
     def message(self) -> str:
@@ -625,15 +621,11 @@ class AddLink(DebugLevel, Cli, File, Cache):
 
 @dataclass
 class AddRelation(DebugLevel, Cli, File, Cache):
-    relation: _CachedRelation
+    relation: _ReferenceKey
     code: str = "E024"
 
     def message(self) -> str:
         return f"Adding relation: {str(self.relation)}"
-
-    @classmethod
-    def asdict(cls, data: list) -> dict:
-        return dict((k, str(v)) for k, v in data)
 
 
 @dataclass
@@ -1331,9 +1323,9 @@ class PrintDebugStackTrace(ShowException, DebugLevel, Cli, File):
 
 @dataclass
 class GenericExceptionOnRun(ErrorLevel, Cli, File):
-    build_path: str
+    build_path: Optional[str]
     unique_id: str
-    exc: Exception
+    exc: str  # TODO: make this the actual exception once we have a better searilization strategy
     code: str = "W004"
 
     def message(self) -> str:
@@ -1735,7 +1727,7 @@ class PrintStartLine(InfoLevel, Cli, File, NodeInfo):
     index: int
     total: int
     report_node_data: ParsedModelNode
-    code: str = "Z031"
+    code: str = "Q033"
 
     def message(self) -> str:
         msg = f"START {self.description}"
@@ -1753,8 +1745,8 @@ class PrintHookStartLine(InfoLevel, Cli, File, NodeInfo):
     index: int
     total: int
     truncate: bool
-    report_node_data: Any  # TODO use ParsedHookNode here
-    code: str = "Z032"
+    report_node_data: Any  # TODO: resolve ParsedHookNode circular import
+    code: str = "Q032"
 
     def message(self) -> str:
         msg = f"START hook: {self.statement}"
@@ -1773,7 +1765,7 @@ class PrintHookEndLine(InfoLevel, Cli, File, NodeInfo):
     total: int
     execution_time: int
     truncate: bool
-    report_node_data: Any  # TODO use ParsedHookNode here
+    report_node_data: Any  # TODO: resolve ParsedHookNode circular import
     code: str = "Q007"
 
     def message(self) -> str:
@@ -1794,7 +1786,7 @@ class SkippingDetails(InfoLevel, Cli, File, NodeInfo):
     index: int
     total: int
     report_node_data: ParsedModelNode
-    code: str = "Z033"
+    code: str = "Q034"
 
     def message(self) -> str:
         if self.resource_type in NodeType.refable():
@@ -1909,7 +1901,7 @@ class PrintModelErrorResultLine(ErrorLevel, Cli, File, NodeInfo):
     total: int
     execution_time: int
     report_node_data: ParsedModelNode
-    code: str = "Z035"
+    code: str = "Q035"
 
     def message(self) -> str:
         info = "ERROR creating"
@@ -2499,8 +2491,8 @@ if 1 == 0:
     SQLQueryStatus(status="", elapsed=0.1)
     SQLCommit(conn_name="")
     ColTypeChange(orig_type="", new_type="", table="")
-    SchemaCreation(relation=BaseRelation())
-    SchemaDrop(relation=BaseRelation())
+    SchemaCreation(relation=_make_key(BaseRelation()))
+    SchemaDrop(relation=_make_key(BaseRelation()))
     UncachedRelation(
         dep_key=_ReferenceKey(database="", schema="", identifier=""),
         ref_key=_ReferenceKey(database="", schema="", identifier=""),
@@ -2509,7 +2501,7 @@ if 1 == 0:
         dep_key=_ReferenceKey(database="", schema="", identifier=""),
         ref_key=_ReferenceKey(database="", schema="", identifier=""),
     )
-    AddRelation(relation=_CachedRelation())
+    AddRelation(relation=_make_key(_CachedRelation()))
     DropMissingRelation(relation=_ReferenceKey(database="", schema="", identifier=""))
     DropCascade(
         dropped=_ReferenceKey(database="", schema="", identifier=""),
@@ -2589,7 +2581,7 @@ if 1 == 0:
     ProfileHelpMessage()
     CatchableExceptionOnRun(exc=Exception(''))
     InternalExceptionOnRun(build_path='', exc=Exception(''))
-    GenericExceptionOnRun(build_path='', unique_id='', exc=Exception(''))
+    GenericExceptionOnRun(build_path='', unique_id='', exc='')
     NodeConnectionReleaseError(node_name='', exc=Exception(''))
     CheckCleanPath(path='')
     ConfirmCleanPath(path='')

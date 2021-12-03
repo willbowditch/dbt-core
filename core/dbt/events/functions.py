@@ -23,11 +23,11 @@ import dataclasses
 from collections import deque
 
 
-# create the global event history buffer with a max size of 100k records
+# create the global event history buffer with the default max size (10k)
 # python 3.7 doesn't support type hints on globals, but mypy requires them. hence the ignore.
-# TODO: make the maxlen something configurable from the command line via args(?)
+# TODO the flags module has not yet been resolved when this is created
 global EVENT_HISTORY
-EVENT_HISTORY = deque(maxlen=100000)  # type: ignore
+EVENT_HISTORY = deque(maxlen=flags.EVENT_BUFFER_SIZE)  # type: ignore
 
 # create the global file logger with no configuration
 global FILE_LOG
@@ -50,6 +50,10 @@ invocation_id: Optional[str] = None
 
 
 def setup_event_logger(log_path, level_override=None):
+    # flags have been resolved, and log_path is known
+    global EVENT_HISTORY
+    EVENT_HISTORY = deque(maxlen=flags.EVENT_BUFFER_SIZE)  # type: ignore
+
     make_log_dir_if_missing(log_path)
     this.format_json = flags.LOG_FORMAT == 'json'
     # USE_COLORS can be None if the app just started and the cli flags
@@ -177,7 +181,7 @@ def event_to_serializable_dict(
 # translates an Event to a completely formatted text-based log line
 # you have to specify which message you want. (i.e. - e.message, e.cli_msg(), e.file_msg())
 # type hinting everything as strings so we don't get any unintentional string conversions via str()
-def create_stdout_text_log_line(e: T_Event, msg_fn: Callable[[T_Event], str]) -> str:
+def create_info_text_log_line(e: T_Event, msg_fn: Callable[[T_Event], str]) -> str:
     color_tag: str = '' if this.format_color else Style.RESET_ALL
     ts: str = e.get_ts().strftime("%H:%M:%S")
     scrubbed_msg: str = scrub_secrets(msg_fn(e), env_secrets())
@@ -185,7 +189,7 @@ def create_stdout_text_log_line(e: T_Event, msg_fn: Callable[[T_Event], str]) ->
     return log_line
 
 
-def create_file_text_log_line(e: T_Event, msg_fn: Callable[[T_Event], str]) -> str:
+def create_debug_text_log_line(e: T_Event, msg_fn: Callable[[T_Event], str]) -> str:
     log_line: str = ''
     # Create a separator if this is the beginning of an invocation
     if type(e) == MainReportVersion:
@@ -224,10 +228,10 @@ def create_log_line(
 ) -> Optional[str]:
     if this.format_json:
         return create_json_log_line(e, msg_fn)  # json output, both console and file
-    elif file_output is True:
-        return create_file_text_log_line(e, msg_fn)  # default file output
+    elif file_output is True or flags.DEBUG:
+        return create_debug_text_log_line(e, msg_fn)  # default file output
     else:
-        return create_stdout_text_log_line(e, msg_fn)  # console output
+        return create_info_text_log_line(e, msg_fn)  # console output
 
 
 # allows for resuse of this obnoxious if else tree.
@@ -310,13 +314,15 @@ def fire_event(e: Event) -> None:
     # skip logs when `--log-cache-events` is not passed
     if isinstance(e, Cache) and not flags.LOG_CACHE_EVENTS:
         return
+
     # if and only if the event history deque will be completely filled by this event
     # fire warning that old events are now being dropped
     global EVENT_HISTORY
-    if len(EVENT_HISTORY) == ((EVENT_HISTORY.maxlen or 100000) - 1):
+    if len(EVENT_HISTORY) == (flags.EVENT_BUFFER_SIZE - 1):
+        EVENT_HISTORY.append(e)
         fire_event(EventBufferFull())
-
-    EVENT_HISTORY.append(e)
+    else:
+        EVENT_HISTORY.append(e)
 
     # backwards compatibility for plugins that require old logger (dbt-rpc)
     if flags.ENABLE_LEGACY_LOGGER:
