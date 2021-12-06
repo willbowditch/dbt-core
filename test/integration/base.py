@@ -11,6 +11,7 @@ import unittest
 from contextlib import contextmanager
 from datetime import datetime
 from functools import wraps
+from typing import Optional
 
 import pytest
 import yaml
@@ -1119,22 +1120,22 @@ def use_profile(profile_name):
 class AnyFloat:
     """Any float. Use this in assertEqual() calls to assert that it is a float.
     """
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
         return isinstance(other, float)
 
 
 class AnyString:
     """Any string. Use this in assertEqual() calls to assert that it is a string.
     """
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
         return isinstance(other, str)
 
 
 class AnyStringWith:
-    def __init__(self, contains=None):
+    def __init__(self, contains: Optional[str]=None) -> None:
         self.contains = contains
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
         if not isinstance(other, str):
             return False
 
@@ -1143,11 +1144,11 @@ class AnyStringWith:
 
         return self.contains in other
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return 'AnyStringWith<{!r}>'.format(self.contains)
 
 
-def get_manifest() -> Manifest:
+def get_manifest() -> Optional[Manifest]:
     path = './target/partial_parse.msgpack'
     if os.path.exists(path):
         with open(path, 'rb') as fp:
