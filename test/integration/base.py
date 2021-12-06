@@ -1147,12 +1147,11 @@ class AnyStringWith:
         return 'AnyStringWith<{!r}>'.format(self.contains)
 
 
-def get_manifest():
+def get_manifest() -> Manifest:
     path = './target/partial_parse.msgpack'
     if os.path.exists(path):
         with open(path, 'rb') as fp:
             manifest_mp = fp.read()
-        manifest: Manifest = Manifest.from_msgpack(manifest_mp)
-        return manifest
+        return Manifest.from_msgpack(manifest_mp)
     else:
         return None
