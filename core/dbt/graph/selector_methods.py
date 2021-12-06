@@ -22,7 +22,7 @@ from dbt.contracts.graph.parsed import (
     ParsedGenericTestNode,
     ParsedSourceDefinition,
 )
-from dbt.contracts.state import PreviousState
+from dbt.contracts.state import PreviousState, CurrentState
 from dbt.exceptions import (
     InternalException,
     RuntimeException,
@@ -48,6 +48,7 @@ class MethodName(StrEnum):
     Exposure = 'exposure'
     Metric = 'metric'
     Result = 'result'
+    SourceFresh = 'source_fresh'
 
 
 def is_selected_node(fqn: List[str], node_selector: str):
@@ -577,6 +578,41 @@ class ResultSelectorMethod(SelectorMethod):
             if node in matches:
                 yield node
 
+class SourceFreshSelectorMethod(SelectorMethod): #TODO: this requires SelectorMethod to have current_state as an argument. currently, this works because it's all hard-coded
+    def search(
+        self, included_nodes: Set[UniqueId], selector: str
+    ) -> Iterator[UniqueId]:
+        self.current_state = CurrentState() #TODO: fix this by importing target_path later
+
+        if self.previous_state is None or self.previous_state.sources is None:
+            raise InternalException(
+                'No previous state comparison freshness results in sources.json'
+            )
+        elif self.current_state is None or self.current_state.sources is None:
+            raise InternalException(
+                'No current state comparison freshness results in sources.json'
+            )
+
+        current_state_sources = {
+            result.unique_id:result.max_loaded_at for result in self.current_state.sources.results
+        }
+        previous_state_sources = {
+            result.unique_id:result.max_loaded_at for result in self.previous_state.sources.results
+        }
+
+        matches = set()
+        for unique_id in current_state_sources:
+            if unique_id not in previous_state_sources:
+                matches.add(unique_id)
+            elif selector == 'yes' and current_state_sources.get(unique_id) > previous_state_sources.get(unique_id):
+                matches.add(unique_id)
+            elif selector == 'no' and current_state_sources.get(unique_id) <= previous_state_sources.get(unique_id):
+                matches.add(unique_id)
+        
+        for node, real_node in self.all_nodes(included_nodes):
+            if node in matches:
+                yield node
+
 
 class MethodManager:
     SELECTOR_METHODS: Dict[MethodName, Type[SelectorMethod]] = {
@@ -593,6 +629,7 @@ class MethodManager:
         MethodName.Exposure: ExposureSelectorMethod,
         MethodName.Metric: MetricSelectorMethod,
         MethodName.Result: ResultSelectorMethod,
+        MethodName.SourceFresh: SourceFreshSelectorMethod,
     }
 
     def __init__(
