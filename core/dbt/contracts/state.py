@@ -33,20 +33,21 @@ class PreviousState:
                 exc.add_filename(str(results_path))
                 raise
 
-        sources_path = self.path / 'sources.json'
-        if sources_path.exists() and sources_path.is_file():
+        current_sources_path = self.path / 'sources.json'
+        if current_sources_path.exists() and current_sources_path.is_file():
             try:
-                self.sources = FreshnessExecutionResultArtifact.read(str(sources_path))
+                self.current_sources = FreshnessExecutionResultArtifact.read(str(current_sources_path))
             except IncompatibleSchemaException as exc:
-                exc.add_filename(str(sources_path))
+                exc.add_filename(str(current_sources_path))
                 raise
         
-        previous_sources_path = self.path / 'historical' / 'sources.json'
-        if previous_sources_path.exists() and previous_sources_path.is_file():
+        # we either have to get the previous version of sources state from somewhere or generate it on the fly . . .
+        archive_sources_path = self.path / 'archive_sources' / 'sources.json'
+        if archive_sources_path.exists() and archive_sources_path.is_file():
             try:
-                self.previous_sources = FreshnessExecutionResultArtifact.read(str(sources_path))
+                self.archive_sources = FreshnessExecutionResultArtifact.read(str(archive_sources_path))
             except IncompatibleSchemaException as exc:
-                exc.add_filename(str(previous_sources_path))
+                exc.add_filename(str(archive_sources_path))
                 raise
 
 # bring in the project class that needs to be instantiated
