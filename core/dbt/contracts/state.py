@@ -15,6 +15,7 @@ class PreviousState:
         self.manifest: Optional[WritableManifest] = None
         self.results: Optional[RunResultsArtifact] = None
         self.sources: Optional[FreshnessExecutionResultArtifact] = None
+        self.previous_sources: Optional[FreshnessExecutionResultArtifact] = None
 
         manifest_path = self.path / 'manifest.json'
         if manifest_path.exists() and manifest_path.is_file():
@@ -38,6 +39,14 @@ class PreviousState:
                 self.sources = FreshnessExecutionResultArtifact.read(str(sources_path))
             except IncompatibleSchemaException as exc:
                 exc.add_filename(str(sources_path))
+                raise
+        
+        previous_sources_path = self.path / 'historical' / 'sources.json'
+        if previous_sources_path.exists() and previous_sources_path.is_file():
+            try:
+                self.previous_sources = FreshnessExecutionResultArtifact.read(str(sources_path))
+            except IncompatibleSchemaException as exc:
+                exc.add_filename(str(previous_sources_path))
                 raise
 
 # bring in the project class that needs to be instantiated
