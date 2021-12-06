@@ -26,7 +26,7 @@ from dbt.contracts.graph.parsed import ParsedSourceDefinition
 
 
 RESULT_FILE_NAME = 'sources.json'
-
+RESULT_ARCHIVE_DIR_NAME = 'archive_sources'
 
 class FreshnessRunner(BaseRunner):
     def on_skip(self):
@@ -190,6 +190,15 @@ class FreshnessTask(GraphRunnableTask):
             return os.path.realpath(self.args.output)
         else:
             return os.path.join(self.config.target_path, RESULT_FILE_NAME)
+    
+    def archive_path(self):
+        if self.args.output:
+            return os.path.realpath(self.args.output + '/' + RESULT_ARCHIVE_DIR_NAME)
+        
+        else:
+            if not os.path.exists(os.path.join(self.config.target_path, RESULT_ARCHIVE_DIR_NAME)):
+                os.mkdir(os.path.join(self.config.target_path, RESULT_ARCHIVE_DIR_NAME))
+            return os.path.join(self.config.target_path, RESULT_ARCHIVE_DIR_NAME, RESULT_FILE_NAME)
 
     def raise_on_first_error(self):
         return False
@@ -211,8 +220,10 @@ class FreshnessTask(GraphRunnableTask):
 
     def write_result(self, result):
         artifact = FreshnessExecutionResultArtifact.from_result(result)
+        if os.path.exists(self.result_path()):
+            os.rename(self.result_path(), self.archive_path())
         artifact.write(self.result_path())
-
+        
     def get_result(self, results, elapsed_time, generated_at):
         return FreshnessResult.from_node_results(
             elapsed_time=elapsed_time,
