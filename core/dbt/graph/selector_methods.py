@@ -582,22 +582,29 @@ class SourceFreshSelectorMethod(SelectorMethod): #TODO: this requires SelectorMe
     def search(
         self, included_nodes: Set[UniqueId], selector: str
     ) -> Iterator[UniqueId]:
-        self.current_state = CurrentState() #TODO: fix this by importing target_path later
+        #self.current_state = CurrentState() #TODO: fix this by importing target_path later
 
-        if self.previous_state is None or self.previous_state.sources is None:
+        #TODO: this section in general we should make clear whether it's the current or archived (or whatever name we choose)
+        # sources file that's missing.
+        if self.previous_state is None or \
+           self.previous_state.current_sources is None or \
+           self.previous_state.archive_sources is None:
             raise InternalException(
                 'No previous state comparison freshness results in sources.json'
             )
-        elif self.current_state is None or self.current_state.sources is None:
-            raise InternalException(
-                'No current state comparison freshness results in sources.json'
-            )
+        
+        # elif self.current_state is None or self.current_state.sources is None:
+        #     raise InternalException(
+        #         'No current state comparison freshness results in sources.json'
+        #     )
 
         current_state_sources = {
-            result.unique_id:result.max_loaded_at for result in self.current_state.sources.results
+            result.unique_id:result.max_loaded_at for result in self.previous_state.current_sources.results
         }
+
+        # TODO: keeping this the same for now but could adjust naming
         previous_state_sources = {
-            result.unique_id:result.max_loaded_at for result in self.previous_state.sources.results
+            result.unique_id:result.max_loaded_at for result in self.previous_state.archive_sources.results
         }
 
         matches = set()
