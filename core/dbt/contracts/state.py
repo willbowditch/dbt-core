@@ -7,7 +7,7 @@ from typing import Optional
 
 from dbt.exceptions import IncompatibleSchemaException
 
-from dbt.path_utils import PathUtils
+from dbt.path_utils import FRESHNESS_RESULT_ARCHIVE_DIR_NAME
 
 class PreviousState:
     def __init__(self, path: Path):
@@ -42,30 +42,10 @@ class PreviousState:
                 raise
         
         # we either have to get the previous version of sources state from somewhere or generate it on the fly . . .
-        archive_sources_path = self.path / 'archive_sources' / 'sources.json'
+        archive_sources_path = self.path / FRESHNESS_RESULT_ARCHIVE_DIR_NAME / 'sources.json'
         if archive_sources_path.exists() and archive_sources_path.is_file():
             try:
                 self.archive_sources = FreshnessExecutionResultArtifact.read(str(archive_sources_path))
             except IncompatibleSchemaException as exc:
                 exc.add_filename(str(archive_sources_path))
-                raise
-
-# bring in the project class that needs to be instantiated
-# define the target path at this step(how do I consider a different target path? based on dbt_project.yml)
-# the problem I'm facing right now is that the project config is populated AFTER this step
-# the reason this works with previous state is that we manually set the previous state path
-# current state is more difficult because we have to read the project config first before this class is instantiated
-class CurrentState(PathUtils):
-    def __init__(self):
-        super().__init__()
-        self.sources: Optional[FreshnessExecutionResultArtifact] = None
-
-        target_path = self.get_target_path()
-        sources_path = target_path / 'sources.json'
-
-        if sources_path.exists() and sources_path.is_file():
-            try:
-                self.sources = FreshnessExecutionResultArtifact.read(str(sources_path))
-            except IncompatibleSchemaException as exc:
-                exc.add_filename(str(sources_path))
                 raise
