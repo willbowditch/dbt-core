@@ -1,3 +1,11 @@
+## dbt-core 1.1.0 (Release TBD)
+
+### Features
+- Run dbt models based on the freshest data available if the most recent `dbt source freshness` invocation indicates data fresher than the previous time `dbt source freshness` was invoked ([#4050](https://github.com/dbt-labs/dbt-core/issues/4151), [#4256](https://github.com/dbt-labs/dbt-core/pull/4256))
+
+### Under the hood
+- `dbt source freshness` will store two invocation states. Current State: `target/sources.json`. Archive State: `target/archive_sources/sources.json` ([#4050](https://github.com/dbt-labs/dbt-core/issues/4151), [#4256](https://github.com/dbt-labs/dbt-core/pull/4256))
+
 ## dbt-core 1.0.0 (December 3, 2021)
 
 ### Fixes
