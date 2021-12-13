@@ -1,4 +1,4 @@
-
+from colorama import init as init_colorama
 from colorama import Style
 from datetime import datetime
 import dbt.events.functions as this  # don't worry I hate it too.
@@ -47,6 +47,9 @@ STDOUT_LOG.addHandler(stdout_handler)
 format_color = True
 format_json = False
 invocation_id: Optional[str] = None
+
+# have colorama read information about the system for compatibility reasons
+init_colorama()
 
 
 def setup_event_logger(log_path, level_override=None):
