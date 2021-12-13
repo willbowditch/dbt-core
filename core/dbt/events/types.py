@@ -131,7 +131,8 @@ class MainReportVersion(InfoLevel, Cli, File):
     code: str = "A001"
 
     def message(self):
-        return f"Running with dbt{self.v}"
+        from colorama import Fore, Style
+        return f"{Fore.RED}Running with dbt{self.v}{Style.RESET_ALL}"
 
 
 @dataclass
