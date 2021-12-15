@@ -6,10 +6,10 @@ import decimal
 import functools
 import hashlib
 import itertools
-import jinja2
+import jinja2  # type: ignore[import]
 import json
 import os
-import requests
+import requests  # type: ignore[import]
 import time
 
 from contextlib import contextmanager

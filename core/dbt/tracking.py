@@ -15,10 +15,10 @@ from snowplow_tracker import SelfDescribingJson
 from datetime import datetime
 
 import logbook
-import pytz
+import pytz  # type: ignore[import]
 import platform
 import uuid
-import requests
+import requests  # type: ignore[import]
 import os
 
 sp_logger.setLevel(100)

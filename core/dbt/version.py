@@ -5,7 +5,7 @@ import glob
 import json
 from typing import Iterator
 
-import requests
+import requests  # type: ignore[import]
 
 import dbt.exceptions
 import dbt.semver

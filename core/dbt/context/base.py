@@ -21,7 +21,7 @@ from dbt.version import __version__ as dbt_version
 
 # These modules are added to the context. Consider alternative
 # approaches which will extend well to potentially many modules
-import pytz
+import pytz  # type: ignore[import]
 import datetime
 import re
 

@@ -1,6 +1,6 @@
 from typing import Iterable, List
 
-import jinja2
+import jinja2  # type: ignore[import]
 
 from dbt.clients import jinja
 from dbt.contracts.graph.unparsed import UnparsedMacro

@@ -12,12 +12,12 @@ from typing import (
     Callable
 )
 
-import jinja2
-import jinja2.ext
-import jinja2.nativetypes  # type: ignore
-import jinja2.nodes
-import jinja2.parser
-import jinja2.sandbox
+import jinja2  # type: ignore[import]
+import jinja2.ext  # type: ignore[import]
+import jinja2.nativetypes  # type: ignore[import]
+import jinja2.nodes  # type: ignore[import]
+import jinja2.parser  # type: ignore[import]
+import jinja2.sandbox  # type: ignore[import]
 
 from dbt.utils import (
     get_dbt_macro_name, get_docs_macro_name, get_materialization_macro_name,

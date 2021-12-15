@@ -5,7 +5,7 @@ import re
 from dataclasses import fields
 from enum import Enum
 from datetime import datetime
-from dateutil.parser import parse
+from dateutil.parser import parse  # type: ignore[import]
 
 from hologram import JsonSchemaMixin, FieldEncoder, ValidationError
 

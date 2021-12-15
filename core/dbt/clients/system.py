@@ -9,7 +9,7 @@ import shutil
 import subprocess
 import sys
 import tarfile
-import requests
+import requests  # type: ignore[import]
 import stat
 from typing import (
     Type, NoReturn, List, Optional, Dict, Any, Tuple, Callable, Union

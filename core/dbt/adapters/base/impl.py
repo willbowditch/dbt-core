@@ -9,7 +9,7 @@ from typing import (
 )
 
 import agate
-import pytz
+import pytz  # type: ignore[import]
 
 from dbt.exceptions import (
     raise_database_error, raise_compiler_error, invalid_type_error,

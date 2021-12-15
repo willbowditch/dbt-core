@@ -5,7 +5,7 @@ import re
 import shutil
 from typing import Optional
 
-import yaml
+import yaml  # type: ignore[import]
 import click
 
 import dbt.config

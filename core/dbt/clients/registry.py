@@ -1,5 +1,5 @@
 import functools
-import requests
+import requests  # type: ignore[import]
 from dbt.events.functions import fire_event
 from dbt.events.types import (
     RegistryProgressMakingGETRequest,

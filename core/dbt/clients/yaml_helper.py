@@ -1,6 +1,6 @@
 import dbt.exceptions
 from typing import Any, Dict, Optional
-import yaml
+import yaml  # type: ignore[import]
 
 # the C version is faster, but it doesn't always exist
 try:
