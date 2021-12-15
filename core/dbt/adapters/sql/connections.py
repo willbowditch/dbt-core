@@ -92,17 +92,17 @@ class SQLConnectionManager(BaseConnectionManager):
     @classmethod
     def process_results(
         cls,
-        column_names: Iterable[str],
+        column_names: List[str],
         rows: Iterable[Any]
     ) -> List[Dict[str, Any]]:
-        unique_col_names = dict()
+        unique_col_names: Dict[str, int] = dict()
         for idx in range(len(column_names)):
             col_name = column_names[idx]
             if col_name in unique_col_names:
                 unique_col_names[col_name] += 1
                 column_names[idx] = f'{col_name}_{unique_col_names[col_name]}'
             else:
-                unique_col_names[column_names[idx]] = 1
+                unique_col_names[col_name] = 1
         return [dict(zip(column_names, row)) for row in rows]
 
     @classmethod
