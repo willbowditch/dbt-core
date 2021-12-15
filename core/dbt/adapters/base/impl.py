@@ -275,8 +275,8 @@ class BaseAdapter(metaclass=AdapterMeta):
             manifest = ManifestLoader.load_macros(
                 self.config, self.connections.set_query_header
             )
-            self._macro_manifest_lazy = manifest
-        return self._macro_manifest_lazy
+            self._macro_manifest_lazy = manifest  # type: ignore[assignment]
+        return self._macro_manifest_lazy  # type: ignore[return-value]
 
     def clear_macro_manifest(self):
         if self._macro_manifest_lazy is not None:
@@ -959,10 +959,10 @@ class BaseAdapter(metaclass=AdapterMeta):
         if context_override is None:
             context_override = {}
 
-        if manifest is None:
-            manifest = self._macro_manifest
+        # manifest has type Optional[Manifest]. working_manifest is not optional.
+        working_manifest: Union[Manifest, MacroManifest] = manifest or self._macro_manifest
 
-        macro = manifest.find_macro_by_name(
+        macro = working_manifest.find_macro_by_name(
             macro_name, self.config.project_name, project
         )
         if macro is None:
@@ -981,7 +981,7 @@ class BaseAdapter(metaclass=AdapterMeta):
         macro_context = generate_runtime_macro_context(
             macro=macro,
             config=self.config,
-            manifest=manifest,
+            manifest=working_manifest,  # type: ignore[arg-type]
             package_name=project
         )
         macro_context.update(context_override)

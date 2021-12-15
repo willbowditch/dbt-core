@@ -68,7 +68,7 @@ class DocsRuntimeContext(SchemaYamlContext):
             file_id = target_doc.file_id
             if file_id in self.manifest.files:
                 source_file = self.manifest.files[file_id]
-                source_file.add_node(self.node.unique_id)
+                source_file.add_node(self.node.unique_id)  # type: ignore[union-attr]
         else:
             doc_target_not_found(self.node, doc_name, doc_package_name)
 

@@ -74,7 +74,7 @@ class SQLAdapter(BaseAdapter):
     def convert_number_type(
         cls, agate_table: agate.Table, col_idx: int
     ) -> str:
-        decimals = agate_table.aggregate(agate.MaxPrecision(col_idx))
+        decimals = agate_table.aggregate(agate.MaxPrecision(col_idx))  # type: ignore[attr-defined]
         return "float8" if decimals else "integer"
 
     @classmethod

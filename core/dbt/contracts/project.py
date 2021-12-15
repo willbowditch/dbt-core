@@ -80,7 +80,7 @@ class GitPackage(Package):
 class RegistryPackage(Package):
     package: str
     version: Union[RawVersion, List[RawVersion]]
-    install_prerelease: Optional[bool] = False
+    install_prerelease: bool = False
 
     def get_versions(self) -> List[str]:
         if isinstance(self.version, list):

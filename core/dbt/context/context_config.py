@@ -150,7 +150,7 @@ class BaseContextConfigGenerator(Generic[T]):
                 result = self._update_from_config(result, fqn_config)
 
         # this is mostly impactful in the snapshot config case
-        return result
+        return result  # type: ignore[return-value]
 
     @abstractmethod
     def calculate_node_config_dict(
@@ -227,7 +227,7 @@ class UnrenderedConfigGenerator(BaseContextConfigGenerator[Dict[str, Any]]):
         base: bool,
         patch_config_dict: dict = None
     ) -> Dict[str, Any]:
-        return self.calculate_node_config(
+        return self.calculate_node_config(  # type: ignore[return-value]
             config_call_dict=config_call_dict,
             fqn=fqn,
             resource_type=resource_type,
@@ -299,9 +299,9 @@ class ContextConfig:
         patch_config_dict: dict = None
     ) -> Dict[str, Any]:
         if rendered:
-            src = ContextConfigGenerator(self._active_project)
+            src = ContextConfigGenerator(self._active_project)  # type: ignore[var-annotated]
         else:
-            src = UnrenderedConfigGenerator(self._active_project)
+            src = UnrenderedConfigGenerator(self._active_project)  # type: ignore[assignment]
 
         return src.calculate_node_config_dict(
             config_call_dict=self._config_call_dict,

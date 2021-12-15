@@ -79,7 +79,7 @@ Column_T = TypeVar(
 Compiler_T = TypeVar('Compiler_T', bound=CompilerProtocol)
 
 
-class AdapterProtocol(
+class AdapterProtocol(  # type: ignore[misc]
     Protocol,
     Generic[
         AdapterConfig_T,
