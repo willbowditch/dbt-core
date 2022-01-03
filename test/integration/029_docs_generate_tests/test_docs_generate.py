@@ -460,6 +460,7 @@ class TestDocsGenerate(DBTIntegrationTest):
             'persist_docs': {},
             'full_refresh': None,
             'on_schema_change': 'ignore',
+            'incremental_predicates': None,
             'meta': {},
         }
         result.update(updates)
@@ -481,6 +482,7 @@ class TestDocsGenerate(DBTIntegrationTest):
             'quote_columns': True,
             'full_refresh': None,
             'on_schema_change': 'ignore',
+            'incremental_predicates': None,
             'database': None,
             'schema': None,
             'alias': None,
@@ -509,6 +511,7 @@ class TestDocsGenerate(DBTIntegrationTest):
             'persist_docs': {},
             'full_refresh': None,
             'on_schema_change': 'ignore',
+            'incremental_predicates': None,
             'strategy': 'check',
             'check_cols': 'all',
             'unique_key': 'id',

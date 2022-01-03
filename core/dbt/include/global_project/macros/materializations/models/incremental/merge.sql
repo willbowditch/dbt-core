@@ -1,27 +1,17 @@
-{% macro get_merge_sql(target, source, unique_key, dest_columns, predicates=none) -%}
+{% macro get_merge_sql(target, source, unique_key, dest_columns, predicates) -%}
   {{ adapter.dispatch('get_merge_sql', 'dbt')(target, source, unique_key, dest_columns, predicates) }}
 {%- endmacro %}
 
 {% macro default__get_merge_sql(target, source, unique_key, dest_columns, predicates) -%}
-    {%- set predicates = [] if predicates is none else [] + predicates -%}
     {%- set dest_cols_csv = get_quoted_csv(dest_columns | map(attribute="name")) -%}
     {%- set update_columns = config.get('merge_update_columns', default = dest_columns | map(attribute="quoted") | list) -%}
     {%- set sql_header = config.get('sql_header', none) -%}
-
-    {% if unique_key %}
-        {% set unique_key_match %}
-            DBT_INTERNAL_SOURCE.{{ unique_key }} = DBT_INTERNAL_DEST.{{ unique_key }}
-        {% endset %}
-        {% do predicates.append(unique_key_match) %}
-    {% else %}
-        {% do predicates.append('FALSE') %}
-    {% endif %}
 
     {{ sql_header if sql_header is not none }}
 
     merge into {{ target }} as DBT_INTERNAL_DEST
         using {{ source }} as DBT_INTERNAL_SOURCE
-        on {{ predicates | join(' and ') }}
+        on {{ predicates }}
 
     {% if unique_key %}
     when matched then update set
@@ -39,11 +29,11 @@
 {% endmacro %}
 
 
-{% macro get_delete_insert_merge_sql(target, source, unique_key, dest_columns) -%}
-  {{ adapter.dispatch('get_delete_insert_merge_sql', 'dbt')(target, source, unique_key, dest_columns) }}
+{% macro get_delete_insert_merge_sql(target, source, unique_key, dest_columns, predicates) -%}
+  {{ adapter.dispatch('get_delete_insert_merge_sql', 'dbt')(target, source, unique_key, dest_columns, predicates) }}
 {%- endmacro %}
 
-{% macro default__get_delete_insert_merge_sql(target, source, unique_key, dest_columns) -%}
+{% macro default__get_delete_insert_merge_sql(target, source, unique_key, dest_columns, predicates) -%}
 
     {%- set dest_cols_csv = get_quoted_csv(dest_columns | map(attribute="name")) -%}
 
@@ -52,8 +42,11 @@
     where ({{ unique_key }}) in (
         select ({{ unique_key }})
         from {{ source }}
-    );
-    {% endif %}
+    )
+    {{ predicates }}
+    ;
+
+    {%- endif %}
 
     insert into {{ target }} ({{ dest_cols_csv }})
     (
@@ -69,7 +62,6 @@
 {%- endmacro %}
 
 {% macro default__get_insert_overwrite_merge_sql(target, source, dest_columns, predicates, include_sql_header) -%}
-    {%- set predicates = [] if predicates is none else [] + predicates -%}
     {%- set dest_cols_csv = get_quoted_csv(dest_columns | map(attribute="name")) -%}
     {%- set sql_header = config.get('sql_header', none) -%}
 
@@ -80,7 +72,7 @@
         on FALSE
 
     when not matched by source
-        {% if predicates %} and {{ predicates | join(' and ') }} {% endif %}
+        {% if predicates %} and {{ predicates }} {% endif %}
         then delete
 
     when not matched then insert

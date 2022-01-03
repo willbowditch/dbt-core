@@ -9,6 +9,9 @@
   {%- set full_refresh_mode = (should_full_refresh()) -%}
 
   {% set on_schema_change = incremental_validate_on_schema_change(config.get('on_schema_change'), default='ignore') %}
+  {% set user_predicates = config.get('incremental_predicates', default=None) %}
+  {% set incremental_strategy = config.get('incremental_strategy', default=None) %}
+  {% set predicates = get_incremental_predicates(target_relation, incremental_strategy, unique_key, user_predicates) %}
 
   {% set tmp_identifier = model['name'] + '__dbt_tmp' %}
   {% set backup_identifier = model['name'] + "__dbt_backup" %}
@@ -58,7 +61,7 @@
     {% if not dest_columns %}
       {% set dest_columns = adapter.get_columns_in_relation(existing_relation) %}
     {% endif %}
-    {% set build_sql = get_delete_insert_merge_sql(target_relation, tmp_relation, unique_key, dest_columns) %}
+    {% set build_sql = get_delete_insert_merge_sql(target_relation, tmp_relation, unique_key, dest_columns, predicates) %}
   
   {% endif %}
 
