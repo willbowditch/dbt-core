@@ -33,7 +33,7 @@ jobs:
           echo ::set-output name=jira::$jira
 
       - name: Transition issue in Jira
-        if: startsWith(steps.extract.outputs.jira, 'CORE-')
+        if: startsWith(steps.extract.outputs.jira, 'CT-')
         uses: atlassian/gajira-transition@master
         with:
           issue: "${{ steps.extract.outputs.jira }}"
