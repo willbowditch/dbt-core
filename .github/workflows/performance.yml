@@ -145,6 +145,21 @@ jobs:
           path: ./
           key: ${{ runner.os }}-${{ hashFiles('performance/runner/Cargo.toml') }}-${{ hashFiles('performance/runner/src/*') }}
 
+      - name: DEBUG ls
+        run: ls -lah
+
+      - name: DEBUG ls
+        run: ls -lah performance/
+
+      - name: DEBUG ls
+        run: ls -lah performance/runner/
+
+      - name: DEBUG ls
+        run: ls -lah performance/runner/target/
+
+      - name: DEBUG ls
+        run: ls -lah performance/runner/target/release/
+
       - name: Move Runner
         run: mv performance/runner/target/release/runner ./
 
