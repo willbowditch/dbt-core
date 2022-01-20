@@ -1,6 +1,8 @@
 name: Performance Regression Tests
 # Schedule triggers
 on:
+  # TODO THIS IS FOR DEV ONLY:
+  pull_request:
   # runs twice a day at 10:05am and 10:05pm
   schedule:
     - cron: "5 10,22 * * *"
