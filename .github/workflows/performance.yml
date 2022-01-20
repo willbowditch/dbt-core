@@ -30,7 +30,7 @@ jobs:
       - uses: actions/cache@v2
         id: cache
         with:
-          path: ./
+          path: performance/runner/target/release/
           key: ${{ runner.os }}-${{ hashFiles('performance/runner/Cargo.toml') }}-${{ hashFiles('performance/runner/src/*') }}
 
       - name: Fetch Rust Toolchain
@@ -91,6 +91,9 @@ jobs:
           path: ./
           key: ${{ runner.os }}-${{ hashFiles('performance/runner/Cargo.toml') }}-${{ hashFiles('performance/runner/src/*') }}
 
+      - name: Move Runner
+        run: mv performance/runner/target/release/runner ./
+
       - name: change permissions
         run: chmod +x ./runner
       - name: run
@@ -141,6 +144,9 @@ jobs:
         with:
           path: ./
           key: ${{ runner.os }}-${{ hashFiles('performance/runner/Cargo.toml') }}-${{ hashFiles('performance/runner/src/*') }}
+
+      - name: Move Runner
+        run: mv performance/runner/target/release/runner ./
 
       - name: change permissions
         run: chmod +x ./runner
