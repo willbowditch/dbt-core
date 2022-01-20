@@ -9,7 +9,7 @@ on:
 
 jobs:
   latest-runner:
-    name: Get Runner or Use Cached
+    name: Build Runner or Use Cached
     runs-on: ubuntu-latest
     env:
       RUSTFLAGS: "-D warnings"
