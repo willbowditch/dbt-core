@@ -1,4 +1,21 @@
 # Performance Regression Testing
+This directory includes dbt project setups to test on and a test runner written in Rust which runs specific dbt commands on each of the projects. Orchestration is done via the GitHub Action workflow in `/.github/workflows/performance.yml`. The workflow is scheduled to run every night on main and on supported release branches, but it can also be triggered manually.
+
+The action spins up a github action container for each project-command combination. As this project grows, the number of concurrent containers is expected to become very large and make this test suite a more expensive and long running task. This is why this does not run on every PR, and instead must be triggered manually.
+
+Performance baselines measured during our release process and are committed to this directory via github action. (TODO make the file and name it here).
+
+## Adding a new dbt project
+Just make a new directory under `performance/projects/`. It will automatically be picked up by the tests.
+
+## Adding a new dbt command
+TODO
+
+
+# ::::: OLD README :::::
+TODO delete this once it's not relevant.
+
+# Performance Regression Testing
 This directory includes dbt project setups to test on and a test runner written in Rust which runs specific dbt commands on each of the projects. Orchestration is done via the GitHub Action workflow in `/.github/workflows/performance.yml`. The workflow is scheduled to run every night, but it can also be triggered manually.
 
 The github workflow hardcodes our baseline branch for performance metrics as `0.20.latest`. As future versions become faster, this branch will be updated to hold us to those new standards.
