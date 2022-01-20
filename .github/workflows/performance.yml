@@ -8,71 +8,61 @@ on:
   workflow_dispatch:
 
 jobs:
-  # checks fmt of runner code
-  # purposefully not a dependency of any other job
-  # will block merging, but not prevent developing
-  fmt:
-    name: Cargo fmt
+  latest-runner:
+    name: Get Runner or Use Cached
     runs-on: ubuntu-latest
+    env:
+      RUSTFLAGS: "-D warnings"
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
+
+      # attempts to access a previously cached runner
+      - uses: actions/cache@v2
+        id: cache
+        with:
+          path: ./
+          key: ${{ runner.os }}-${{ hashFiles('performance/runner/Cargo.toml') }}-${{ hashFiles('performance/runner/src/*') }}
+
+      - name: Fetch Rust Toolchain
+        if: steps.cache.outputs.cache-hit != 'true'
+        uses: actions-rs/toolchain@v1
         with:
           profile: minimal
           toolchain: stable
           override: true
-      - run: rustup component add rustfmt
-      - uses: actions-rs/cargo@v1
+
+      - name: Add fmt
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: rustup component add rustfmt
+
+      - name: Cargo fmt
+        if: steps.cache.outputs.cache-hit != 'true'
+        uses: actions-rs/cargo@v1
         with:
           command: fmt
           args: --manifest-path performance/runner/Cargo.toml --all -- --check
 
-  # runs any tests associated with the runner
-  # these tests make sure the runner logic is correct
-  test-runner:
-    name: Test Runner
-    runs-on: ubuntu-latest
-    env:
-      # turns errors into warnings
-      RUSTFLAGS: "-D warnings"
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
-          override: true
-      - uses: actions-rs/cargo@v1
+      - name: Checkout
+        if: steps.cache.outputs.cache-hit != 'true'
+        uses: actions/checkout@v2
+
+      - name: Test
+        if: steps.cache.outputs.cache-hit != 'true'
+        uses: actions-rs/cargo@v1
         with:
           command: test
           args: --manifest-path performance/runner/Cargo.toml
 
-  # build an optimized binary to be used as the runner in later steps
-  build-runner:
-    needs: [test-runner]
-    name: Build Runner
-    runs-on: ubuntu-latest
-    env:
-      RUSTFLAGS: "-D warnings"
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
-          override: true
-      - uses: actions-rs/cargo@v1
+      - name: Build (optimized)
+        if: steps.cache.outputs.cache-hit != 'true'
+        uses: actions-rs/cargo@v1
         with:
           command: build
           args: --release --manifest-path performance/runner/Cargo.toml
-      - uses: actions/upload-artifact@v2
-        with:
-          name: runner
-          path: performance/runner/target/release/runner
+      # the cache action automatically caches this binary at the end of the job
 
   # run the performance measurements on the current or default branch
   measure-dev:
-    needs: [build-runner]
+    needs: [latest-runner]
     name: Measure Dev Branch
     runs-on: ubuntu-latest
     steps:
@@ -86,9 +76,14 @@ jobs:
         run: pip install -r dev-requirements.txt -r editable-requirements.txt
       - name: install hyperfine
         run: wget https://github.com/sharkdp/hyperfine/releases/download/v1.11.0/hyperfine_1.11.0_amd64.deb && sudo dpkg -i hyperfine_1.11.0_amd64.deb
-      - uses: actions/download-artifact@v2
+            
+      # runner was just accessed or built so it should always be there
+      - uses: actions/cache@v2
+        id: cache
         with:
-          name: runner
+          path: ./
+          key: ${{ runner.os }}-${{ hashFiles('performance/runner/Cargo.toml') }}-${{ hashFiles('performance/runner/src/*') }}
+
       - name: change permissions
         run: chmod +x ./runner
       - name: run
@@ -107,7 +102,7 @@ jobs:
   # metrics, and runner code from the develop or current branch so that
   # the calculations match for both versions of dbt we are comparing.
   measure-baseline:
-    needs: [build-runner]
+    needs: [latest-runner]
     name: Measure Baseline Branch
     runs-on: ubuntu-latest
     steps:
@@ -132,9 +127,14 @@ jobs:
         uses: actions/checkout@v2
       - name: install hyperfine
         run: wget https://github.com/sharkdp/hyperfine/releases/download/v1.11.0/hyperfine_1.11.0_amd64.deb && sudo dpkg -i hyperfine_1.11.0_amd64.deb
-      - uses: actions/download-artifact@v2
+      
+      # runner was just accessed or built so it should always be there
+      - uses: actions/cache@v2
+        id: cache
         with:
-          name: runner
+          path: ./
+          key: ${{ runner.os }}-${{ hashFiles('performance/runner/Cargo.toml') }}-${{ hashFiles('performance/runner/src/*') }}
+
       - name: change permissions
         run: chmod +x ./runner
       - name: run runner
@@ -159,9 +159,14 @@ jobs:
           name: baseline-results
       - name: "[debug] ls result files"
         run: ls
-      - uses: actions/download-artifact@v2
+      
+      # runner was just accessed or built so it should always be there
+      - uses: actions/cache@v2
+        id: cache
         with:
-          name: runner
+          path: ./
+          key: ${{ runner.os }}-${{ hashFiles('performance/runner/Cargo.toml') }}-${{ hashFiles('performance/runner/src/*') }}
+
       - name: change permissions
         run: chmod +x ./runner
       - name: make results directory
