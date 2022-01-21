@@ -34,10 +34,11 @@ pub struct Measurements {
 // and dev branches.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Data {
-    pub threshold: f64,
-    pub difference: f64,
-    pub baseline: f64,
-    pub dev: f64,
+    pub mu: f64,
+    pub sigma: f64,
+    pub max_acceptable: f64,
+    pub measured_mean: f64,
+    pub z: f64
 }
 
 // The full output from a comparison between runs on the baseline
@@ -67,35 +68,25 @@ fn calculate(metric: &str, dev: &Measurement, baseline: &Measurement) -> Vec<Cal
     // controls that. Since calculation is run directly after, this is fine.
     let ts = Utc::now();
 
-    let median_threshold = 1.05; // 5% regression threshold
-    let median_difference = dev.median / baseline.median;
+    let threshold = 3.0;
+    let sigma = baseline.stddev;
+    let max_acceptable = baseline.mean+(threshold*sigma);
 
-    let stddev_threshold = 1.20; // 20% regression threshold
-    let stddev_difference = dev.stddev / baseline.stddev;
+    let z = (dev.mean - baseline.mean) / sigma;
 
     vec![
         Calculation {
-            metric: ["median", metric].join("_"),
-            regression: median_difference > median_threshold,
+            metric: ["3σ", metric].join("_"),
+            regression: z > threshold,
             ts: ts,
             data: Data {
-                threshold: median_threshold,
-                difference: median_difference,
-                baseline: baseline.median,
-                dev: dev.median,
+                mu: baseline.mean,
+                sigma: sigma,
+                max_acceptable: max_acceptable,
+                measured_mean: baseline.mean,
+                z: z
             },
-        },
-        Calculation {
-            metric: ["stddev", metric].join("_"),
-            regression: stddev_difference > stddev_threshold,
-            ts: ts,
-            data: Data {
-                threshold: stddev_threshold,
-                difference: stddev_difference,
-                baseline: baseline.stddev,
-                dev: dev.stddev,
-            },
-        },
+        }
     ]
 }
 
@@ -241,28 +232,28 @@ mod tests {
     use super::*;
 
     #[test]
-    fn detects_5_percent_regression() {
+    fn detects_3sigma_regression() {
         let dev = Measurement {
             command: "some command".to_owned(),
-            mean: 1.06,
-            stddev: 1.06,
-            median: 1.06,
-            user: 1.06,
-            system: 1.06,
-            min: 1.06,
-            max: 1.06,
+            mean: 1.31,
+            stddev: 0.1,
+            median: 1.00,
+            user: 1.00,
+            system: 1.00,
+            min: 0.00,
+            max: 3.00,
             times: vec![],
         };
 
         let baseline = Measurement {
             command: "some command".to_owned(),
             mean: 1.00,
-            stddev: 1.00,
+            stddev: 0.1,
             median: 1.00,
             user: 1.00,
             system: 1.00,
-            min: 1.00,
-            max: 1.00,
+            min: 0.00,
+            max: 2.00,
             times: vec![],
         };
 
@@ -270,9 +261,44 @@ mod tests {
         let regressions: Vec<&Calculation> =
             calculations.iter().filter(|calc| calc.regression).collect();
 
-        // expect one regression for median
+        // expect one regression for the mean being outside the 3 sigma
         println!("{:#?}", regressions);
         assert_eq!(regressions.len(), 1);
-        assert_eq!(regressions[0].metric, "median_test_metric");
+        assert_eq!(regressions[0].metric, "3σ_test_metric");
+    }
+
+    #[test]
+    fn passes_near_3sigma() {
+        let dev = Measurement {
+            command: "some command".to_owned(),
+            mean: 1.29,
+            stddev: 0.1,
+            median: 1.00,
+            user: 1.00,
+            system: 1.00,
+            min: 0.00,
+            max: 2.00,
+            times: vec![],
+        };
+
+        let baseline = Measurement {
+            command: "some command".to_owned(),
+            mean: 1.00,
+            stddev: 0.1,
+            median: 1.00,
+            user: 1.00,
+            system: 1.00,
+            min: 0.00,
+            max: 2.00,
+            times: vec![],
+        };
+
+        let calculations = calculate("test_metric", &dev, &baseline);
+        let regressions: Vec<&Calculation> =
+            calculations.iter().filter(|calc| calc.regression).collect();
+
+        // expect no regressions
+        println!("{:#?}", regressions);
+        assert!(regressions.is_empty());
     }
 }
