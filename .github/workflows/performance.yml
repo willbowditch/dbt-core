@@ -9,6 +9,9 @@ on:
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
+env:
+  RUNNER_CACHE_PATH: performance/runner/target/release/runner
+
 jobs:
   latest-runner:
     name: Build Runner or Use Cached
@@ -16,7 +19,6 @@ jobs:
     env:
       RUSTFLAGS: "-D warnings"
     steps:
-
       - name: DEBUG pwd
         run: pwd
 
@@ -30,8 +32,8 @@ jobs:
       - uses: actions/cache@v2
         id: cache
         with:
-          path: performance/runner/target/release/runner
-          key: ${{ runner.os }}-${{ hashFiles('performance/runner/Cargo.toml') }}-${{ hashFiles('performance/runner/src/*') }}
+          path: ${{ env.RUNNER_CACHE_PATH }}
+          key: ${{ runner.os }}-${{ hashFiles('performance/runner/Cargo.toml', 'performance/runner/src/*') }}
 
       - name: Fetch Rust Toolchain
         if: steps.cache.outputs.cache-hit != 'true'
@@ -83,13 +85,12 @@ jobs:
         run: pip install -r dev-requirements.txt -r editable-requirements.txt
       - name: install hyperfine
         run: wget https://github.com/sharkdp/hyperfine/releases/download/v1.11.0/hyperfine_1.11.0_amd64.deb && sudo dpkg -i hyperfine_1.11.0_amd64.deb
-            
       # runner was just accessed or built so it should always be there
       - uses: actions/cache@v2
         id: cache
         with:
-          path: ./
-          key: ${{ runner.os }}-${{ hashFiles('performance/runner/Cargo.toml') }}-${{ hashFiles('performance/runner/src/*') }}
+          path: ${{ env.RUNNER_CACHE_PATH }}
+          key: ${{ runner.os }}-${{ hashFiles('performance/runner/Cargo.toml', 'performance/runner/src/*') }}
 
       - name: DEBUG ls
         run: ls -lah
@@ -131,34 +132,32 @@ jobs:
     name: Measure Baseline Branch
     runs-on: ubuntu-latest
     steps:
-      - name: checkout latest
-        uses: actions/checkout@v2
-        with:
-          ref: "0.20.latest"
       - name: Setup Python
         uses: actions/setup-python@v2.2.2
         with:
           python-version: "3.8"
-      - name: move repo up a level
-        run: mkdir ${{ github.workspace }}/../baseline/ && cp -r ${{ github.workspace }} ${{ github.workspace }}/../baseline
-      - name: "[debug] ls new dbt location"
-        run: ls ${{ github.workspace }}/../baseline/dbt/
-      # installation creates egg-links so we have to preserve source
-      - name: install dbt from new location
-        run: cd ${{ github.workspace }}/../baseline/dbt/ && pip install -r dev-requirements.txt -r editable-requirements.txt
       # checkout the current branch to get all the target projects
       # this deletes the old checked out code which is why we had to copy before
-      - name: checkout dev
+      - name: checkout current
         uses: actions/checkout@v2
+
+      - name: checkout baseline
+        uses: actions/checkout@v2
+        with:
+          path: baseline
+          ref: "0.20.latest"
+      - name: install dbt from new location
+        run: cd ${{ github.workspace }}/baseline && pip install -r dev-requirements.txt -r editable-requirements.txt
+
       - name: install hyperfine
         run: wget https://github.com/sharkdp/hyperfine/releases/download/v1.11.0/hyperfine_1.11.0_amd64.deb && sudo dpkg -i hyperfine_1.11.0_amd64.deb
-      
+
       # runner was just accessed or built so it should always be there
       - uses: actions/cache@v2
         id: cache
         with:
-          path: ./
-          key: ${{ runner.os }}-${{ hashFiles('performance/runner/Cargo.toml') }}-${{ hashFiles('performance/runner/src/*') }}
+          path: ${{ env.RUNNER_CACHE_PATH }}
+          key: ${{ runner.os }}-${{ hashFiles('performance/runner/Cargo.toml', 'performance/runner/src/*') }}
 
       - name: DEBUG ls
         run: ls -lah
@@ -202,13 +201,13 @@ jobs:
           name: baseline-results
       - name: "[debug] ls result files"
         run: ls
-      
+
       # runner was just accessed or built so it should always be there
       - uses: actions/cache@v2
         id: cache
         with:
-          path: ./
-          key: ${{ runner.os }}-${{ hashFiles('performance/runner/Cargo.toml') }}-${{ hashFiles('performance/runner/src/*') }}
+          path: ${{ env.RUNNER_CACHE_PATH }}
+          key: ${{ runner.os }}-${{ hashFiles('performance/runner/Cargo.toml', 'performance/runner/src/*') }}
 
       - name: change permissions
         run: chmod +x ./runner
