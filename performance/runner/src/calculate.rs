@@ -38,7 +38,7 @@ pub struct Data {
     pub sigma: f64,
     pub max_acceptable: f64,
     pub measured_mean: f64,
-    pub z: f64
+    pub z: f64,
 }
 
 // The full output from a comparison between runs on the baseline
@@ -70,24 +70,22 @@ fn calculate(metric: &str, dev: &Measurement, baseline: &Measurement) -> Vec<Cal
 
     let threshold = 3.0;
     let sigma = baseline.stddev;
-    let max_acceptable = baseline.mean+(threshold*sigma);
+    let max_acceptable = baseline.mean + (threshold * sigma);
 
     let z = (dev.mean - baseline.mean) / sigma;
 
-    vec![
-        Calculation {
-            metric: ["3σ", metric].join("_"),
-            regression: z > threshold,
-            ts: ts,
-            data: Data {
-                mu: baseline.mean,
-                sigma: sigma,
-                max_acceptable: max_acceptable,
-                measured_mean: baseline.mean,
-                z: z
-            },
-        }
-    ]
+    vec![Calculation {
+        metric: ["3σ", metric].join("_"),
+        regression: z > threshold,
+        ts: ts,
+        data: Data {
+            mu: baseline.mean,
+            sigma: sigma,
+            max_acceptable: max_acceptable,
+            measured_mean: baseline.mean,
+            z: z,
+        },
+    }]
 }
 
 // Given a directory, read all files in the directory and return each
