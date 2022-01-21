@@ -28,7 +28,7 @@ jobs:
         id: cache
         with:
           path: ${{ env.RUNNER_CACHE_PATH }}
-          key: ${{ runner.os }}-${{ hashFiles('performance/runner/Cargo.toml', 'performance/runner/src/*') }}
+          key: ${{ runner.os }}-${{ hashFiles('performance/runner/Cargo.toml')}}-${{ hashFiles('performance/runner/src/*') }}
 
       - name: Fetch Rust Toolchain
         if: steps.cache.outputs.cache-hit != 'true'
@@ -91,7 +91,7 @@ jobs:
         id: cache
         with:
           path: ${{ env.RUNNER_CACHE_PATH }}
-          key: ${{ runner.os }}-${{ hashFiles('performance/runner/Cargo.toml', 'performance/runner/src/*') }}
+          key: ${{ runner.os }}-${{ hashFiles('performance/runner/Cargo.toml')}}-${{ hashFiles('performance/runner/src/*') }}
 
       - name: Move Runner
         run: mv performance/runner/target/release/runner ./
@@ -147,7 +147,7 @@ jobs:
         id: cache
         with:
           path: ${{ env.RUNNER_CACHE_PATH }}
-          key: ${{ runner.os }}-${{ hashFiles('performance/runner/Cargo.toml', 'performance/runner/src/*') }}
+          key: ${{ runner.os }}-${{ hashFiles('performance/runner/Cargo.toml')}}-${{ hashFiles('performance/runner/src/*') }}
 
       - name: Move Runner
         run: mv performance/runner/target/release/runner ./
@@ -180,7 +180,7 @@ jobs:
         id: cache
         with:
           path: ${{ env.RUNNER_CACHE_PATH }}
-          key: ${{ runner.os }}-${{ hashFiles('performance/runner/Cargo.toml', 'performance/runner/src/*') }}
+          key: ${{ runner.os }}-${{ hashFiles('performance/runner/Cargo.toml')}}-${{ hashFiles('performance/runner/src/*') }}
 
       - name: change permissions
         run: chmod +x ./runner
