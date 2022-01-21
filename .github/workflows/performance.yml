@@ -145,7 +145,7 @@ jobs:
         uses: actions/checkout@v2
         with:
           path: baseline
-          ref: "0.20.latest"
+          ref: "1.0.latest"
       - name: install dbt from new location
         run: cd ${{ github.workspace }}/baseline && pip install -r dev-requirements.txt -r editable-requirements.txt
 
