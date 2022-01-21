@@ -109,38 +109,18 @@ jobs:
           name: dev-results
           path: performance/results/
 
-  # run the performance measurements on the release branch which we use
-  # as a performance baseline. This part takes by far the longest, so
-  # we do everything we can first so the job fails fast.
-  # -----
-  # we need to checkout dbt twice in this job: once for the baseline dbt
-  # version, and once to get the latest regression testing projects,
-  # metrics, and runner code from the develop or current branch so that
-  # the calculations match for both versions of dbt we are comparing.
-  measure-baseline:
-    needs: [latest-runner]
-    name: Measure Baseline Branch
+  # detect regressions on the output generated from measuring
+  # the two branches. Exits with non-zero code if a regression is detected.
+  calculate-regressions:
+    needs: [measure-dev]
+    name: Compare Results
     runs-on: ubuntu-latest
     steps:
-      - name: Setup Python
-        uses: actions/setup-python@v2.2.2
-        with:
-          python-version: "3.8"
-      # checkout the current branch to get all the target projects
-      # this deletes the old checked out code which is why we had to copy before
-      - name: checkout current
-        uses: actions/checkout@v2
 
-      - name: checkout baseline
-        uses: actions/checkout@v2
+      - name: Download Dev Results
+        uses: actions/download-artifact@v2
         with:
-          path: baseline
-          ref: "1.0.latest"
-      - name: install dbt from new location
-        run: cd ${{ github.workspace }}/baseline && pip install -r dev-requirements.txt -r editable-requirements.txt
-
-      - name: install hyperfine
-        run: wget https://github.com/sharkdp/hyperfine/releases/download/v1.11.0/hyperfine_1.11.0_amd64.deb && sudo dpkg -i hyperfine_1.11.0_amd64.deb
+          name: dev-results
 
       # runner was just accessed or built so it should always be there
       - uses: actions/cache@v2
@@ -152,44 +132,20 @@ jobs:
       - name: Move Runner
         run: mv performance/runner/target/release/runner ./
 
-      - name: change permissions
+      - name: Change Runner Permissions
         run: chmod +x ./runner
-      - name: run runner
-        run: ./runner measure -b baseline -p ${{ github.workspace }}/performance/projects/
-      - uses: actions/upload-artifact@v2
-        with:
-          name: baseline-results
-          path: performance/results/
 
-  # detect regressions on the output generated from measuring
-  # the two branches. Exits with non-zero code if a regression is detected.
-  calculate-regressions:
-    needs: [measure-dev, measure-baseline]
-    name: Compare Results
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/download-artifact@v2
-        with:
-          name: dev-results
-      - uses: actions/download-artifact@v2
-        with:
-          name: baseline-results
-
-      # runner was just accessed or built so it should always be there
-      - uses: actions/cache@v2
-        id: cache
-        with:
-          path: ${{ env.RUNNER_CACHE_PATH }}
-          key: ${{ runner.os }}-${{ hashFiles('performance/runner/Cargo.toml')}}-${{ hashFiles('performance/runner/src/*') }}
-
-      - name: change permissions
-        run: chmod +x ./runner
-      - name: make results directory
+      - name: Make Results Directory
         run: mkdir ./final-output/
-      - name: run calculation
+
+      # TODO compare against baseline somehow
+
+      - name: Run Calculation
         run: ./runner calculate -r ./ -o ./final-output/
-        # always attempt to upload the results even if there were regressions found
-      - uses: actions/upload-artifact@v2
+
+      - name: Upload Results
+        uses: actions/upload-artifact@v2
+        # makes sure the upload step runs even if a regression was found
         if: ${{ always() }}
         with:
           name: final-calculations
