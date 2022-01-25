@@ -1,10 +1,26 @@
-## dbt-core 1.0.1 (TBD)
+## dbt-core 1.1.0 (TBD)
 
 ### Features
 - New Dockerfile to support specific db adapters and platforms.  See docker/README.md for details ([#4495](https://github.com/dbt-labs/dbt-core/issues/4495), [#4487](https://github.com/dbt-labs/dbt-core/pull/4487))
 
+### Fixes
+
+* Add project name validation to `dbt init` ([#4490](https://github.com/dbt-labs/dbt-core/issues/4490),[#4536](https://github.com/dbt-labs/dbt-core/pull/4536))
+
 ### Under the hood
-- Testing cleanup ([#4496](https://github.com/dbt-labs/dbt-core/pull/4496))
+- Testing cleanup ([#4496](https://github.com/dbt-labs/dbt-core/pull/4496), [#4509](https://github.com/dbt-labs/dbt-core/pull/4509))
+- Clean up test deprecation warnings ([#3988](https://github.com/dbt-labs/dbt-core/issue/3988), [#4556](https://github.com/dbt-labs/dbt-core/pull/4556))
+
+## dbt-core 1.0.2 (TBD)
+
+### Fixes
+- Projects created using `dbt init` now have the correct `seeds` directory created (instead of `data`) ([#4588](https://github.com/dbt-labs/dbt-core/issues/4588), [#4599](https://github.com/dbt-labs/dbt-core/pull/4589))
+
+## dbt-core 1.0.1 (January 03, 2022)
+
+Contributors:
+
+* [@amirkdv](https://github.com/amirkdv) ([#4536](https://github.com/dbt-labs/dbt-core/pull/4536))
 
 ## dbt-core 1.0.1rc1 (December 20, 2021)
 
@@ -17,6 +33,7 @@
 - Remove secrets from error related to packages. ([#4507](https://github.com/dbt-labs/dbt-core/pull/4507))
 - Prevent coercion of boolean values (`True`, `False`) to numeric values (`0`, `1`) in query results ([#4511](https://github.com/dbt-labs/dbt-core/issues/4511), [#4512](https://github.com/dbt-labs/dbt-core/pull/4512))
 - Fix error with an env_var in a project hook ([#4523](https://github.com/dbt-labs/dbt-core/issues/4523), [#4524](https://github.com/dbt-labs/dbt-core/pull/4524))
+- Add additional windows compat logic for colored log output. ([#4443](https://github.com/dbt-labs/dbt-core/issues/4443))
 
 ###  Docs
 - Fix missing data on exposures in docs ([#4467](https://github.com/dbt-labs/dbt-core/issues/4467))
@@ -226,7 +243,7 @@ Contributors:
 - [@laxjesse](https://github.com/laxjesse) ([#4019](https://github.com/dbt-labs/dbt-core/pull/4019))
 - [@gitznik](https://github.com/Gitznik) ([#4124](https://github.com/dbt-labs/dbt-core/pull/4124))
 
-## dbt 0.21.1 (Release TBD)
+## dbt 0.21.1 (November 29, 2021)
 
 ### Fixes
 - Add `get_where_subquery` to test macro namespace, fixing custom generic tests that rely on introspecting the `model` arg at parse time ([#4195](https://github.com/dbt-labs/dbt/issues/4195), [#4197](https://github.com/dbt-labs/dbt/pull/4197))
@@ -370,7 +387,7 @@ Contributors:
 - [@jmriego](https://github.com/jmriego) ([#3526](https://github.com/dbt-labs/dbt-core/pull/3526))
 - [@danielefrigo](https://github.com/danielefrigo) ([#3547](https://github.com/dbt-labs/dbt-core/pull/3547))
 
-## dbt 0.20.2 (Release TBD)
+## dbt 0.20.2 (September 07, 2021)
 
 ### Under the hood
 
