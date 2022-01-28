@@ -1,6 +1,7 @@
 import threading
 from copy import deepcopy
 from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
+import dbt.flags as flags
 
 from dbt.adapters.reference_keys import _make_key, _ReferenceKey
 import dbt.exceptions
@@ -322,11 +323,11 @@ class RelationsCache:
         """
         cached = _CachedRelation(relation)
         fire_event(AddRelation(relation=_make_key(cached)))
-        fire_event(DumpBeforeAddGraph(dump=self.dump_graph()))
+        self.lazy_log(DumpBeforeAddGraph)
 
         with self.lock:
             self._setdefault(cached)
-        fire_event(DumpAfterAddGraph(dump=self.dump_graph()))
+        self.lazy_log(DumpAfterAddGraph)
 
     def _remove_refs(self, keys):
         """Removes all references to all entries in keys. This does not
@@ -440,7 +441,7 @@ class RelationsCache:
         new_key = _make_key(new)
         fire_event(RenameSchema(old_key=old_key, new_key=new_key))
 
-        fire_event(DumpBeforeRenameSchema(dump=self.dump_graph()))
+        self.lazy_log(DumpBeforeRenameSchema)
 
         with self.lock:
             if self._check_rename_constraints(old_key, new_key):
@@ -448,7 +449,7 @@ class RelationsCache:
             else:
                 self._setdefault(_CachedRelation(new))
 
-        fire_event(DumpAfterRenameSchema(dump=self.dump_graph()))
+        self.lazy_log(DumpAfterRenameSchema)
 
     def get_relations(
         self, database: Optional[str], schema: Optional[str]
@@ -501,3 +502,10 @@ class RelationsCache:
             drop_key = _make_key(relation)
             if drop_key in self.relations:
                 self.drop(drop_key)
+
+    # We don't want to call the 'dump_graph' method if we're not logging
+    # the cache because of performance issues
+    def lazy_log(self, event_cls):
+        if not flags.LOG_CACHE_EVENTS:
+            return
+        event_cls(dump=self.dump_graph())
