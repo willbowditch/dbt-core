@@ -412,7 +412,7 @@ class TestEventJSONSerialization(TestCase):
     # event types that take `Any` are not possible to test in this way since some will serialize
     # just fine and others won't.
     def test_all_serializable(self):
-        no_test = [DummyCacheEvent]
+        no_test = [DummyDumpEvent]
 
         all_non_abstract_events = set(filter(lambda x: not inspect.isabstract(x) and x not in no_test, get_all_subclasses(Event)))
         all_event_values_list = list(map(lambda x: x.__class__, sample_values))
@@ -450,12 +450,16 @@ class Counter(Generic[T]):
 
 
 @dataclass
-class DummyCacheEvent(InfoLevel, Cache):
+class DummyDumpEvent(InfoLevel, Cache):
     code = 'X999'
-    counter: Counter
+    dump: Callable[[], dict]
 
     def message(self) -> str:
-        return f"state: {self.counter.next()}"
+        try:
+            self.dump = self.dump()
+        except TypeError:
+            pass
+        return f"state: {self.dump}"
 
     # mashumaro serializer
     def _serialize() -> str:
@@ -466,18 +470,20 @@ class DummyCacheEvent(InfoLevel, Cache):
 # creation, the evaluation will not be forced for cache events when
 # running without `--log-cache-events`.
 def skip_cache_event_message_rendering(x: TestCase):
+    counter = Counter(dict())
+
     # a dummy event that extends `Cache`
-    e = DummyCacheEvent(Counter("some_state"))
+    e = DummyDumpEvent(counter)
 
     # counter of zero means this potentially expensive function
     # (emulating dump_graph) has never been called
-    x.assertEqual(e.counter.count, 0)
+    x.assertEqual(counter.count, 0)
 
     # call fire_event
     event_funcs.fire_event(e)
 
     # assert that the expensive function has STILL not been called
-    x.assertEqual(e.counter.count, 0)
+    x.assertEqual(counter.count, 0)
 
 # this test checks that every subclass of `Cache` uses the same lazy evaluation 
 # strategy. This ensures that potentially expensive cache event values are not
@@ -499,14 +505,15 @@ def all_cache_events_are_lazy(x):
         # fails for cache events that don't have a "dump" param
         try:
             clazz()
-        except TypeError as e:
+        except TypeError as err:
             print(clazz)
             # hack that roughly detects attribute names without an instance of the class
-            if 'dump' in str(e):
+            # skips the test event
+            if 'dump' in str(err) and 'DummyDumpEvent' not in str(clazz):
                 matching_classes.append(clazz)
 
                 # make the class. If this throws, maybe your class didn't use Lazy when it should have
-                e = clazz(dump = counter.next())
+                e = clazz(dump = counter.next)
 
                 # assert that initializing the event with the counter
                 # did not evaluate the lazy value
@@ -537,3 +544,50 @@ def all_cache_events_are_lazy(x):
 
     # we should have exactly 4 matching classes (raise this threshold if we add more)
     x.assertEqual(len(matching_classes), 4, f"matching classes:\n{len(matching_classes)}: {matching_classes}")
+
+class SkipsRenderingCacheEventsTEXT(TestCase):
+
+    def setUp(self):
+        flags.LOG_FORMAT = 'text'
+
+    def test_skip_cache_event_message_rendering_TEXT(self):
+        skip_cache_event_message_rendering(self)
+
+
+class SkipsRenderingCacheEventsJSON(TestCase):
+
+    def setUp(self):
+        flags.LOG_FORMAT = 'json'
+
+    def tearDown(self):
+        flags.LOG_FORMAT = 'text'
+
+    def test_skip_cache_event_message_rendering_JSON(self):
+        skip_cache_event_message_rendering(self)
+
+
+class TestLazyMemoizationInCacheEventsTEXT(TestCase):
+
+    def setUp(self):
+        flags.LOG_FORMAT = 'text'
+        flags.LOG_CACHE_EVENTS = True
+
+    def tearDown(self):
+        flags.LOG_CACHE_EVENTS = False
+
+    def test_all_cache_events_are_lazy_TEXT(self):
+        all_cache_events_are_lazy(self)
+
+
+class TestLazyMemoizationInCacheEventsJSON(TestCase):
+
+    def setUp(self):
+        flags.LOG_FORMAT = 'json'
+        flags.LOG_CACHE_EVENTS = True
+
+    def tearDown(self):
+        flags.LOG_FORMAT = 'text'
+        flags.LOG_CACHE_EVENTS = False
+
+    def test_all_cache_events_are_lazy_JSON(self):
+        all_cache_events_are_lazy(self)

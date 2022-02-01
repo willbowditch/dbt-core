@@ -705,6 +705,10 @@ class DumpBeforeAddGraph(DebugLevel, Cli, File, Cache):
     code: str = "E031"
 
     def message(self) -> str:
+        try:
+            self.dump = self.dump()  # type: ignore[assignment, misc]
+        except TypeError:
+            pass
         return f"before adding : {self.dump}"  # type: ignore[misc]
 
 
@@ -716,6 +720,10 @@ class DumpAfterAddGraph(DebugLevel, Cli, File, Cache):
     code: str = "E032"
 
     def message(self) -> str:
+        try:
+            self.dump = self.dump()  # type: ignore[assignment, misc]
+        except TypeError:
+            pass
         return f"after adding: {self.dump}"  # type: ignore[misc]
 
 
@@ -727,6 +735,10 @@ class DumpBeforeRenameSchema(DebugLevel, Cli, File, Cache):
     code: str = "E033"
 
     def message(self) -> str:
+        try:
+            self.dump = self.dump()  # type: ignore[assignment, misc]
+        except TypeError:
+            pass
         return f"before rename: {self.dump}"  # type: ignore[misc]
 
 
@@ -738,6 +750,10 @@ class DumpAfterRenameSchema(DebugLevel, Cli, File, Cache):
     code: str = "E034"
 
     def message(self) -> str:
+        try:
+            self.dump = self.dump()  # type: ignore[assignment, misc]
+        except TypeError:
+            pass
         return f"after rename: {self.dump}"  # type: ignore[misc]
 
 
