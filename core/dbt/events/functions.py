@@ -142,6 +142,14 @@ def event_to_serializable_dict(
     data = dict()
     node_info = dict()
     log_line = dict()
+    # hack to force evaluation of the lazy dump call before it hits
+    # asdict. asdict is not applying the dict_factory early enough for
+    # it to be caught there.
+    if "Dump" in e.__class__.__name__ and hasattr(e, 'dump'):
+        try:
+            e.dump = e.dump()  # type: ignore[attr-defined]
+        except TypeError:
+            pass
     try:
         log_line = dataclasses.asdict(e, dict_factory=type(e).asdict)
     except AttributeError:

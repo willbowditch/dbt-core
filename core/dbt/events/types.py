@@ -700,41 +700,45 @@ class RenameSchema(DebugLevel, Cli, File, Cache):
 @dataclass
 class DumpBeforeAddGraph(DebugLevel, Cli, File, Cache):
     # callable for lazy evaluation
+    # this will be transformed into a dict _before_ the message is created.
     dump: Callable[[], Dict[str, List[str]]]
     code: str = "E031"
 
     def message(self) -> str:
-        return f"before adding : {self.dump()}"  # type: ignore[misc]
+        return f"before adding : {self.dump}"  # type: ignore[misc]
 
 
 @dataclass
 class DumpAfterAddGraph(DebugLevel, Cli, File, Cache):
     # callable for lazy evaluation
+    # this will be transformed into a dict _before_ the message is created.
     dump: Callable[[], Dict[str, List[str]]]
     code: str = "E032"
 
     def message(self) -> str:
-        return f"after adding: {self.dump()}"  # type: ignore[misc]
+        return f"after adding: {self.dump}"  # type: ignore[misc]
 
 
 @dataclass
 class DumpBeforeRenameSchema(DebugLevel, Cli, File, Cache):
     # callable for lazy evaluation
+    # this will be transformed into a dict _before_ the message is created.
     dump: Callable[[], Dict[str, List[str]]]
     code: str = "E033"
 
     def message(self) -> str:
-        return f"before rename: {self.dump()}"  # type: ignore[misc]
+        return f"before rename: {self.dump}"  # type: ignore[misc]
 
 
 @dataclass
 class DumpAfterRenameSchema(DebugLevel, Cli, File, Cache):
     # callable for lazy evaluation
+    # this will be transformed into a dict _before_ the message is created.
     dump: Callable[[], Dict[str, List[str]]]
     code: str = "E034"
 
     def message(self) -> str:
-        return f"after rename: {self.dump()}"  # type: ignore[misc]
+        return f"after rename: {self.dump}"  # type: ignore[misc]
 
 
 @dataclass
