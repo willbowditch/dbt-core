@@ -136,6 +136,9 @@ class Event(metaclass=ABCMeta):
             # skip all binary data
             elif isinstance(v, bytes):
                 continue
+            # if it's a function, call it with no args and hope the types line up
+            elif callable(v):
+                d[k] = v()
             else:
                 d[k] = v
         return d

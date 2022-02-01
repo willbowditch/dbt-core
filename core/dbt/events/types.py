@@ -14,7 +14,7 @@ from dbt.events.base_types import (
 )
 from dbt.events.format import format_fancy_output_line, pluralize
 from dbt.node_types import NodeType
-from typing import Any, Dict, List, Optional, Set, Tuple, TypeVar
+from typing import Any, Callable, Dict, List, Optional, Set, Tuple, TypeVar
 
 
 # The classes in this file represent the data necessary to describe a
@@ -700,41 +700,41 @@ class RenameSchema(DebugLevel, Cli, File, Cache):
 @dataclass
 class DumpBeforeAddGraph(DebugLevel, Cli, File, Cache):
     # large value. delay not necessary since every debug level message is logged anyway.
-    dump: Dict[str, List[str]]
+    dump: Callable[[], Dict[str, List[str]]]
     code: str = "E031"
 
     def message(self) -> str:
-        return f"before adding : {self.dump}"
+        return f"before adding : {self.dump()}"  # type: ignore[misc]
 
 
 @dataclass
 class DumpAfterAddGraph(DebugLevel, Cli, File, Cache):
     # large value. delay not necessary since every debug level message is logged anyway.
-    dump: Dict[str, List[str]]
+    dump: Callable[[], Dict[str, List[str]]]
     code: str = "E032"
 
     def message(self) -> str:
-        return f"after adding: {self.dump}"
+        return f"after adding: {self.dump()}"  # type: ignore[misc]
 
 
 @dataclass
 class DumpBeforeRenameSchema(DebugLevel, Cli, File, Cache):
     # large value. delay not necessary since every debug level message is logged anyway.
-    dump: Dict[str, List[str]]
+    dump: Callable[[], Dict[str, List[str]]]
     code: str = "E033"
 
     def message(self) -> str:
-        return f"before rename: {self.dump}"
+        return f"before rename: {self.dump()}"  # type: ignore[misc]
 
 
 @dataclass
 class DumpAfterRenameSchema(DebugLevel, Cli, File, Cache):
     # large value. delay not necessary since every debug level message is logged anyway.
-    dump: Dict[str, List[str]]
+    dump: Callable[[], Dict[str, List[str]]]
     code: str = "E034"
 
     def message(self) -> str:
-        return f"after rename: {self.dump}"
+        return f"after rename: {self.dump()}"  # type: ignore[misc]
 
 
 @dataclass
@@ -2499,10 +2499,10 @@ if 1 == 0:
         old_key=_ReferenceKey(database="", schema="", identifier=""),
         new_key=_ReferenceKey(database="", schema="", identifier="")
     )
-    DumpBeforeAddGraph(dict())
-    DumpAfterAddGraph(dict())
-    DumpBeforeRenameSchema(dict())
-    DumpAfterRenameSchema(dict())
+    DumpBeforeAddGraph(lambda: dict())
+    DumpAfterAddGraph(lambda: dict())
+    DumpBeforeRenameSchema(lambda: dict())
+    DumpAfterRenameSchema(lambda: dict())
     AdapterImportError(ModuleNotFoundError())
     PluginLoadError()
     SystemReportReturnCode(returncode=0)
