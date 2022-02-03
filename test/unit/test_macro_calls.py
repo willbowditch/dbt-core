@@ -10,7 +10,6 @@ from dbt.context.base import generate_base_context
 
 
 class MacroCalls(unittest.TestCase):
-
     def setUp(self):
         self.macro_strings = [
             "{% macro parent_macro() %} {% do return(nested_macro()) %} {% endmacro %}",
@@ -29,18 +28,18 @@ class MacroCalls(unittest.TestCase):
         ]
 
         self.possible_macro_calls = [
-            ['nested_macro'],
-            ['load_result'],
-            ['get_snapshot_unique_id'],
-            ['get_columns_in_query'],
-            ['get_snapshot_unique_id'],
-            ['dbt_utils.current_timestamp'],
-            ['test_some_kind4', 'foo_utils4.test_some_kind4'],
-            ['test_some_kind5', 'foo_utils5.test_some_kind5'],
+            ["nested_macro"],
+            ["load_result"],
+            ["get_snapshot_unique_id"],
+            ["get_columns_in_query"],
+            ["get_snapshot_unique_id"],
+            ["dbt_utils.current_timestamp"],
+            ["test_some_kind4", "foo_utils4.test_some_kind4"],
+            ["test_some_kind5", "foo_utils5.test_some_kind5"],
         ]
 
     def test_macro_calls(self):
-        cli_vars = {'local_utils_dispatch_list': ['foo_utils4']}
+        cli_vars = {"local_utils_dispatch_list": ["foo_utils4"]}
         ctx = generate_base_context(cli_vars)
 
         index = 0
@@ -48,5 +47,3 @@ class MacroCalls(unittest.TestCase):
             possible_macro_calls = statically_extract_macro_calls(macro_string, ctx)
             self.assertEqual(self.possible_macro_calls[index], possible_macro_calls)
             index += 1
-
-

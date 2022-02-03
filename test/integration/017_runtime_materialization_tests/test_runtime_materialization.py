@@ -2,19 +2,18 @@ from test.integration.base import DBTIntegrationTest, use_profile
 
 
 class TestRuntimeMaterialization(DBTIntegrationTest):
-
     def setUp(self):
         DBTIntegrationTest.setUp(self)
-        self.run_dbt(['seed'])
+        self.run_dbt(["seed"])
 
     @property
     def project_config(self):
         return {
-            'config-version': 2,
-            'seed-paths': ['seeds'],
-            'seeds': {
-                'quote_columns': False,
-            }
+            "config-version": 2,
+            "seed-paths": ["seeds"],
+            "seeds": {
+                "quote_columns": False,
+            },
         }
 
     @property
@@ -26,9 +25,9 @@ class TestRuntimeMaterialization(DBTIntegrationTest):
         return "models"
 
     def run_dbt_full_refresh(self):
-        return self.run_dbt(['run', '--full-refresh'])
+        return self.run_dbt(["run", "--full-refresh"])
 
-    @use_profile('postgres')
+    @use_profile("postgres")
     def test_postgres_full_refresh(self):
         # initial full-refresh should have no effect
         results = self.run_dbt_full_refresh()
@@ -53,30 +52,30 @@ class TestRuntimeMaterialization(DBTIntegrationTest):
         self.assertTablesEqual("seed", "incremental")
         self.assertTablesEqual("seed", "materialized")
 
-    @use_profile('postgres')
+    @use_profile("postgres")
     def test_postgres_delete__dbt_tmp_relation(self):
         # This creates a __dbt_tmp view - make sure it doesn't interfere with the dbt run
         self.run_sql_file("create_view__dbt_tmp.sql")
-        results = self.run_dbt(['run', '--model', 'view'])
+        results = self.run_dbt(["run", "--model", "view"])
         self.assertEqual(len(results), 1)
 
-        self.assertTableDoesNotExist('view__dbt_tmp')
+        self.assertTableDoesNotExist("view__dbt_tmp")
         self.assertTablesEqual("seed", "view")
 
         # Again, but with a __dbt_backup view
         self.run_sql_file("create_view__dbt_backup.sql")
-        results = self.run_dbt(['run', '--model', 'view'])
+        results = self.run_dbt(["run", "--model", "view"])
         self.assertEqual(len(results), 1)
 
-        self.assertTableDoesNotExist('view__dbt_backup')
+        self.assertTableDoesNotExist("view__dbt_backup")
         self.assertTablesEqual("seed", "view")
 
         # Again, but against the incremental materialization
         self.run_sql_file("create_incremental__dbt_tmp.sql")
-        results = self.run_dbt(['run', '--model', 'incremental', '--full-refresh'])
+        results = self.run_dbt(["run", "--model", "incremental", "--full-refresh"])
         self.assertEqual(len(results), 1)
 
-        self.assertTableDoesNotExist('incremental__dbt_tmp')
+        self.assertTableDoesNotExist("incremental__dbt_tmp")
         self.assertTablesEqual("seed", "incremental")
 
 
@@ -84,8 +83,8 @@ class TestRuntimeMaterializationWithConfig(TestRuntimeMaterialization):
     @property
     def project_config(self):
         result = super().project_config
-        result.update({'models': {'full_refresh': True}})
+        result.update({"models": {"full_refresh": True}})
         return result
 
     def run_dbt_full_refresh(self):
-        return self.run_dbt(['run'])
+        return self.run_dbt(["run"])

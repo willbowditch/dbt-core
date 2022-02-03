@@ -12,9 +12,9 @@ def get_selector_dict(txt: str) -> dict:
 
 
 class SelectorUnitTest(unittest.TestCase):
-
     def test_compare_cli_non_cli(self):
-        dct = get_selector_dict('''\
+        dct = get_selector_dict(
+            """\
             selectors:
               - name: nightly_diet_snowplow
                 description: "This uses more CLI-style syntax"
@@ -49,67 +49,80 @@ class SelectorUnitTest(unittest.TestCase):
                               value: incremental
                         - method: fqn
                           value: export_performance_timing
-            ''')
+            """
+        )
 
-        sel_dict = SelectorDict.parse_from_selectors_list(dct['selectors'])
-        assert(sel_dict)
-        with_strings = sel_dict['nightly_diet_snowplow']['definition']
-        no_strings = sel_dict['nightly_diet_snowplow_full']['definition']
+        sel_dict = SelectorDict.parse_from_selectors_list(dct["selectors"])
+        assert sel_dict
+        with_strings = sel_dict["nightly_diet_snowplow"]["definition"]
+        no_strings = sel_dict["nightly_diet_snowplow_full"]["definition"]
         self.assertEqual(with_strings, no_strings)
 
     def test_single_string_definition(self):
-        dct = get_selector_dict('''\
+        dct = get_selector_dict(
+            """\
             selectors:
               - name: nightly_selector
                 definition:
                   'tag:nightly'
-            ''')
+            """
+        )
 
-        sel_dict = SelectorDict.parse_from_selectors_list(dct['selectors'])
-        assert(sel_dict)
-        expected = {'method': 'tag', 'value': 'nightly'}
-        definition = sel_dict['nightly_selector']['definition']
+        sel_dict = SelectorDict.parse_from_selectors_list(dct["selectors"])
+        assert sel_dict
+        expected = {"method": "tag", "value": "nightly"}
+        definition = sel_dict["nightly_selector"]["definition"]
         self.assertEqual(expected, definition)
 
-
     def test_single_key_value_definition(self):
-        dct = get_selector_dict('''\
+        dct = get_selector_dict(
+            """\
             selectors:
               - name: nightly_selector
                 definition:
                   tag: nightly
-            ''')
+            """
+        )
 
-        sel_dict = SelectorDict.parse_from_selectors_list(dct['selectors'])
-        assert(sel_dict)
-        expected = {'method': 'tag', 'value': 'nightly'}
-        definition = sel_dict['nightly_selector']['definition']
+        sel_dict = SelectorDict.parse_from_selectors_list(dct["selectors"])
+        assert sel_dict
+        expected = {"method": "tag", "value": "nightly"}
+        definition = sel_dict["nightly_selector"]["definition"]
         self.assertEqual(expected, definition)
 
     def test_parent_definition(self):
-        dct = get_selector_dict('''\
+        dct = get_selector_dict(
+            """\
             selectors:
               - name: kpi_nightly_selector
                 definition:
                   '+exposure:kpi_nightly'
-            ''')
+            """
+        )
 
-        sel_dict = SelectorDict.parse_from_selectors_list(dct['selectors'])
-        assert(sel_dict)
-        expected = {'method': 'exposure', 'value': 'kpi_nightly', 'parents': True}
-        definition = sel_dict['kpi_nightly_selector']['definition']
+        sel_dict = SelectorDict.parse_from_selectors_list(dct["selectors"])
+        assert sel_dict
+        expected = {"method": "exposure", "value": "kpi_nightly", "parents": True}
+        definition = sel_dict["kpi_nightly_selector"]["definition"]
         self.assertEqual(expected, definition)
 
     def test_plus_definition(self):
-        dct = get_selector_dict('''\
+        dct = get_selector_dict(
+            """\
             selectors:
               - name: my_model_children_selector
                 definition:
                   'my_model+2'
-            ''')
+            """
+        )
 
-        sel_dict = SelectorDict.parse_from_selectors_list(dct['selectors'])
-        assert(sel_dict)
-        expected = {'method': 'fqn', 'value': 'my_model', 'children': True, 'children_depth': '2'}
-        definition = sel_dict['my_model_children_selector']['definition']
+        sel_dict = SelectorDict.parse_from_selectors_list(dct["selectors"])
+        assert sel_dict
+        expected = {
+            "method": "fqn",
+            "value": "my_model",
+            "children": True,
+            "children_depth": "2",
+        }
+        definition = sel_dict["my_model_children_selector"]["definition"]
         self.assertEqual(expected, definition)

@@ -3,9 +3,7 @@ from dataclasses import field
 from datetime import datetime
 import os
 import traceback
-from typing import (
-    Dict, Optional, Mapping, Callable, Any, List, Type, Union, Tuple
-)
+from typing import Dict, Optional, Mapping, Callable, Any, List, Type, Union, Tuple
 from itertools import chain
 import time
 
@@ -21,14 +19,25 @@ from dbt.adapters.factory import (
 from dbt.helper_types import PathSet
 from dbt.events.functions import fire_event, get_invocation_id
 from dbt.events.types import (
-    PartialParsingFullReparseBecauseOfError, PartialParsingExceptionFile, PartialParsingFile,
-    PartialParsingException, PartialParsingSkipParsing, PartialParsingMacroChangeStartFullParse,
-    ManifestWrongMetadataVersion, PartialParsingVersionMismatch,
-    PartialParsingFailedBecauseConfigChange, PartialParsingFailedBecauseProfileChange,
-    PartialParsingFailedBecauseNewProjectDependency, PartialParsingFailedBecauseHashChanged,
-    PartialParsingNotEnabled, ParsedFileLoadFailed, PartialParseSaveFileNotFound,
-    InvalidDisabledSourceInTestNode, InvalidRefInTestNode, PartialParsingProjectEnvVarsChanged,
-    PartialParsingProfileEnvVarsChanged
+    PartialParsingFullReparseBecauseOfError,
+    PartialParsingExceptionFile,
+    PartialParsingFile,
+    PartialParsingException,
+    PartialParsingSkipParsing,
+    PartialParsingMacroChangeStartFullParse,
+    ManifestWrongMetadataVersion,
+    PartialParsingVersionMismatch,
+    PartialParsingFailedBecauseConfigChange,
+    PartialParsingFailedBecauseProfileChange,
+    PartialParsingFailedBecauseNewProjectDependency,
+    PartialParsingFailedBecauseHashChanged,
+    PartialParsingNotEnabled,
+    ParsedFileLoadFailed,
+    PartialParseSaveFileNotFound,
+    InvalidDisabledSourceInTestNode,
+    InvalidRefInTestNode,
+    PartialParsingProjectEnvVarsChanged,
+    PartialParsingProfileEnvVarsChanged,
 )
 from dbt.logger import DbtProcessState
 from dbt.node_types import NodeType
@@ -45,10 +54,19 @@ from dbt.parser.read_files import read_files, load_source_file
 from dbt.parser.partial import PartialParsing, special_override_macros
 from dbt.contracts.graph.compiled import ManifestNode
 from dbt.contracts.graph.manifest import (
-    Manifest, Disabled, MacroManifest, ManifestStateCheck, ParsingInfo
+    Manifest,
+    Disabled,
+    MacroManifest,
+    ManifestStateCheck,
+    ParsingInfo,
 )
 from dbt.contracts.graph.parsed import (
-    ParsedSourceDefinition, ParsedNode, ParsedMacro, ColumnInfo, ParsedExposure, ParsedMetric
+    ParsedSourceDefinition,
+    ParsedNode,
+    ParsedMacro,
+    ColumnInfo,
+    ParsedExposure,
+    ParsedMetric,
 )
 from dbt.contracts.util import Writable
 from dbt.exceptions import (
@@ -76,21 +94,21 @@ from dbt.version import __version__
 
 from dbt.dataclass_schema import StrEnum, dbtClassMixin
 
-PARTIAL_PARSE_FILE_NAME = 'partial_parse.msgpack'
-PARSING_STATE = DbtProcessState('parsing')
+PARTIAL_PARSE_FILE_NAME = "partial_parse.msgpack"
+PARSING_STATE = DbtProcessState("parsing")
 
 
 class ReparseReason(StrEnum):
-    version_mismatch = '01_version_mismatch'
-    file_not_found = '02_file_not_found'
-    vars_changed = '03_vars_changed'
-    profile_changed = '04_profile_changed'
-    deps_changed = '05_deps_changed'
-    project_config_changed = '06_project_config_changed'
-    load_file_failure = '07_load_file_failure'
-    exception = '08_exception'
-    proj_env_vars_changed = '09_project_env_vars_changed'
-    prof_env_vars_changed = '10_profile_env_vars_changed'
+    version_mismatch = "01_version_mismatch"
+    file_not_found = "02_file_not_found"
+    vars_changed = "03_vars_changed"
+    profile_changed = "04_profile_changed"
+    deps_changed = "05_deps_changed"
+    project_config_changed = "06_project_config_changed"
+    load_file_failure = "07_load_file_failure"
+    exception = "08_exception"
+    proj_env_vars_changed = "09_project_env_vars_changed"
+    prof_env_vars_changed = "10_profile_env_vars_changed"
 
 
 # Part of saved performance info
@@ -129,7 +147,7 @@ class ManifestLoaderInfo(dbtClassMixin, Writable):
     _project_index: Dict[str, ProjectLoaderInfo] = field(default_factory=dict)
 
     def __post_serialize__(self, dct):
-        del dct['_project_index']
+        del dct["_project_index"]
         return dct
 
 
@@ -207,9 +225,7 @@ class ManifestLoader:
             loader.save_macros_to_adapter(adapter)
 
             # Save performance info
-            loader._perf_info.load_all_elapsed = (
-                time.perf_counter() - start_load_all
-            )
+            loader._perf_info.load_all_elapsed = time.perf_counter() - start_load_all
             loader.track_project_load()
 
         return manifest
@@ -228,11 +244,13 @@ class ManifestLoader:
             read_files(project, self.manifest.files, project_parser_files, saved_files)
         orig_project_parser_files = project_parser_files
         self._perf_info.path_count = len(self.manifest.files)
-        self._perf_info.read_files_elapsed = (time.perf_counter() - start_read_files)
+        self._perf_info.read_files_elapsed = time.perf_counter() - start_read_files
 
         skip_parsing = False
         if self.saved_manifest is not None:
-            self.partial_parser = PartialParsing(self.saved_manifest, self.manifest.files)
+            self.partial_parser = PartialParsing(
+                self.saved_manifest, self.manifest.files
+            )
             skip_parsing = self.partial_parser.skip_parsing()
             if skip_parsing:
                 # nothing changed, so we don't need to generate project_parser_files
@@ -254,7 +272,7 @@ class ManifestLoader:
                     # Get traceback info
                     tb_info = traceback.format_exc()
                     formatted_lines = tb_info.splitlines()
-                    (_, line, method) = formatted_lines[-3].split(', ')
+                    (_, line, method) = formatted_lines[-3].split(", ")
                     exc_info = {
                         "traceback": tb_info,
                         "exception": formatted_lines[-1],
@@ -276,15 +294,15 @@ class ManifestLoader:
                             fire_event(PartialParsingExceptionFile(file=file_id))
                             file_dict = source_file.to_dict()
                             fire_event(PartialParsingFile(file_dict=file_dict))
-                    exc_info['parse_file_type'] = parse_file_type
+                    exc_info["parse_file_type"] = parse_file_type
                     fire_event(PartialParsingException(exc_info=exc_info))
 
                     # Send event
                     if dbt.tracking.active_user is not None:
-                        exc_info['full_reparse_reason'] = ReparseReason.exception
+                        exc_info["full_reparse_reason"] = ReparseReason.exception
                         dbt.tracking.track_partial_parser(exc_info)
 
-                    if os.environ.get('DBT_PP_TEST'):
+                    if os.environ.get("DBT_PP_TEST"):
                         raise exc
 
         if self.manifest._parsing_info is None:
@@ -310,7 +328,9 @@ class ManifestLoader:
                 self.partially_parsing = False
                 self.load_and_parse_macros(project_parser_files)
 
-            self._perf_info.load_macros_elapsed = (time.perf_counter() - start_load_macros)
+            self._perf_info.load_macros_elapsed = (
+                time.perf_counter() - start_load_macros
+            )
 
             # Now that the macros are parsed, parse the rest of the files.
             # This is currently done on a per project basis.
@@ -318,15 +338,19 @@ class ManifestLoader:
 
             # Load the rest of the files except for schema yaml files
             parser_types: List[Type[Parser]] = [
-                ModelParser, SnapshotParser, AnalysisParser, SingularTestParser,
-                SeedParser, DocumentationParser, HookParser]
+                ModelParser,
+                SnapshotParser,
+                AnalysisParser,
+                SingularTestParser,
+                SeedParser,
+                DocumentationParser,
+                HookParser,
+            ]
             for project in self.all_projects.values():
                 if project.project_name not in project_parser_files:
                     continue
                 self.parse_project(
-                    project,
-                    project_parser_files[project.project_name],
-                    parser_types
+                    project, project_parser_files[project.project_name], parser_types
                 )
 
             # Now that we've loaded most of the nodes (except for schema tests and sources)
@@ -343,12 +367,12 @@ class ManifestLoader:
                 if project.project_name not in project_parser_files:
                     continue
                 self.parse_project(
-                    project,
-                    project_parser_files[project.project_name],
-                    parser_types
+                    project, project_parser_files[project.project_name], parser_types
                 )
 
-            self._perf_info.parse_project_elapsed = (time.perf_counter() - start_parse_projects)
+            self._perf_info.parse_project_elapsed = (
+                time.perf_counter() - start_parse_projects
+            )
 
             # patch_sources converts the UnparsedSourceDefinitions in the
             # Manifest.sources to ParsedSourceDefinition via 'patch_source'
@@ -357,9 +381,7 @@ class ManifestLoader:
             patcher = SourcePatcher(self.root_project, self.manifest)
             patcher.construct_sources()
             self.manifest.sources = patcher.sources
-            self._perf_info.patch_sources_elapsed = (
-                time.perf_counter() - start_patch
-            )
+            self._perf_info.patch_sources_elapsed = time.perf_counter() - start_patch
             # We need to rebuild disabled in order to include disabled sources
             self.manifest.rebuild_disabled_lookup()
 
@@ -395,18 +417,18 @@ class ManifestLoader:
             if project.project_name not in project_parser_files:
                 continue
             parser_files = project_parser_files[project.project_name]
-            if 'MacroParser' in parser_files:
+            if "MacroParser" in parser_files:
                 parser = MacroParser(project, self.manifest)
-                for file_id in parser_files['MacroParser']:
+                for file_id in parser_files["MacroParser"]:
                     block = FileBlock(self.manifest.files[file_id])
                     parser.parse_file(block)
                     # increment parsed path count for performance tracking
                     self._perf_info.parsed_path_count += 1
             # generic tests hisotrically lived in the macros directoy but can now be nested
             # in a /generic directory under /tests so we want to process them here as well
-            if 'GenericTestParser' in parser_files:
+            if "GenericTestParser" in parser_files:
                 parser = GenericTestParser(project, self.manifest)
-                for file_id in parser_files['GenericTestParser']:
+                for file_id in parser_files["GenericTestParser"]:
                     block = FileBlock(self.manifest.files[file_id])
                     parser.parse_file(block)
                     # increment parsed path count for performance tracking
@@ -456,11 +478,13 @@ class ManifestLoader:
                 project_parsed_path_count += 1
 
             # Save timing info
-            project_loader_info.parsers.append(ParserInfo(
-                parser=parser.resource_type,
-                parsed_path_count=project_parsed_path_count,
-                elapsed=time.perf_counter() - parser_start_timer
-            ))
+            project_loader_info.parsers.append(
+                ParserInfo(
+                    parser=parser.resource_type,
+                    parsed_path_count=project_parsed_path_count,
+                    elapsed=time.perf_counter() - parser_start_timer,
+                )
+            )
             total_parsed_path_count += project_parsed_path_count
 
         # HookParser doesn't run from loaded files, just dbt_project.yml,
@@ -492,9 +516,7 @@ class ManifestLoader:
             self.root_project.credentials.type
         )
         self.macro_resolver = MacroResolver(
-            self.manifest.macros,
-            self.root_project.project_name,
-            internal_package_names
+            self.manifest.macros, self.root_project.project_name, internal_package_names
         )
 
     # Loop through macros in the manifest and statically parse
@@ -505,40 +527,42 @@ class ManifestLoader:
             self.macro_resolver, {}, None, MacroStack(), []
         )
         adapter = get_adapter(self.root_project)
-        db_wrapper = ParseProvider().DatabaseWrapper(
-            adapter, macro_namespace
-        )
+        db_wrapper = ParseProvider().DatabaseWrapper(adapter, macro_namespace)
         for macro in self.manifest.macros.values():
             if macro.created_at < self.started_at:
                 continue
             possible_macro_calls = statically_extract_macro_calls(
-                macro.macro_sql, macro_ctx, db_wrapper)
+                macro.macro_sql, macro_ctx, db_wrapper
+            )
             for macro_name in possible_macro_calls:
                 # adapter.dispatch calls can generate a call with the same name as the macro
                 # it ought to be an adapter prefix (postgres_) or default_
                 if macro_name == macro.name:
                     continue
                 package_name = macro.package_name
-                if '.' in macro_name:
-                    package_name, macro_name = macro_name.split('.')
-                dep_macro_id = self.macro_resolver.get_macro_id(package_name, macro_name)
+                if "." in macro_name:
+                    package_name, macro_name = macro_name.split(".")
+                dep_macro_id = self.macro_resolver.get_macro_id(
+                    package_name, macro_name
+                )
                 if dep_macro_id:
                     macro.depends_on.add_macro(dep_macro_id)  # will check for dupes
 
     def write_manifest_for_partial_parse(self):
-        path = os.path.join(self.root_project.target_path,
-                            PARTIAL_PARSE_FILE_NAME)
+        path = os.path.join(self.root_project.target_path, PARTIAL_PARSE_FILE_NAME)
         try:
             # This shouldn't be necessary, but we have gotten bug reports (#3757) of the
             # saved manifest not matching the code version.
             if self.manifest.metadata.dbt_version != __version__:
-                fire_event(ManifestWrongMetadataVersion(
-                    version=self.manifest.metadata.dbt_version)
+                fire_event(
+                    ManifestWrongMetadataVersion(
+                        version=self.manifest.metadata.dbt_version
+                    )
                 )
                 self.manifest.metadata.dbt_version = __version__
             manifest_msgpack = self.manifest.to_msgpack()
             make_directory(os.path.dirname(path))
-            with open(path, 'wb') as fp:
+            with open(path, "wb") as fp:
                 fp.write(manifest_msgpack)
         except Exception:
             raise
@@ -552,8 +576,12 @@ class ManifestLoader:
 
         if manifest.metadata.dbt_version != __version__:
             # #3757 log both versions because of reports of invalid cases of mismatch.
-            fire_event(PartialParsingVersionMismatch(saved_version=manifest.metadata.dbt_version,
-                                                     current_version=__version__))
+            fire_event(
+                PartialParsingVersionMismatch(
+                    saved_version=manifest.metadata.dbt_version,
+                    current_version=__version__,
+                )
+            )
             # If the version is wrong, the other checks might not work
             return False, ReparseReason.version_mismatch
         if self.manifest.state_check.vars_hash != manifest.state_check.vars_hash:
@@ -566,19 +594,24 @@ class ManifestLoader:
             fire_event(PartialParsingFailedBecauseProfileChange())
             valid = False
             reparse_reason = ReparseReason.profile_changed
-        if self.manifest.state_check.project_env_vars_hash != \
-                manifest.state_check.project_env_vars_hash:
+        if (
+            self.manifest.state_check.project_env_vars_hash
+            != manifest.state_check.project_env_vars_hash
+        ):
             fire_event(PartialParsingProjectEnvVarsChanged())
             valid = False
             reparse_reason = ReparseReason.proj_env_vars_changed
-        if self.manifest.state_check.profile_env_vars_hash != \
-                manifest.state_check.profile_env_vars_hash:
+        if (
+            self.manifest.state_check.profile_env_vars_hash
+            != manifest.state_check.profile_env_vars_hash
+        ):
             fire_event(PartialParsingProfileEnvVarsChanged())
             valid = False
             reparse_reason = ReparseReason.prof_env_vars_changed
 
         missing_keys = {
-            k for k in self.manifest.state_check.project_hashes
+            k
+            for k in self.manifest.state_check.project_hashes
             if k not in manifest.state_check.project_hashes
         }
         if missing_keys:
@@ -603,9 +636,11 @@ class ManifestLoader:
         # Check for custom versions of these special macros
         for macro_name in special_override_macros:
             macro = self.macro_resolver.get_macro(None, macro_name)
-            if macro and macro.package_name != 'dbt':
-                if (macro.file_id in self.partial_parser.file_diff['changed'] or
-                        macro.file_id in self.partial_parser.file_diff['added']):
+            if macro and macro.package_name != "dbt":
+                if (
+                    macro.file_id in self.partial_parser.file_diff["changed"]
+                    or macro.file_id in self.partial_parser.file_diff["added"]
+                ):
                     # The file with the macro in it has changed
                     return True
         return False
@@ -614,14 +649,13 @@ class ManifestLoader:
         if not flags.PARTIAL_PARSE:
             fire_event(PartialParsingNotEnabled())
             return None
-        path = os.path.join(self.root_project.target_path,
-                            PARTIAL_PARSE_FILE_NAME)
+        path = os.path.join(self.root_project.target_path, PARTIAL_PARSE_FILE_NAME)
 
         reparse_reason = None
 
         if os.path.exists(path):
             try:
-                with open(path, 'rb') as fp:
+                with open(path, "rb") as fp:
                     manifest_mp = fp.read()
                 manifest: Manifest = Manifest.from_msgpack(manifest_mp)  # type: ignore
                 # keep this check inside the try/except in case something about
@@ -642,14 +676,14 @@ class ManifestLoader:
             reparse_reason = ReparseReason.file_not_found
 
         # this event is only fired if a full reparse is needed
-        dbt.tracking.track_partial_parser({'full_reparse_reason': reparse_reason})
+        dbt.tracking.track_partial_parser({"full_reparse_reason": reparse_reason})
 
         return None
 
     def build_perf_info(self):
         mli = ManifestLoaderInfo(
             is_partial_parse_enabled=flags.PARTIAL_PARSE,
-            is_static_analysis_enabled=flags.STATIC_PARSER
+            is_static_analysis_enabled=flags.STATIC_PARSER,
         )
         for project in self.all_projects.values():
             project_info = ProjectLoaderInfo(
@@ -677,39 +711,41 @@ class ManifestLoader:
         # to not pass, it doesn't matter.  If we move to more granular checking
         # of env_vars, that would need to change.
         vars_hash = FileHash.from_contents(
-            '\x00'.join([
-                getattr(config.args, 'vars', '{}') or '{}',
-                getattr(config.args, 'profile', '') or '',
-                getattr(config.args, 'target', '') or '',
-                __version__
-            ])
+            "\x00".join(
+                [
+                    getattr(config.args, "vars", "{}") or "{}",
+                    getattr(config.args, "profile", "") or "",
+                    getattr(config.args, "target", "") or "",
+                    __version__,
+                ]
+            )
         )
 
         # Create a FileHash of the env_vars in the project
         key_list = list(config.project_env_vars.keys())
         key_list.sort()
-        env_var_str = ''
+        env_var_str = ""
         for key in key_list:
-            env_var_str += f'{key}:{config.project_env_vars[key]}|'
+            env_var_str += f"{key}:{config.project_env_vars[key]}|"
         project_env_vars_hash = FileHash.from_contents(env_var_str)
 
         # Create a FileHash of the env_vars in the project
         key_list = list(config.profile_env_vars.keys())
         key_list.sort()
-        env_var_str = ''
+        env_var_str = ""
         for key in key_list:
-            env_var_str += f'{key}:{config.profile_env_vars[key]}|'
+            env_var_str += f"{key}:{config.profile_env_vars[key]}|"
         profile_env_vars_hash = FileHash.from_contents(env_var_str)
 
         # Create a FileHash of the profile file
-        profile_path = os.path.join(flags.PROFILES_DIR, 'profiles.yml')
+        profile_path = os.path.join(flags.PROFILES_DIR, "profiles.yml")
         with open(profile_path) as fp:
             profile_hash = FileHash.from_contents(fp.read())
 
         # Create a FileHashes for dbt_project for all dependencies
         project_hashes = {}
         for name, project in all_projects.items():
-            path = os.path.join(project.project_root, 'dbt_project.yml')
+            path = os.path.join(project.project_root, "dbt_project.yml")
             with open(path) as fp:
                 project_hashes[name] = FileHash.from_contents(fp.read())
 
@@ -739,7 +775,8 @@ class ManifestLoader:
             macro_parser = MacroParser(project, self.manifest)
             for path in macro_parser.get_paths():
                 source_file = load_source_file(
-                    path, ParseFileType.Macro, project.project_name, {})
+                    path, ParseFileType.Macro, project.project_name, {}
+                )
                 block = FileBlock(source_file)
                 # This does not add the file to the manifest.files,
                 # but that shouldn't be necessary here.
@@ -773,26 +810,24 @@ class ManifestLoader:
     # Create tracking event for saving performance info
     def track_project_load(self):
         invocation_id = get_invocation_id()
-        dbt.tracking.track_project_load({
-            "invocation_id": invocation_id,
-            "project_id": self.root_project.hashed_name(),
-            "path_count": self._perf_info.path_count,
-            "parsed_path_count": self._perf_info.parsed_path_count,
-            "read_files_elapsed": self._perf_info.read_files_elapsed,
-            "load_macros_elapsed": self._perf_info.load_macros_elapsed,
-            "parse_project_elapsed": self._perf_info.parse_project_elapsed,
-            "patch_sources_elapsed": self._perf_info.patch_sources_elapsed,
-            "process_manifest_elapsed": (
-                self._perf_info.process_manifest_elapsed
-            ),
-            "load_all_elapsed": self._perf_info.load_all_elapsed,
-            "is_partial_parse_enabled": (
-                self._perf_info.is_partial_parse_enabled
-            ),
-            "is_static_analysis_enabled": self._perf_info.is_static_analysis_enabled,
-            "static_analysis_path_count": self._perf_info.static_analysis_path_count,
-            "static_analysis_parsed_path_count": self._perf_info.static_analysis_parsed_path_count,
-        })
+        dbt.tracking.track_project_load(
+            {
+                "invocation_id": invocation_id,
+                "project_id": self.root_project.hashed_name(),
+                "path_count": self._perf_info.path_count,
+                "parsed_path_count": self._perf_info.parsed_path_count,
+                "read_files_elapsed": self._perf_info.read_files_elapsed,
+                "load_macros_elapsed": self._perf_info.load_macros_elapsed,
+                "parse_project_elapsed": self._perf_info.parse_project_elapsed,
+                "patch_sources_elapsed": self._perf_info.patch_sources_elapsed,
+                "process_manifest_elapsed": (self._perf_info.process_manifest_elapsed),
+                "load_all_elapsed": self._perf_info.load_all_elapsed,
+                "is_partial_parse_enabled": (self._perf_info.is_partial_parse_enabled),
+                "is_static_analysis_enabled": self._perf_info.is_static_analysis_enabled,
+                "static_analysis_path_count": self._perf_info.static_analysis_path_count,
+                "static_analysis_parsed_path_count": self._perf_info.static_analysis_parsed_path_count,
+            }
+        )
 
     # Takes references in 'refs' array of nodes and exposures, finds the target
     # node, and updates 'depends_on.nodes' with the unique id
@@ -883,8 +918,9 @@ class ManifestLoader:
             _process_sources_for_exposure(self.manifest, current_project, exposure)
 
 
-def invalid_ref_fail_unless_test(node, target_model_name,
-                                 target_model_package, disabled):
+def invalid_ref_fail_unless_test(
+    node, target_model_name, target_model_package, disabled
+):
 
     if node.resource_type == NodeType.Test:
         msg = get_target_not_found_or_disabled_msg(
@@ -893,10 +929,7 @@ def invalid_ref_fail_unless_test(node, target_model_name,
         if disabled:
             fire_event(InvalidRefInTestNode(msg=msg))
         else:
-            warn_or_error(
-                msg,
-                log_fmt=warning_tag('{}')
-            )
+            warn_or_error(msg, log_fmt=warning_tag("{}"))
     else:
         ref_target_not_found(
             node,
@@ -906,9 +939,7 @@ def invalid_ref_fail_unless_test(node, target_model_name,
         )
 
 
-def invalid_source_fail_unless_test(
-    node, target_name, target_table_name, disabled
-):
+def invalid_source_fail_unless_test(node, target_name, target_table_name, disabled):
     if node.resource_type == NodeType.Test:
         msg = get_source_not_found_or_disabled_msg(
             node, target_name, target_table_name, disabled
@@ -916,17 +947,9 @@ def invalid_source_fail_unless_test(
         if disabled:
             fire_event(InvalidDisabledSourceInTestNode(msg=msg))
         else:
-            warn_or_error(
-                msg,
-                log_fmt=warning_tag('{}')
-            )
+            warn_or_error(msg, log_fmt=warning_tag("{}"))
     else:
-        source_target_not_found(
-            node,
-            target_name,
-            target_table_name,
-            disabled=disabled
-        )
+        source_target_not_found(node, target_name, target_table_name, disabled=disabled)
 
 
 def _check_resource_uniqueness(
@@ -950,15 +973,11 @@ def _check_resource_uniqueness(
 
         existing_node = names_resources.get(name)
         if existing_node is not None:
-            dbt.exceptions.raise_duplicate_resource_name(
-                existing_node, node
-            )
+            dbt.exceptions.raise_duplicate_resource_name(existing_node, node)
 
         existing_alias = alias_resources.get(full_node_name)
         if existing_alias is not None:
-            dbt.exceptions.raise_ambiguous_alias(
-                existing_alias, node, full_node_name
-            )
+            dbt.exceptions.raise_ambiguous_alias(existing_alias, node, full_node_name)
 
         names_resources[name] = node
         alias_resources[full_node_name] = node
@@ -994,8 +1013,7 @@ def _get_node_column(node, column_name):
 
 
 DocsContextCallback = Callable[
-    [Union[ParsedNode, ParsedSourceDefinition]],
-    Dict[str, Any]
+    [Union[ParsedNode, ParsedSourceDefinition]], Dict[str, Any]
 ]
 
 
@@ -1028,9 +1046,7 @@ def _process_docs_for_source(
 
 
 # macro argument descriptions
-def _process_docs_for_macro(
-    context: Dict[str, Any], macro: ParsedMacro
-) -> None:
+def _process_docs_for_macro(context: Dict[str, Any], macro: ParsedMacro) -> None:
     macro.description = get_rendered(macro.description, context)
     for arg in macro.arguments:
         arg.description = get_rendered(arg.description, context)
@@ -1043,9 +1059,7 @@ def _process_docs_for_exposure(
     exposure.description = get_rendered(exposure.description, context)
 
 
-def _process_docs_for_metrics(
-    context: Dict[str, Any], metric: ParsedMetric
-) -> None:
+def _process_docs_for_metrics(context: Dict[str, Any], metric: ParsedMetric) -> None:
     metric.description = get_rendered(metric.description, context)
 
 
@@ -1064,7 +1078,7 @@ def _process_refs_for_exposure(
             target_model_package, target_model_name = ref
         else:
             raise dbt.exceptions.InternalException(
-                f'Refs should always be 1 or 2 arguments - got {len(ref)}'
+                f"Refs should always be 1 or 2 arguments - got {len(ref)}"
             )
 
         target_model = manifest.resolve_ref(
@@ -1078,8 +1092,10 @@ def _process_refs_for_exposure(
             # This may raise. Even if it doesn't, we don't want to add
             # this exposure to the graph b/c there is no destination exposure
             invalid_ref_fail_unless_test(
-                exposure, target_model_name, target_model_package,
-                disabled=(isinstance(target_model, Disabled))
+                exposure,
+                target_model_name,
+                target_model_package,
+                disabled=(isinstance(target_model, Disabled)),
             )
 
             continue
@@ -1105,7 +1121,7 @@ def _process_refs_for_metric(
             target_model_package, target_model_name = ref
         else:
             raise dbt.exceptions.InternalException(
-                f'Refs should always be 1 or 2 arguments - got {len(ref)}'
+                f"Refs should always be 1 or 2 arguments - got {len(ref)}"
             )
 
         target_model = manifest.resolve_ref(
@@ -1119,8 +1135,10 @@ def _process_refs_for_metric(
             # This may raise. Even if it doesn't, we don't want to add
             # this exposure to the graph b/c there is no destination exposure
             invalid_ref_fail_unless_test(
-                metric, target_model_name, target_model_package,
-                disabled=(isinstance(target_model, Disabled))
+                metric,
+                target_model_name,
+                target_model_package,
+                disabled=(isinstance(target_model, Disabled)),
             )
 
             continue
@@ -1146,7 +1164,7 @@ def _process_refs_for_node(
             target_model_package, target_model_name = ref
         else:
             raise dbt.exceptions.InternalException(
-                f'Refs should always be 1 or 2 arguments - got {len(ref)}'
+                f"Refs should always be 1 or 2 arguments - got {len(ref)}"
             )
 
         target_model = manifest.resolve_ref(
@@ -1161,8 +1179,10 @@ def _process_refs_for_node(
             # this node to the graph b/c there is no destination node
             node.config.enabled = False
             invalid_ref_fail_unless_test(
-                node, target_model_name, target_model_package,
-                disabled=(isinstance(target_model, Disabled))
+                node,
+                target_model_name,
+                target_model_package,
+                disabled=(isinstance(target_model, Disabled)),
             )
 
             continue
@@ -1193,7 +1213,7 @@ def _process_sources_for_exposure(
                 exposure,
                 source_name,
                 table_name,
-                disabled=(isinstance(target_source, Disabled))
+                disabled=(isinstance(target_source, Disabled)),
             )
             continue
         target_source_id = target_source.unique_id
@@ -1217,7 +1237,7 @@ def _process_sources_for_metric(
                 metric,
                 source_name,
                 table_name,
-                disabled=(isinstance(target_source, Disabled))
+                disabled=(isinstance(target_source, Disabled)),
             )
             continue
         target_source_id = target_source.unique_id
@@ -1244,7 +1264,7 @@ def _process_sources_for_node(
                 node,
                 source_name,
                 table_name,
-                disabled=(isinstance(target_source, Disabled))
+                disabled=(isinstance(target_source, Disabled)),
             )
             continue
         target_source_id = target_source.unique_id
@@ -1268,13 +1288,9 @@ def process_macro(
 
 # This is called in task.rpc.sql_commands when a "dynamic" node is
 # created in the manifest, in 'add_refs'
-def process_node(
-    config: RuntimeConfig, manifest: Manifest, node: ManifestNode
-):
+def process_node(config: RuntimeConfig, manifest: Manifest, node: ManifestNode):
 
-    _process_sources_for_node(
-        manifest, config.project_name, node
-    )
+    _process_sources_for_node(manifest, config.project_name, node)
     _process_refs_for_node(manifest, config.project_name, node)
     ctx = generate_runtime_docs_context(config, node, manifest, config.project_name)
     _process_docs_for_node(ctx, node)

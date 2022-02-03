@@ -5,8 +5,16 @@ from dbt.events.functions import event_to_serializable_dict
 from dbt.events.base_types import NodeInfo
 from dbt.events.types import *
 from dbt.events.test_types import *
+
 # from dbt.events.stubs import _CachedRelation, BaseRelation, _ReferenceKey, ParsedModelNode
-from dbt.events.base_types import Event, TestLevel, DebugLevel, WarnLevel, InfoLevel, ErrorLevel
+from dbt.events.base_types import (
+    Event,
+    TestLevel,
+    DebugLevel,
+    WarnLevel,
+    InfoLevel,
+    ErrorLevel,
+)
 from importlib import reload
 import dbt.events.functions as event_funcs
 import dbt.flags as flags
@@ -14,9 +22,7 @@ from dbt.helper_types import Lazy
 import inspect
 import json
 from unittest import TestCase
-from dbt.contracts.graph.parsed import (
-    ParsedModelNode, NodeConfig, DependsOn
-)
+from dbt.contracts.graph.parsed import ParsedModelNode, NodeConfig, DependsOn
 from dbt.contracts.files import FileHash
 from mashumaro.types import SerializableType
 from typing import Generic, TypeVar
@@ -26,7 +32,15 @@ def get_all_subclasses(cls):
     all_subclasses = []
     for subclass in cls.__subclasses__():
         # If the test breaks because of abcs this list might have to be updated.
-        if subclass in [NodeInfo, AdapterEventBase, TestLevel, DebugLevel, WarnLevel, InfoLevel, ErrorLevel]:
+        if subclass in [
+            NodeInfo,
+            AdapterEventBase,
+            TestLevel,
+            DebugLevel,
+            WarnLevel,
+            InfoLevel,
+            ErrorLevel,
+        ]:
             continue
         all_subclasses.append(subclass)
         all_subclasses.extend(get_all_subclasses(subclass))
@@ -34,7 +48,6 @@ def get_all_subclasses(cls):
 
 
 class TestAdapterLogger(TestCase):
-
     def setUp(self):
         pass
 
@@ -54,10 +67,12 @@ class TestAdapterLogger(TestCase):
     def test_formatting(self):
         logger = AdapterLogger("dbt_tests")
         # tests that it doesn't throw
-        logger.debug("hello {}", 'world')
+        logger.debug("hello {}", "world")
 
         # enters lower in the call stack to test that it formats correctly
-        event = AdapterEventDebug(name="dbt_tests", base_msg="hello {}", args=('world',))
+        event = AdapterEventDebug(
+            name="dbt_tests", base_msg="hello {}", args=("world",)
+        )
         self.assertTrue("hello world" in event.message())
 
         # tests that it doesn't throw
@@ -76,6 +91,7 @@ class TestAdapterLogger(TestCase):
         event = AdapterEventDebug(name="dbt_tests", base_msg="boop{x}boop", args=())
         self.assertTrue("boop{x}boop" in event.message())
 
+
 class TestEventCodes(TestCase):
 
     # checks to see if event codes are duplicated to keep codes singluar and clear.
@@ -87,14 +103,16 @@ class TestEventCodes(TestCase):
         for event in all_concrete:
             if not inspect.isabstract(event):
                 # must be in the form 1 capital letter, 3 digits
-                self.assertTrue('^[A-Z][0-9]{3}', event.code)
+                self.assertTrue("^[A-Z][0-9]{3}", event.code)
                 # cannot have been used already
-                self.assertFalse(event.code in all_codes, f'{event.code} is assigned more than once. Check types.py for duplicates.')
+                self.assertFalse(
+                    event.code in all_codes,
+                    f"{event.code} is assigned more than once. Check types.py for duplicates.",
+                )
                 all_codes.add(event.code)
 
 
 class TestEventBuffer(TestCase):
-
     def setUp(self) -> None:
         flags.EVENT_BUFFER_SIZE = 10
         reload(event_funcs)
@@ -104,66 +122,68 @@ class TestEventBuffer(TestCase):
         event_funcs.fire_event(UnitTestInfo(msg="Test Event 1"))
         event_funcs.fire_event(UnitTestInfo(msg="Test Event 2"))
         event1 = event_funcs.EVENT_HISTORY[-2]
-        self.assertTrue(
-            event_funcs.EVENT_HISTORY.count(event1) == 1
-        )
+        self.assertTrue(event_funcs.EVENT_HISTORY.count(event1) == 1)
 
     # ensure events drop from the front of the buffer when buffer maxsize is reached
     def test_buffer_FIFOs(self):
         event_funcs.EVENT_HISTORY.clear()
-        for n in range(1,(flags.EVENT_BUFFER_SIZE + 1)):
+        for n in range(1, (flags.EVENT_BUFFER_SIZE + 1)):
             event_funcs.fire_event(UnitTestInfo(msg=f"Test Event {n}"))
-        
+
         event_full = event_funcs.EVENT_HISTORY[-1]
-        self.assertEqual(event_full.code, 'Z048')
+        self.assertEqual(event_full.code, "Z048")
+        self.assertTrue(event_funcs.EVENT_HISTORY.count(event_full) == 1)
         self.assertTrue(
-            event_funcs.EVENT_HISTORY.count(event_full) == 1
+            event_funcs.EVENT_HISTORY.count(
+                UnitTestInfo(msg="Test Event 1", code="T006")
+            )
+            == 0
         )
-        self.assertTrue(
-             event_funcs.EVENT_HISTORY.count(UnitTestInfo(msg='Test Event 1', code='T006')) == 0
-         )
+
 
 def MockNode():
     return ParsedModelNode(
-        alias='model_one',
-        name='model_one',
-        database='dbt',
-        schema='analytics',
+        alias="model_one",
+        name="model_one",
+        database="dbt",
+        schema="analytics",
         resource_type=NodeType.Model,
-        unique_id='model.root.model_one',
-        fqn=['root', 'model_one'],
-        package_name='root',
-        original_file_path='model_one.sql',
-        root_path='/usr/src/app',
+        unique_id="model.root.model_one",
+        fqn=["root", "model_one"],
+        package_name="root",
+        original_file_path="model_one.sql",
+        root_path="/usr/src/app",
         refs=[],
         sources=[],
         depends_on=DependsOn(),
-        config=NodeConfig.from_dict({
-            'enabled': True,
-            'materialized': 'view',
-            'persist_docs': {},
-            'post-hook': [],
-            'pre-hook': [],
-            'vars': {},
-            'quoting': {},
-            'column_types': {},
-            'tags': [],
-        }),
+        config=NodeConfig.from_dict(
+            {
+                "enabled": True,
+                "materialized": "view",
+                "persist_docs": {},
+                "post-hook": [],
+                "pre-hook": [],
+                "vars": {},
+                "quoting": {},
+                "column_types": {},
+                "tags": [],
+            }
+        ),
         tags=[],
-        path='model_one.sql',
-        raw_sql='',
-        description='',
+        path="model_one.sql",
+        raw_sql="",
+        description="",
         columns={},
-        checksum=FileHash.from_contents(''),
+        checksum=FileHash.from_contents(""),
     )
 
 
 sample_values = [
-    MainReportVersion(v=''),
+    MainReportVersion(v=""),
     MainKeyboardInterrupt(),
-    MainEncounteredError(e=BaseException('')),
-    MainStackTrace(stack_trace=''),
-    MainTrackingUserState(user_state=''),
+    MainEncounteredError(e=BaseException("")),
+    MainStackTrace(stack_trace=""),
+    MainTrackingUserState(user_state=""),
     ParsingStart(),
     ParsingCompiling(),
     ParsingWritingManifest(),
@@ -186,9 +206,7 @@ sample_values = [
     SystemExecutingCmd(cmd=[""]),
     SystemStdOutMsg(bmsg=b""),
     SystemStdErrMsg(bmsg=b""),
-    SelectorReportInvalidSelector(
-        valid_selectors="", spec_method="", raw_spec=""
-    ),
+    SelectorReportInvalidSelector(valid_selectors="", spec_method="", raw_spec=""),
     MacroEventInfo(msg=""),
     MacroEventDebug(msg=""),
     NewConnection(conn_type="", conn_name=""),
@@ -206,7 +224,8 @@ sample_values = [
     SQLQueryStatus(status="", elapsed=0.1),
     SQLCommit(conn_name=""),
     ColTypeChange(
-        orig_type="", new_type="",
+        orig_type="",
+        new_type="",
         table=_ReferenceKey(database="", schema="", identifier=""),
     ),
     SchemaCreation(relation=_ReferenceKey(database="", schema="", identifier="")),
@@ -233,7 +252,7 @@ sample_values = [
     TemporaryRelation(key=_ReferenceKey(database="", schema="", identifier="")),
     RenameSchema(
         old_key=_ReferenceKey(database="", schema="", identifier=""),
-        new_key=_ReferenceKey(database="", schema="", identifier="")
+        new_key=_ReferenceKey(database="", schema="", identifier=""),
     ),
     DumpBeforeAddGraph(Lazy.defer(lambda: dict())),
     DumpAfterAddGraph(Lazy.defer(lambda: dict())),
@@ -242,179 +261,227 @@ sample_values = [
     AdapterImportError(exc=ModuleNotFoundError()),
     PluginLoadError(),
     SystemReportReturnCode(returncode=0),
-    NewConnectionOpening(connection_state=''),
+    NewConnectionOpening(connection_state=""),
     TimingInfoCollected(),
     MergedFromState(nbr_merged=0, sample=[]),
-    MissingProfileTarget(profile_name='', target_name=''),
+    MissingProfileTarget(profile_name="", target_name=""),
     InvalidVarsYAML(),
-    GenericTestFileParse(path=''),
-    MacroFileParse(path=''),
+    GenericTestFileParse(path=""),
+    MacroFileParse(path=""),
     PartialParsingFullReparseBecauseOfError(),
     PartialParsingFile(file_dict={}),
-    PartialParsingExceptionFile(file=''),
+    PartialParsingExceptionFile(file=""),
     PartialParsingException(exc_info={}),
     PartialParsingSkipParsing(),
     PartialParsingMacroChangeStartFullParse(),
-    ManifestWrongMetadataVersion(version=''),
-    PartialParsingVersionMismatch(saved_version='', current_version=''),
+    ManifestWrongMetadataVersion(version=""),
+    PartialParsingVersionMismatch(saved_version="", current_version=""),
     PartialParsingFailedBecauseConfigChange(),
     PartialParsingFailedBecauseProfileChange(),
     PartialParsingFailedBecauseNewProjectDependency(),
     PartialParsingFailedBecauseHashChanged(),
-    PartialParsingDeletedMetric(id=''),
-    ParsedFileLoadFailed(path='', exc=''),
+    PartialParsingDeletedMetric(id=""),
+    ParsedFileLoadFailed(path="", exc=""),
     PartialParseSaveFileNotFound(),
-    StaticParserCausedJinjaRendering(path=''),
-    UsingExperimentalParser(path=''),
-    SampleFullJinjaRendering(path=''),
-    StaticParserFallbackJinjaRendering(path=''),
-    StaticParsingMacroOverrideDetected(path=''),
-    StaticParserSuccess(path=''),
-    StaticParserFailure(path=''),
-    ExperimentalParserSuccess(path=''),
-    ExperimentalParserFailure(path=''),
+    StaticParserCausedJinjaRendering(path=""),
+    UsingExperimentalParser(path=""),
+    SampleFullJinjaRendering(path=""),
+    StaticParserFallbackJinjaRendering(path=""),
+    StaticParsingMacroOverrideDetected(path=""),
+    StaticParserSuccess(path=""),
+    StaticParserFailure(path=""),
+    ExperimentalParserSuccess(path=""),
+    ExperimentalParserFailure(path=""),
     PartialParsingEnabled(deleted=0, added=0, changed=0),
-    PartialParsingAddedFile(file_id=''),
-    PartialParsingDeletedFile(file_id=''),
-    PartialParsingUpdatedFile(file_id=''),
-    PartialParsingNodeMissingInSourceFile(source_file=''),
-    PartialParsingMissingNodes(file_id=''),
-    PartialParsingChildMapMissingUniqueID(unique_id=''),
-    PartialParsingUpdateSchemaFile(file_id=''),
-    PartialParsingDeletedSource(unique_id=''),
-    PartialParsingDeletedExposure(unique_id=''),
-    InvalidDisabledSourceInTestNode(msg=''),
-    InvalidRefInTestNode(msg=''),
-    RunningOperationCaughtError(exc=''),
-    RunningOperationUncaughtError(exc=Exception('')),
+    PartialParsingAddedFile(file_id=""),
+    PartialParsingDeletedFile(file_id=""),
+    PartialParsingUpdatedFile(file_id=""),
+    PartialParsingNodeMissingInSourceFile(source_file=""),
+    PartialParsingMissingNodes(file_id=""),
+    PartialParsingChildMapMissingUniqueID(unique_id=""),
+    PartialParsingUpdateSchemaFile(file_id=""),
+    PartialParsingDeletedSource(unique_id=""),
+    PartialParsingDeletedExposure(unique_id=""),
+    InvalidDisabledSourceInTestNode(msg=""),
+    InvalidRefInTestNode(msg=""),
+    RunningOperationCaughtError(exc=""),
+    RunningOperationUncaughtError(exc=Exception("")),
     DbtProjectError(),
-    DbtProjectErrorException(exc=Exception('')),
+    DbtProjectErrorException(exc=Exception("")),
     DbtProfileError(),
-    DbtProfileErrorException(exc=Exception('')),
+    DbtProfileErrorException(exc=Exception("")),
     ProfileListTitle(),
-    ListSingleProfile(profile=''),
+    ListSingleProfile(profile=""),
     NoDefinedProfiles(),
     ProfileHelpMessage(),
-    CatchableExceptionOnRun(exc=Exception('')),
-    InternalExceptionOnRun(build_path='', exc=Exception('')),
-    GenericExceptionOnRun(build_path='', unique_id='', exc=''),
-    NodeConnectionReleaseError(node_name='', exc=Exception('')),
-    CheckCleanPath(path=''),
-    ConfirmCleanPath(path=''),
-    ProtectedCleanPath(path=''),
+    CatchableExceptionOnRun(exc=Exception("")),
+    InternalExceptionOnRun(build_path="", exc=Exception("")),
+    GenericExceptionOnRun(build_path="", unique_id="", exc=""),
+    NodeConnectionReleaseError(node_name="", exc=Exception("")),
+    CheckCleanPath(path=""),
+    ConfirmCleanPath(path=""),
+    ProtectedCleanPath(path=""),
     FinishedCleanPaths(),
-    OpenCommand(open_cmd='', profiles_dir=''),
+    OpenCommand(open_cmd="", profiles_dir=""),
     DepsNoPackagesFound(),
-    DepsStartPackageInstall(package_name=''),
-    DepsInstallInfo(version_name=''),
-    DepsUpdateAvailable(version_latest=''),
-    DepsListSubdirectory(subdirectory=''),
+    DepsStartPackageInstall(package_name=""),
+    DepsInstallInfo(version_name=""),
+    DepsUpdateAvailable(version_latest=""),
+    DepsListSubdirectory(subdirectory=""),
     DepsNotifyUpdatesAvailable(packages=[]),
-    DatabaseErrorRunning(hook_type=''),
+    DatabaseErrorRunning(hook_type=""),
     EmptyLine(),
-    HooksRunning(num_hooks=0, hook_type=''),
-    HookFinished(stat_line='', execution=''),
+    HooksRunning(num_hooks=0, hook_type=""),
+    HookFinished(stat_line="", execution=""),
     WriteCatalogFailure(num_exceptions=0),
-    CatalogWritten(path=''),
+    CatalogWritten(path=""),
     CannotGenerateDocs(),
     BuildingCatalog(),
     CompileComplete(),
     FreshnessCheckComplete(),
-    ServingDocsPort(address='', port=0),
-    ServingDocsAccessInfo(port=''),
+    ServingDocsPort(address="", port=0),
+    ServingDocsAccessInfo(port=""),
     ServingDocsExitInfo(),
-    SeedHeader(header=''),
+    SeedHeader(header=""),
     SeedHeaderSeparator(len_header=0),
-    RunResultWarning(resource_type='', node_name='', path=''),
-    RunResultFailure(resource_type='', node_name='', path=''),
-    StatsLine(stats={'pass':0, 'warn':0, 'error':0, 'skip':0, 'total':0}),
-    RunResultError(msg=''),
-    RunResultErrorNoMessage(status=''),
-    SQLCompiledPath(path=''),
-    CheckNodeTestFailure(relation_name=''),
-    FirstRunResultError(msg=''),
-    AfterFirstRunResultError(msg=''),
+    RunResultWarning(resource_type="", node_name="", path=""),
+    RunResultFailure(resource_type="", node_name="", path=""),
+    StatsLine(stats={"pass": 0, "warn": 0, "error": 0, "skip": 0, "total": 0}),
+    RunResultError(msg=""),
+    RunResultErrorNoMessage(status=""),
+    SQLCompiledPath(path=""),
+    CheckNodeTestFailure(relation_name=""),
+    FirstRunResultError(msg=""),
+    AfterFirstRunResultError(msg=""),
     EndOfRunSummary(num_errors=0, num_warnings=0, keyboard_interrupt=False),
-    PrintStartLine(description='', index=0, total=0, node_info={}),
-    PrintHookStartLine(statement='', index=0, total=0, node_info={}),
-    PrintHookEndLine(statement='', status='', index=0, total=0, execution_time=0, node_info={}),
-    SkippingDetails(resource_type='', schema='', node_name='', index=0, total=0, node_info={}),
-    PrintErrorTestResult(name='', index=0, num_models=0, execution_time=0, node_info={}),
-    PrintPassTestResult(name='', index=0, num_models=0, execution_time=0, node_info={}),
-    PrintWarnTestResult(name='', index=0, num_models=0, execution_time=0, failures=0, node_info={}),
-    PrintFailureTestResult(name='', index=0, num_models=0, execution_time=0, failures=0, node_info={}),
-    PrintSkipBecauseError(schema='', relation='', index=0, total=0),
-    PrintModelErrorResultLine(description='', status='', index=0, total=0, execution_time=0, node_info={}),
-    PrintModelResultLine(description='', status='', index=0, total=0, execution_time=0, node_info={}),
-    PrintSnapshotErrorResultLine(status='',
-                                 description='',
-                                 cfg={},
-                                 index=0,
-                                 total=0,
-                                 execution_time=0,
-                                 node_info={}),
-    PrintSnapshotResultLine(status='', description='', cfg={}, index=0, total=0, execution_time=0, node_info={}),
-    PrintSeedErrorResultLine(status='', index=0, total=0, execution_time=0, schema='', relation='', node_info={}),
-    PrintSeedResultLine(status='', index=0, total=0, execution_time=0, schema='', relation='', node_info={}),
-    PrintHookEndErrorLine(source_name='', table_name='', index=0, total=0, execution_time=0, node_info={}),
-    PrintHookEndErrorStaleLine(source_name='', table_name='', index=0, total=0, execution_time=0, node_info={}),
-    PrintHookEndWarnLine(source_name='', table_name='', index=0, total=0, execution_time=0, node_info={}),
-    PrintHookEndPassLine(source_name='', table_name='', index=0, total=0, execution_time=0, node_info={}),
-    PrintCancelLine(conn_name=''),
-    DefaultSelector(name=''),
-    NodeStart(unique_id='', node_info={}),
-    NodeCompiling(unique_id='', node_info={}),
-    NodeExecuting(unique_id='', node_info={}),
-    NodeFinished(unique_id='', node_info={}, run_result={}),
-    QueryCancelationUnsupported(type=''),
-    ConcurrencyLine(num_threads=0, target_name=''),
-    StarterProjectPath(dir=''),
-    ConfigFolderDirectory(dir=''),
-    NoSampleProfileFound(adapter=''),
-    ProfileWrittenWithSample(name='', path=''),
-    ProfileWrittenWithTargetTemplateYAML(name='', path=''),
-    ProfileWrittenWithProjectTemplateYAML(name='', path=''),
+    PrintStartLine(description="", index=0, total=0, node_info={}),
+    PrintHookStartLine(statement="", index=0, total=0, node_info={}),
+    PrintHookEndLine(
+        statement="", status="", index=0, total=0, execution_time=0, node_info={}
+    ),
+    SkippingDetails(
+        resource_type="", schema="", node_name="", index=0, total=0, node_info={}
+    ),
+    PrintErrorTestResult(
+        name="", index=0, num_models=0, execution_time=0, node_info={}
+    ),
+    PrintPassTestResult(name="", index=0, num_models=0, execution_time=0, node_info={}),
+    PrintWarnTestResult(
+        name="", index=0, num_models=0, execution_time=0, failures=0, node_info={}
+    ),
+    PrintFailureTestResult(
+        name="", index=0, num_models=0, execution_time=0, failures=0, node_info={}
+    ),
+    PrintSkipBecauseError(schema="", relation="", index=0, total=0),
+    PrintModelErrorResultLine(
+        description="", status="", index=0, total=0, execution_time=0, node_info={}
+    ),
+    PrintModelResultLine(
+        description="", status="", index=0, total=0, execution_time=0, node_info={}
+    ),
+    PrintSnapshotErrorResultLine(
+        status="",
+        description="",
+        cfg={},
+        index=0,
+        total=0,
+        execution_time=0,
+        node_info={},
+    ),
+    PrintSnapshotResultLine(
+        status="",
+        description="",
+        cfg={},
+        index=0,
+        total=0,
+        execution_time=0,
+        node_info={},
+    ),
+    PrintSeedErrorResultLine(
+        status="",
+        index=0,
+        total=0,
+        execution_time=0,
+        schema="",
+        relation="",
+        node_info={},
+    ),
+    PrintSeedResultLine(
+        status="",
+        index=0,
+        total=0,
+        execution_time=0,
+        schema="",
+        relation="",
+        node_info={},
+    ),
+    PrintHookEndErrorLine(
+        source_name="", table_name="", index=0, total=0, execution_time=0, node_info={}
+    ),
+    PrintHookEndErrorStaleLine(
+        source_name="", table_name="", index=0, total=0, execution_time=0, node_info={}
+    ),
+    PrintHookEndWarnLine(
+        source_name="", table_name="", index=0, total=0, execution_time=0, node_info={}
+    ),
+    PrintHookEndPassLine(
+        source_name="", table_name="", index=0, total=0, execution_time=0, node_info={}
+    ),
+    PrintCancelLine(conn_name=""),
+    DefaultSelector(name=""),
+    NodeStart(unique_id="", node_info={}),
+    NodeCompiling(unique_id="", node_info={}),
+    NodeExecuting(unique_id="", node_info={}),
+    NodeFinished(unique_id="", node_info={}, run_result={}),
+    QueryCancelationUnsupported(type=""),
+    ConcurrencyLine(num_threads=0, target_name=""),
+    StarterProjectPath(dir=""),
+    ConfigFolderDirectory(dir=""),
+    NoSampleProfileFound(adapter=""),
+    ProfileWrittenWithSample(name="", path=""),
+    ProfileWrittenWithTargetTemplateYAML(name="", path=""),
+    ProfileWrittenWithProjectTemplateYAML(name="", path=""),
     SettingUpProfile(),
     InvalidProfileTemplateYAML(),
-    ProjectNameAlreadyExists(name=''),
-    GetAddendum(msg=''),
-    DepsSetDownloadDirectory(path=''),
+    ProjectNameAlreadyExists(name=""),
+    GetAddendum(msg=""),
+    DepsSetDownloadDirectory(path=""),
     EnsureGitInstalled(),
     DepsCreatingLocalSymlink(),
     DepsSymlinkNotAvailable(),
-    FoundStats(stat_line=''),
-    CompilingNode(unique_id=''),
-    WritingInjectedSQLForNode(unique_id=''),
+    FoundStats(stat_line=""),
+    CompilingNode(unique_id=""),
+    WritingInjectedSQLForNode(unique_id=""),
     DisableTracking(),
-    SendingEvent(kwargs=''),
+    SendingEvent(kwargs=""),
     SendEventFailure(),
     FlushEvents(),
     FlushEventsFailure(),
     TrackingInitializeFailure(),
     RetryExternalCall(attempt=0, max=0),
-    GeneralWarningMsg(msg='', log_fmt=''),
-    GeneralWarningException(exc=Exception(''), log_fmt=''),
+    GeneralWarningMsg(msg="", log_fmt=""),
+    GeneralWarningException(exc=Exception(""), log_fmt=""),
     PartialParsingProfileEnvVarsChanged(),
-    AdapterEventDebug(name='', base_msg='', args=()),
-    AdapterEventInfo(name='', base_msg='', args=()),
-    AdapterEventWarning(name='', base_msg='', args=()),
-    AdapterEventError(name='', base_msg='', args=()),
+    AdapterEventDebug(name="", base_msg="", args=()),
+    AdapterEventInfo(name="", base_msg="", args=()),
+    AdapterEventWarning(name="", base_msg="", args=()),
+    AdapterEventError(name="", base_msg="", args=()),
     PrintDebugStackTrace(),
     MainReportArgs(args={}),
-    RegistryProgressMakingGETRequest(url=''),
+    RegistryProgressMakingGETRequest(url=""),
     DepsUTD(),
     PartialParsingNotEnabled(),
-    SQlRunnerException(exc=Exception('')),
+    SQlRunnerException(exc=Exception("")),
     DropRelation(dropped=_ReferenceKey(database="", schema="", identifier="")),
     PartialParsingProjectEnvVarsChanged(),
-    RegistryProgressGETResponse(url='', resp_code=1),
-    IntegrationTestDebug(msg=''),
-    IntegrationTestInfo(msg=''),
-    IntegrationTestWarn(msg=''),
-    IntegrationTestError(msg=''),
-    IntegrationTestException(msg=''),
+    RegistryProgressGETResponse(url="", resp_code=1),
+    IntegrationTestDebug(msg=""),
+    IntegrationTestInfo(msg=""),
+    IntegrationTestWarn(msg=""),
+    IntegrationTestError(msg=""),
+    IntegrationTestException(msg=""),
     EventBufferFull(),
-    UnitTestInfo(msg=''),
+    UnitTestInfo(msg=""),
 ]
 
 
@@ -426,10 +493,18 @@ class TestEventJSONSerialization(TestCase):
     def test_all_serializable(self):
         no_test = [DummyCacheEvent]
 
-        all_non_abstract_events = set(filter(lambda x: not inspect.isabstract(x) and x not in no_test, get_all_subclasses(Event)))
+        all_non_abstract_events = set(
+            filter(
+                lambda x: not inspect.isabstract(x) and x not in no_test,
+                get_all_subclasses(Event),
+            )
+        )
         all_event_values_list = list(map(lambda x: x.__class__, sample_values))
         diff = all_non_abstract_events.difference(set(all_event_values_list))
-        self.assertFalse(diff, f"test is missing concrete values in `sample_values`. Please add the values for the aforementioned event classes")
+        self.assertFalse(
+            diff,
+            f"test is missing concrete values in `sample_values`. Please add the values for the aforementioned event classes",
+        )
 
         # make sure everything in the list is a value not a type
         for event in sample_values:
@@ -441,10 +516,13 @@ class TestEventJSONSerialization(TestCase):
             try:
                 json.dumps(d)
             except TypeError as e:
-                raise Exception(f"{event} is not serializable to json. Originating exception: {e}")
+                raise Exception(
+                    f"{event} is not serializable to json. Originating exception: {e}"
+                )
 
 
-T = TypeVar('T')
+T = TypeVar("T")
+
 
 @dataclass
 class Counter(Generic[T], SerializableType):
@@ -457,12 +535,12 @@ class Counter(Generic[T], SerializableType):
 
     # mashumaro serializer
     def _serialize() -> Dict[str, int]:
-        return {'count': count}
+        return {"count": count}
 
 
 @dataclass
 class DummyCacheEvent(InfoLevel, Cache, SerializableType):
-    code = 'X999'
+    code = "X999"
     counter: Counter
 
     def message(self) -> str:
@@ -490,7 +568,8 @@ def skip_cache_event_message_rendering(x: TestCase):
     # assert that the expensive function has STILL not been called
     x.assertEqual(e.counter.count, 0)
 
-# this test checks that every subclass of `Cache` uses the same lazy evaluation 
+
+# this test checks that every subclass of `Cache` uses the same lazy evaluation
 # strategy. This ensures that potentially expensive cache event values are not
 # built unless they are needed for logging purposes. It also checks that these
 # potentially expensive values are cached, and not evaluated more than once.
@@ -513,11 +592,11 @@ def all_cache_events_are_lazy(x):
         except TypeError as e:
             print(clazz)
             # hack that roughly detects attribute names without an instance of the class
-            if 'dump' in str(e):
+            if "dump" in str(e):
                 matching_classes.append(clazz)
 
                 # make the class. If this throws, maybe your class didn't use Lazy when it should have
-                e = clazz(dump = Lazy.defer(lambda: counter.next()))
+                e = clazz(dump=Lazy.defer(lambda: counter.next()))
 
                 # assert that initializing the event with the counter
                 # did not evaluate the lazy value
@@ -536,7 +615,7 @@ def all_cache_events_are_lazy(x):
 
                 # assert that the counter did not increase
                 x.assertEqual(counter.count, 1)
-            
+
             # if the init function doesn't require something named "dump"
             # we can just continue
             else:
@@ -547,34 +626,35 @@ def all_cache_events_are_lazy(x):
             raise e
 
     # we should have exactly 4 matching classes (raise this threshold if we add more)
-    x.assertEqual(len(matching_classes), 4, f"matching classes:\n{len(matching_classes)}: {matching_classes}")
+    x.assertEqual(
+        len(matching_classes),
+        4,
+        f"matching classes:\n{len(matching_classes)}: {matching_classes}",
+    )
 
 
 class SkipsRenderingCacheEventsTEXT(TestCase):
-
     def setUp(self):
-        flags.LOG_FORMAT = 'text'
+        flags.LOG_FORMAT = "text"
 
     def test_skip_cache_event_message_rendering_TEXT(self):
         skip_cache_event_message_rendering(self)
 
 
 class SkipsRenderingCacheEventsJSON(TestCase):
-
     def setUp(self):
-        flags.LOG_FORMAT = 'json'
+        flags.LOG_FORMAT = "json"
 
     def tearDown(self):
-        flags.LOG_FORMAT = 'text'
+        flags.LOG_FORMAT = "text"
 
     def test_skip_cache_event_message_rendering_JSON(self):
         skip_cache_event_message_rendering(self)
-    
+
 
 class TestLazyMemoizationInCacheEventsTEXT(TestCase):
-
     def setUp(self):
-        flags.LOG_FORMAT = 'text'
+        flags.LOG_FORMAT = "text"
         flags.LOG_CACHE_EVENTS = True
 
     def tearDown(self):
@@ -585,13 +665,12 @@ class TestLazyMemoizationInCacheEventsTEXT(TestCase):
 
 
 class TestLazyMemoizationInCacheEventsJSON(TestCase):
-
     def setUp(self):
-        flags.LOG_FORMAT = 'json'
+        flags.LOG_FORMAT = "json"
         flags.LOG_CACHE_EVENTS = True
 
     def tearDown(self):
-        flags.LOG_FORMAT = 'text'
+        flags.LOG_FORMAT = "text"
         flags.LOG_CACHE_EVENTS = False
 
     def test_all_cache_events_are_lazy_JSON(self):

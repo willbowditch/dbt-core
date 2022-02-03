@@ -1,14 +1,24 @@
 import abc
 import os
 from typing import (
-    Callable, Any, Dict, Optional, Union, List, TypeVar, Type, Iterable,
+    Callable,
+    Any,
+    Dict,
+    Optional,
+    Union,
+    List,
+    TypeVar,
+    Type,
+    Iterable,
     Mapping,
 )
 from typing_extensions import Protocol
 
 from dbt.adapters.base.column import Column
 from dbt.adapters.factory import (
-    get_adapter, get_adapter_package_names, get_adapter_type_names
+    get_adapter,
+    get_adapter_package_names,
+    get_adapter_type_names,
 )
 from dbt.clients import agate_helper
 from dbt.clients.jinja import get_rendered, MacroGenerator, MacroStack
@@ -21,9 +31,7 @@ from dbt.context.macro_resolver import MacroResolver, TestMacroNamespace
 from .macros import MacroNamespaceBuilder, MacroNamespace
 from .manifest import ManifestContext
 from dbt.contracts.connection import AdapterResponse
-from dbt.contracts.graph.manifest import (
-    Manifest, Disabled
-)
+from dbt.contracts.graph.manifest import Manifest, Disabled
 from dbt.contracts.graph.compiled import (
     CompiledResource,
     CompiledSeedNode,
@@ -56,9 +64,7 @@ from dbt.exceptions import (
 from dbt.config import IsFQNResource
 from dbt.node_types import NodeType
 
-from dbt.utils import (
-    merge, AttrDict, MultiDict
-)
+from dbt.utils import merge, AttrDict, MultiDict
 
 import agate
 
@@ -81,9 +87,8 @@ class RelationProxy:
         return self._relation_type.create_from_source(*args, **kwargs)
 
     def create(self, *args, **kwargs):
-        kwargs['quote_policy'] = merge(
-            self._quoting_config,
-            kwargs.pop('quote_policy', {})
+        kwargs["quote_policy"] = merge(
+            self._quoting_config, kwargs.pop("quote_policy", {})
         )
         return self._relation_type.create(*args, **kwargs)
 
@@ -100,7 +105,7 @@ class BaseDatabaseWrapper:
         self._namespace = namespace
 
     def __getattr__(self, name):
-        raise NotImplementedError('subclasses need to implement this')
+        raise NotImplementedError("subclasses need to implement this")
 
     @property
     def config(self):
@@ -117,19 +122,21 @@ class BaseDatabaseWrapper:
         #  1. current adapter
         #  2. any parent adapters (dependencies)
         #  3. 'default'
-        search_prefixes = get_adapter_type_names(self._adapter.type()) + ['default']
+        search_prefixes = get_adapter_type_names(self._adapter.type()) + ["default"]
         return search_prefixes
 
     def dispatch(
         self,
         macro_name: str,
         macro_namespace: Optional[str] = None,
-        packages: Optional[List[str]] = None,  # eventually remove since it's fully deprecated
+        packages: Optional[
+            List[str]
+        ] = None,  # eventually remove since it's fully deprecated
     ) -> MacroGenerator:
         search_packages: List[Optional[str]]
 
-        if '.' in macro_name:
-            suggest_macro_namespace, suggest_macro_name = macro_name.split('.', 1)
+        if "." in macro_name:
+            suggest_macro_namespace, suggest_macro_name = macro_name.split(".", 1)
             msg = (
                 f'In adapter.dispatch, got a macro name of "{macro_name}", '
                 f'but "." is not a valid macro name component. Did you mean '
@@ -152,7 +159,7 @@ class BaseDatabaseWrapper:
         else:
             # Not a string and not None so must be a list
             raise CompilationException(
-                f'In adapter.dispatch, got a list macro_namespace argument '
+                f"In adapter.dispatch, got a list macro_namespace argument "
                 f'("{macro_namespace}"), but macro_namespace should be None or a string.'
             )
 
@@ -160,12 +167,10 @@ class BaseDatabaseWrapper:
 
         for package_name in search_packages:
             for prefix in self._get_adapter_macro_prefixes():
-                search_name = f'{prefix}__{macro_name}'
+                search_name = f"{prefix}__{macro_name}"
                 try:
                     # this uses the namespace from the context
-                    macro = self._namespace.get_from_package(
-                        package_name, search_name
-                    )
+                    macro = self._namespace.get_from_package(package_name, search_name)
                 except CompilationException:
                     # Only raise CompilationException if macro is not found in
                     # any package
@@ -174,12 +179,12 @@ class BaseDatabaseWrapper:
                 if package_name is None:
                     attempts.append(search_name)
                 else:
-                    attempts.append(f'{package_name}.{search_name}')
+                    attempts.append(f"{package_name}.{search_name}")
 
                 if macro is not None:
                     return macro
 
-        searched = ', '.join(repr(a) for a in attempts)
+        searched = ", ".join(repr(a) for a in attempts)
         msg = (
             f"In dispatch: No macro named '{macro_name}' found\n"
             f"    Searched for: {searched}"
@@ -209,14 +214,10 @@ class BaseResolver(metaclass=abc.ABCMeta):
 
 class BaseRefResolver(BaseResolver):
     @abc.abstractmethod
-    def resolve(
-        self, name: str, package: Optional[str] = None
-    ) -> RelationProxy:
+    def resolve(self, name: str, package: Optional[str] = None) -> RelationProxy:
         ...
 
-    def _repack_args(
-        self, name: str, package: Optional[str]
-    ) -> List[str]:
+    def _repack_args(self, name: str, package: Optional[str]) -> List[str]:
         if package is None:
             return [name]
         else:
@@ -225,14 +226,13 @@ class BaseRefResolver(BaseResolver):
     def validate_args(self, name: str, package: Optional[str]):
         if not isinstance(name, str):
             raise CompilationException(
-                f'The name argument to ref() must be a string, got '
-                f'{type(name)}'
+                f"The name argument to ref() must be a string, got " f"{type(name)}"
             )
 
         if package is not None and not isinstance(package, str):
             raise CompilationException(
-                f'The package argument to ref() must be a string or None, got '
-                f'{type(package)}'
+                f"The package argument to ref() must be a string or None, got "
+                f"{type(package)}"
             )
 
     def __call__(self, *args: str) -> RelationProxy:
@@ -257,20 +257,19 @@ class BaseSourceResolver(BaseResolver):
     def validate_args(self, source_name: str, table_name: str):
         if not isinstance(source_name, str):
             raise CompilationException(
-                f'The source name (first) argument to source() must be a '
-                f'string, got {type(source_name)}'
+                f"The source name (first) argument to source() must be a "
+                f"string, got {type(source_name)}"
             )
         if not isinstance(table_name, str):
             raise CompilationException(
-                f'The table name (second) argument to source() must be a '
-                f'string, got {type(table_name)}'
+                f"The table name (second) argument to source() must be a "
+                f"string, got {type(table_name)}"
             )
 
     def __call__(self, *args: str) -> RelationProxy:
         if len(args) != 2:
             raise_compiler_error(
-                f"source() takes exactly two arguments ({len(args)} given)",
-                self.model
+                f"source() takes exactly two arguments ({len(args)} given)", self.model
             )
         self.validate_args(args[0], args[1])
         return self.resolve(args[0], args[1])
@@ -288,14 +287,15 @@ class ParseConfigObject(Config):
         self.context_config = context_config
 
     def _transform_config(self, config):
-        for oldkey in ('pre_hook', 'post_hook'):
+        for oldkey in ("pre_hook", "post_hook"):
             if oldkey in config:
-                newkey = oldkey.replace('_', '-')
+                newkey = oldkey.replace("_", "-")
                 if newkey in config:
                     raise_compiler_error(
-                        'Invalid config, has conflicting keys "{}" and "{}"'
-                        .format(oldkey, newkey),
-                        self.model
+                        'Invalid config, has conflicting keys "{}" and "{}"'.format(
+                            oldkey, newkey
+                        ),
+                        self.model,
                     )
                 config[newkey] = config.pop(oldkey)
         return config
@@ -306,29 +306,25 @@ class ParseConfigObject(Config):
         elif len(args) == 0 and len(kwargs) > 0:
             opts = kwargs
         else:
-            raise_compiler_error(
-                "Invalid inline model config",
-                self.model)
+            raise_compiler_error("Invalid inline model config", self.model)
 
         opts = self._transform_config(opts)
 
         # it's ok to have a parse context with no context config, but you must
         # not call it!
         if self.context_config is None:
-            raise RuntimeException(
-                'At parse time, did not receive a context config'
-            )
+            raise RuntimeException("At parse time, did not receive a context config")
         self.context_config.add_config_call(opts)
-        return ''
+        return ""
 
     def set(self, name, value):
         return self.__call__({name: value})
 
     def require(self, name, validator=None):
-        return ''
+        return ""
 
     def get(self, name, default=None, validator=None):
-        return ''
+        return ""
 
     def persist_relation_docs(self) -> bool:
         return False
@@ -338,14 +334,12 @@ class ParseConfigObject(Config):
 
 
 class RuntimeConfigObject(Config):
-    def __init__(
-        self, model, context_config: Optional[ContextConfig] = None
-    ):
+    def __init__(self, model, context_config: Optional[ContextConfig] = None):
         self.model = model
         # we never use or get a config, only the parser cares
 
     def __call__(self, *args, **kwargs):
-        return ''
+        return ""
 
     def set(self, name, value):
         return self.__call__({name: value})
@@ -355,7 +349,7 @@ class RuntimeConfigObject(Config):
 
     def _lookup(self, name, default=_MISSING):
         # if this is a macro, there might be no `model.config`.
-        if not hasattr(self.model, 'config'):
+        if not hasattr(self.model, "config"):
             result = default
         else:
             result = self.model.config.get(name, default)
@@ -380,22 +374,24 @@ class RuntimeConfigObject(Config):
         return to_return
 
     def persist_relation_docs(self) -> bool:
-        persist_docs = self.get('persist_docs', default={})
+        persist_docs = self.get("persist_docs", default={})
         if not isinstance(persist_docs, dict):
             raise_compiler_error(
                 f"Invalid value provided for 'persist_docs'. Expected dict "
-                f"but received {type(persist_docs)}")
+                f"but received {type(persist_docs)}"
+            )
 
-        return persist_docs.get('relation', False)
+        return persist_docs.get("relation", False)
 
     def persist_column_docs(self) -> bool:
-        persist_docs = self.get('persist_docs', default={})
+        persist_docs = self.get("persist_docs", default={})
         if not isinstance(persist_docs, dict):
             raise_compiler_error(
                 f"Invalid value provided for 'persist_docs'. Expected dict "
-                f"but received {type(persist_docs)}")
+                f"but received {type(persist_docs)}"
+            )
 
-        return persist_docs.get('columns', False)
+        return persist_docs.get("columns", False)
 
 
 # `adapter` implementations
@@ -405,8 +401,10 @@ class ParseDatabaseWrapper(BaseDatabaseWrapper):
     """
 
     def __getattr__(self, name):
-        override = (name in self._adapter._available_ and
-                    name in self._adapter._parse_replacements_)
+        override = (
+            name in self._adapter._available_
+            and name in self._adapter._parse_replacements_
+        )
 
         if override:
             return self._adapter._parse_replacements_[name]
@@ -438,9 +436,7 @@ class RuntimeDatabaseWrapper(BaseDatabaseWrapper):
 
 # `ref` implementations
 class ParseRefResolver(BaseRefResolver):
-    def resolve(
-        self, name: str, package: Optional[str] = None
-    ) -> RelationProxy:
+    def resolve(self, name: str, package: Optional[str] = None) -> RelationProxy:
         self.model.refs.append(self._repack_args(name, package))
 
         return self.Relation.create_from(self.config, self.model)
@@ -470,22 +466,15 @@ class RuntimeRefResolver(BaseRefResolver):
         self.validate(target_model, target_name, target_package)
         return self.create_relation(target_model, target_name)
 
-    def create_relation(
-        self, target_model: ManifestNode, name: str
-    ) -> RelationProxy:
+    def create_relation(self, target_model: ManifestNode, name: str) -> RelationProxy:
         if target_model.is_ephemeral_model:
             self.model.set_cte(target_model.unique_id, None)
-            return self.Relation.create_ephemeral_from_node(
-                self.config, target_model
-            )
+            return self.Relation.create_ephemeral_from_node(self.config, target_model)
         else:
             return self.Relation.create_from(self.config, target_model)
 
     def validate(
-        self,
-        resolved: ManifestNode,
-        target_name: str,
-        target_package: Optional[str]
+        self, resolved: ManifestNode, target_name: str, target_package: Optional[str]
     ) -> None:
         if resolved.unique_id not in self.model.depends_on.nodes:
             args = self._repack_args(target_name, target_package)
@@ -501,16 +490,15 @@ class OperationRefResolver(RuntimeRefResolver):
     ) -> None:
         pass
 
-    def create_relation(
-        self, target_model: ManifestNode, name: str
-    ) -> RelationProxy:
+    def create_relation(self, target_model: ManifestNode, name: str) -> RelationProxy:
         if target_model.is_ephemeral_model:
             # In operations, we can't ref() ephemeral nodes, because
             # ParsedMacros do not support set_cte
             raise_compiler_error(
-                'Operations can not ref() ephemeral nodes, but {} is ephemeral'
-                .format(target_model.name),
-                self.model
+                "Operations can not ref() ephemeral nodes, but {} is ephemeral".format(
+                    target_model.name
+                ),
+                self.model,
             )
         else:
             return super().create_relation(target_model, name)
@@ -562,8 +550,7 @@ class ModelConfiguredVar(Var):
             if package_name not in dependencies:
                 # I don't think this is actually reachable
                 raise_compiler_error(
-                    f'Node package named {package_name} not found!',
-                    self._node
+                    f"Node package named {package_name} not found!", self._node
                 )
             yield dependencies[package_name]
         yield self._config
@@ -635,7 +622,7 @@ class OperationProvider(RuntimeProvider):
     ref = OperationRefResolver
 
 
-T = TypeVar('T')
+T = TypeVar("T")
 
 
 # Base context collection, used for parsing configs.
@@ -650,9 +637,7 @@ class ProviderContext(ManifestContext):
         context_config: Optional[ContextConfig],
     ) -> None:
         if provider is None:
-            raise InternalException(
-                f"Invalid provider given to context: {provider}"
-            )
+            raise InternalException(f"Invalid provider given to context: {provider}")
         # mypy appeasement - we know it'll be a RuntimeConfig
         self.config: RuntimeConfig
         self.model: Union[ParsedMacro, ManifestNode] = model
@@ -662,16 +647,12 @@ class ProviderContext(ManifestContext):
         self.provider: Provider = provider
         self.adapter = get_adapter(self.config)
         # The macro namespace is used in creating the DatabaseWrapper
-        self.db_wrapper = self.provider.DatabaseWrapper(
-            self.adapter, self.namespace
-        )
+        self.db_wrapper = self.provider.DatabaseWrapper(self.adapter, self.namespace)
 
     # This overrides the method in ManifestContext, and provides
     # a model, which the ManifestContext builder does not
     def _get_namespace_builder(self):
-        internal_packages = get_adapter_package_names(
-            self.config.credentials.type
-        )
+        internal_packages = get_adapter_package_names(self.config.credentials.type)
         return MacroNamespaceBuilder(
             self.config.project_name,
             self.search_package,
@@ -690,19 +671,19 @@ class ProviderContext(ManifestContext):
 
     @contextmember
     def store_result(
-        self, name: str,
-        response: Any,
-        agate_table: Optional[agate.Table] = None
+        self, name: str, response: Any, agate_table: Optional[agate.Table] = None
     ) -> str:
         if agate_table is None:
             agate_table = agate_helper.empty_table()
 
-        self.sql_results[name] = AttrDict({
-            'response': response,
-            'data': agate_helper.as_matrix(agate_table),
-            'table': agate_table
-        })
-        return ''
+        self.sql_results[name] = AttrDict(
+            {
+                "response": response,
+                "data": agate_helper.as_matrix(agate_table),
+                "table": agate_table,
+            }
+        )
+        return ""
 
     @contextmember
     def store_raw_result(
@@ -711,10 +692,11 @@ class ProviderContext(ManifestContext):
         message=Optional[str],
         code=Optional[str],
         rows_affected=Optional[str],
-        agate_table: Optional[agate.Table] = None
+        agate_table: Optional[agate.Table] = None,
     ) -> str:
         response = AdapterResponse(
-            _message=message, code=code, rows_affected=rows_affected)
+            _message=message, code=code, rows_affected=rows_affected
+        )
         return self.store_result(name, response, agate_table)
 
     @contextproperty
@@ -727,25 +709,28 @@ class ProviderContext(ManifestContext):
                     elif value == arg:
                         return
                 raise ValidationException(
-                    'Expected value "{}" to be one of {}'
-                    .format(value, ','.join(map(str, args))))
+                    'Expected value "{}" to be one of {}'.format(
+                        value, ",".join(map(str, args))
+                    )
+                )
+
             return inner
 
-        return AttrDict({
-            'any': validate_any,
-        })
+        return AttrDict(
+            {
+                "any": validate_any,
+            }
+        )
 
     @contextmember
     def write(self, payload: str) -> str:
         # macros/source defs aren't 'writeable'.
         if isinstance(self.model, (ParsedMacro, ParsedSourceDefinition)):
-            raise_compiler_error(
-                'cannot "write" macros or sources'
-            )
+            raise_compiler_error('cannot "write" macros or sources')
         self.model.build_path = self.model.write_node(
-            self.config.target_path, 'run', payload
+            self.config.target_path, "run", payload
         )
-        return ''
+        return ""
 
     @contextmember
     def render(self, string: str) -> str:
@@ -758,20 +743,17 @@ class ProviderContext(ManifestContext):
         try:
             return func(*args, **kwargs)
         except Exception:
-            raise_compiler_error(
-                message_if_exception, self.model
-            )
+            raise_compiler_error(message_if_exception, self.model)
 
     @contextmember
     def load_agate_table(self) -> agate.Table:
         if not isinstance(self.model, (ParsedSeedNode, CompiledSeedNode)):
             raise_compiler_error(
-                'can only load_agate_table for seeds (got a {})'
-                .format(self.model.resource_type)
+                "can only load_agate_table for seeds (got a {})".format(
+                    self.model.resource_type
+                )
             )
-        path = os.path.join(
-            self.model.root_path, self.model.original_file_path
-        )
+        path = os.path.join(self.model.root_path, self.model.original_file_path)
         column_types = self.model.config.column_types
         try:
             table = agate_helper.from_csv(path, text_columns=column_types)
@@ -829,7 +811,7 @@ class ProviderContext(ManifestContext):
             self.db_wrapper, self.model, self.config, self.manifest
         )
 
-    @contextproperty('config')
+    @contextproperty("config")
     def ctx_config(self) -> Config:
         """The `config` variable exists to handle end-user configuration for
         custom materializations. Configs like `unique_key` can be implemented
@@ -1001,7 +983,7 @@ class ProviderContext(ManifestContext):
             node=self.model,
         )
 
-    @contextproperty('adapter')
+    @contextproperty("adapter")
     def ctx_adapter(self) -> BaseDatabaseWrapper:
         """`adapter` is a wrapper around the internal database adapter used by
         dbt. It allows users to make calls to the database in their dbt models.
@@ -1013,8 +995,8 @@ class ProviderContext(ManifestContext):
     @contextproperty
     def api(self) -> Dict[str, Any]:
         return {
-            'Relation': self.db_wrapper.Relation,
-            'Column': self.adapter.Column,
+            "Relation": self.db_wrapper.Relation,
+            "Column": self.adapter.Column,
         }
 
     @contextproperty
@@ -1132,7 +1114,7 @@ class ProviderContext(ManifestContext):
         """  # noqa
         return self.manifest.flat_graph
 
-    @contextproperty('model')
+    @contextproperty("model")
     def ctx_model(self) -> Dict[str, Any]:
         return self.model.to_dict(omit_none=True)
 
@@ -1154,15 +1136,13 @@ class ProviderContext(ManifestContext):
 
     @contextmember
     def adapter_macro(self, name: str, *args, **kwargs):
-        """This was deprecated in v0.18 in favor of adapter.dispatch
-        """
+        """This was deprecated in v0.18 in favor of adapter.dispatch"""
         msg = (
             'The "adapter_macro" macro has been deprecated. Instead, use '
-            'the `adapter.dispatch` method to find a macro and call the '
-            'result.  For more information, see: '
-            'https://docs.getdbt.com/reference/dbt-jinja-functions/dispatch)'
-            ' adapter_macro was called for: {macro_name}'
-            .format(macro_name=name)
+            "the `adapter.dispatch` method to find a macro and call the "
+            "result.  For more information, see: "
+            "https://docs.getdbt.com/reference/dbt-jinja-functions/dispatch)"
+            " adapter_macro was called for: {macro_name}".format(macro_name=name)
         )
         raise CompilationException(msg)
 
@@ -1184,13 +1164,13 @@ class ProviderContext(ManifestContext):
         if return_value is not None:
             # Save the env_var value in the manifest and the var name in the source_file.
             # If this is compiling, do not save because it's irrelevant to parsing.
-            if self.model and not hasattr(self.model, 'compiled'):
+            if self.model and not hasattr(self.model, "compiled"):
                 self.manifest.env_vars[var] = return_value
                 # hooks come from dbt_project.yml which doesn't have a real file_id
                 if self.model.file_id in self.manifest.files:
                     source_file = self.manifest.files[self.model.file_id]
                     # Schema files should never get here
-                    if source_file.parse_file_type != 'schema':
+                    if source_file.parse_file_type != "schema":
                         source_file.env_vars.append(var)
             return return_value
         else:
@@ -1201,10 +1181,10 @@ class ProviderContext(ManifestContext):
 class MacroContext(ProviderContext):
     """Internally, macros can be executed like nodes, with some restrictions:
 
-     - they don't have have all values available that nodes do:
-        - 'this', 'pre_hooks', 'post_hooks', and 'sql' are missing
-        - 'schema' does not use any 'model' information
-     - they can't be configured with config() directives
+    - they don't have have all values available that nodes do:
+       - 'this', 'pre_hooks', 'post_hooks', and 'sql' are missing
+       - 'schema' does not use any 'model' information
+    - they can't be configured with config() directives
     """
 
     def __init__(
@@ -1231,35 +1211,27 @@ class ModelContext(ProviderContext):
     def pre_hooks(self) -> List[Dict[str, Any]]:
         if self.model.resource_type in [NodeType.Source, NodeType.Test]:
             return []
-        return [
-            h.to_dict(omit_none=True) for h in self.model.config.pre_hook
-        ]
+        return [h.to_dict(omit_none=True) for h in self.model.config.pre_hook]
 
     @contextproperty
     def post_hooks(self) -> List[Dict[str, Any]]:
         if self.model.resource_type in [NodeType.Source, NodeType.Test]:
             return []
-        return [
-            h.to_dict(omit_none=True) for h in self.model.config.post_hook
-        ]
+        return [h.to_dict(omit_none=True) for h in self.model.config.post_hook]
 
     @contextproperty
     def sql(self) -> Optional[str]:
-        if getattr(self.model, 'extra_ctes_injected', None):
+        if getattr(self.model, "extra_ctes_injected", None):
             return self.model.compiled_sql
         return None
 
     @contextproperty
     def database(self) -> str:
-        return getattr(
-            self.model, 'database', self.config.credentials.database
-        )
+        return getattr(self.model, "database", self.config.credentials.database)
 
     @contextproperty
     def schema(self) -> str:
-        return getattr(
-            self.model, 'schema', self.config.credentials.schema
-        )
+        return getattr(self.model, "schema", self.config.credentials.schema)
 
     @contextproperty
     def this(self) -> Optional[RelationProxy]:
@@ -1307,9 +1279,7 @@ def generate_parser_model_context(
     # The __init__ method of ModelContext also initializes
     # a ManifestContext object which creates a MacroNamespaceBuilder
     # which adds every macro in the Manifest.
-    ctx = ModelContext(
-        model, config, manifest, ParseProvider(), context_config
-    )
+    ctx = ModelContext(model, config, manifest, ParseProvider(), context_config)
     # The 'to_dict' method in ManifestContext moves all of the macro names
     # in the macro 'namespace' up to top level keys
     return ctx.to_dict()
@@ -1320,9 +1290,7 @@ def generate_generate_name_macro_context(
     config: RuntimeConfig,
     manifest: Manifest,
 ) -> Dict[str, Any]:
-    ctx = MacroContext(
-        macro, config, manifest, GenerateNameProvider(), None
-    )
+    ctx = MacroContext(macro, config, manifest, GenerateNameProvider(), None)
     return ctx.to_dict()
 
 
@@ -1331,9 +1299,7 @@ def generate_runtime_model_context(
     config: RuntimeConfig,
     manifest: Manifest,
 ) -> Dict[str, Any]:
-    ctx = ModelContext(
-        model, config, manifest, RuntimeProvider(), None
-    )
+    ctx = ModelContext(model, config, manifest, RuntimeProvider(), None)
     return ctx.to_dict()
 
 
@@ -1343,9 +1309,7 @@ def generate_runtime_macro_context(
     manifest: Manifest,
     package_name: Optional[str],
 ) -> Dict[str, Any]:
-    ctx = MacroContext(
-        macro, config, manifest, OperationProvider(), package_name
-    )
+    ctx = MacroContext(macro, config, manifest, OperationProvider(), package_name)
     return ctx.to_dict()
 
 
@@ -1354,18 +1318,17 @@ class ExposureRefResolver(BaseResolver):
         if len(args) not in (1, 2):
             ref_invalid_args(self.model, args)
         self.model.refs.append(list(args))
-        return ''
+        return ""
 
 
 class ExposureSourceResolver(BaseResolver):
     def __call__(self, *args) -> str:
         if len(args) != 2:
             raise_compiler_error(
-                f"source() takes exactly two arguments ({len(args)} given)",
-                self.model
+                f"source() takes exactly two arguments ({len(args)} given)", self.model
             )
         self.model.sources.append(list(args))
-        return ''
+        return ""
 
 
 def generate_parse_exposure(
@@ -1376,18 +1339,18 @@ def generate_parse_exposure(
 ) -> Dict[str, Any]:
     project = config.load_dependencies()[package_name]
     return {
-        'ref': ExposureRefResolver(
+        "ref": ExposureRefResolver(
             None,
             exposure,
             project,
             manifest,
         ),
-        'source': ExposureSourceResolver(
+        "source": ExposureSourceResolver(
             None,
             exposure,
             project,
             manifest,
-        )
+        ),
     }
 
 
@@ -1402,13 +1365,13 @@ class MetricRefResolver(BaseResolver):
             ref_invalid_args(self.model, args)
         self.validate_args(name, package)
         self.model.refs.append(list(args))
-        return ''
+        return ""
 
     def validate_args(self, name, package):
         if not isinstance(name, str):
             raise ParsingException(
-                f'In a metrics section in {self.model.original_file_path} '
-                f'the name argument to ref() must be a string'
+                f"In a metrics section in {self.model.original_file_path} "
+                f"the name argument to ref() must be a string"
             )
 
 
@@ -1420,7 +1383,7 @@ def generate_parse_metrics(
 ) -> Dict[str, Any]:
     project = config.load_dependencies()[package_name]
     return {
-        'ref': MetricRefResolver(
+        "ref": MetricRefResolver(
             None,
             metric,
             project,
@@ -1450,9 +1413,7 @@ class TestContext(ProviderContext):
         self._build_test_namespace()
         # We need to rebuild this because it's already been built by
         # the ProviderContext with the wrong namespace.
-        self.db_wrapper = self.provider.DatabaseWrapper(
-            self.adapter, self.namespace
-        )
+        self.db_wrapper = self.provider.DatabaseWrapper(self.adapter, self.namespace)
 
     def _build_namespace(self):
         return {}
@@ -1465,7 +1426,9 @@ class TestContext(ProviderContext):
         depends_on_macros = []
         # all generic tests use a macro named 'get_where_subquery' to wrap 'model' arg
         # see generic_test_builders.build_model_str
-        get_where_subquery = self.macro_resolver.macros_by_name.get('get_where_subquery')
+        get_where_subquery = self.macro_resolver.macros_by_name.get(
+            "get_where_subquery"
+        )
         if get_where_subquery:
             depends_on_macros.append(get_where_subquery.unique_id)
         if self.model.depends_on and self.model.depends_on.macros:
@@ -1477,8 +1440,11 @@ class TestContext(ProviderContext):
                 depends_on_macros.extend(lookup_macro.depends_on.macros)
 
         macro_namespace = TestMacroNamespace(
-            self.macro_resolver, self._ctx, self.model, self.thread_ctx,
-            depends_on_macros
+            self.macro_resolver,
+            self._ctx,
+            self.model,
+            self.thread_ctx,
+            depends_on_macros,
         )
         self.namespace = macro_namespace
 
@@ -1497,9 +1463,12 @@ class TestContext(ProviderContext):
             if self.model:
                 self.manifest.env_vars[var] = return_value
                 # the "model" should only be test nodes, but just in case, check
-                if self.model.resource_type == NodeType.Test and self.model.file_key_name:
+                if (
+                    self.model.resource_type == NodeType.Test
+                    and self.model.file_key_name
+                ):
                     source_file = self.manifest.files[self.model.file_id]
-                    (yaml_key, name) = self.model.file_key_name.split('.')
+                    (yaml_key, name) = self.model.file_key_name.split(".")
                     source_file.add_env_var(var, yaml_key, name)
             return return_value
         else:
@@ -1512,11 +1481,10 @@ def generate_test_context(
     config: RuntimeConfig,
     manifest: Manifest,
     context_config: ContextConfig,
-    macro_resolver: MacroResolver
+    macro_resolver: MacroResolver,
 ) -> Dict[str, Any]:
     ctx = TestContext(
-        model, config, manifest, ParseProvider(), context_config,
-        macro_resolver
+        model, config, manifest, ParseProvider(), context_config, macro_resolver
     )
     # The 'to_dict' method in ManifestContext moves all of the macro names
     # in the macro 'namespace' up to top level keys

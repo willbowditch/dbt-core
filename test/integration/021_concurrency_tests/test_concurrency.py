@@ -10,7 +10,7 @@ class TestConcurrency(DBTIntegrationTest):
     def models(self):
         return "models"
 
-    @use_profile('postgres')
+    @use_profile("postgres")
     def test__postgres__concurrency(self):
         self.run_sql_file("seed.sql")
 
@@ -36,4 +36,4 @@ class TestConcurrency(DBTIntegrationTest):
         self.assertTableDoesNotExist("invalid")
         self.assertTableDoesNotExist("skip")
 
-        self.assertIn('PASS=5 WARN=0 ERROR=1 SKIP=1 TOTAL=7', output)
+        self.assertIn("PASS=5 WARN=0 ERROR=1 SKIP=1 TOTAL=7", output)

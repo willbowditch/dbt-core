@@ -12,17 +12,15 @@ class TestCLIVars(DBTIntegrationTest):
     def models(self):
         return "models_complex"
 
-    @use_profile('postgres')
+    @use_profile("postgres")
     def test__postgres_cli_vars_longform(self):
-        self.use_profile('postgres')
+        self.use_profile("postgres")
         self.use_default_project()
 
         cli_vars = {
             "variable_1": "abc",
             "variable_2": ["def", "ghi"],
-            "variable_3": {
-                "value": "jkl"
-            }
+            "variable_3": {"value": "jkl"},
         }
         results = self.run_dbt(["run", "--vars", yaml.dump(cli_vars)])
         self.assertEqual(len(results), 1)
@@ -39,9 +37,9 @@ class TestCLIVarsSimple(DBTIntegrationTest):
     def models(self):
         return "models_simple"
 
-    @use_profile('postgres')
+    @use_profile("postgres")
     def test__postgres_cli_vars_shorthand(self):
-        self.use_profile('postgres')
+        self.use_profile("postgres")
         self.use_default_project()
 
         results = self.run_dbt(["run", "--vars", "simple: abc"])
@@ -49,17 +47,17 @@ class TestCLIVarsSimple(DBTIntegrationTest):
         results = self.run_dbt(["test", "--vars", "simple: abc"])
         self.assertEqual(len(results), 1)
 
-    @use_profile('postgres')
+    @use_profile("postgres")
     def test__postgres_cli_vars_longer(self):
-        self.use_profile('postgres')
+        self.use_profile("postgres")
         self.use_default_project()
 
         results = self.run_dbt(["run", "--vars", "{simple: abc, unused: def}"])
         self.assertEqual(len(results), 1)
         results = self.run_dbt(["test", "--vars", "{simple: abc, unused: def}"])
         self.assertEqual(len(results), 1)
-        run_results = _read_json('./target/run_results.json')
-        self.assertEqual(run_results['args']['vars'], "{simple: abc, unused: def}")
+        run_results = _read_json("./target/run_results.json")
+        self.assertEqual(run_results["args"]["vars"], "{simple: abc, unused: def}")
 
 
 def _read_json(path):

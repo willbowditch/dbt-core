@@ -50,7 +50,7 @@ class TestFailingBuild(TestBuildBase):
         results = self.build(expect_pass=False)
         self.assertEqual(len(results), 13)
         actual = [r.status for r in results]
-        expected = ['error']*1 + ['skipped']*5 + ['pass']*2 + ['success']*5
+        expected = ["error"] * 1 + ["skipped"] * 5 + ["pass"] * 2 + ["success"] * 5
         self.assertEqual(sorted(actual), sorted(expected))
 
 
@@ -64,7 +64,7 @@ class TestFailingTestsBuild(TestBuildBase):
         results = self.build(expect_pass=False)
         self.assertEqual(len(results), 13)
         actual = [str(r.status) for r in results]
-        expected = ['fail'] + ['skipped']*6 + ['pass']*2 + ['success']*4
+        expected = ["fail"] + ["skipped"] * 6 + ["pass"] * 2 + ["success"] * 4
         self.assertEqual(sorted(actual), sorted(expected))
 
 
@@ -75,11 +75,11 @@ class TestCircularRelationshipTestsBuild(TestBuildBase):
 
     @use_profile("postgres")
     def test__postgres_circular_relationship_test_success(self):
-        """ Ensure that tests that refer to each other's model don't create
-        a circular dependency. """
+        """Ensure that tests that refer to each other's model don't create
+        a circular dependency."""
         results = self.build()
         actual = [r.status for r in results]
-        expected = ['success']*7 + ['pass']*2
+        expected = ["success"] * 7 + ["pass"] * 2
         self.assertEqual(sorted(actual), sorted(expected))
 
 
@@ -87,7 +87,7 @@ class TestSimpleBlockingTest(TestBuildBase):
     @property
     def models(self):
         return "models-simple-blocking"
-        
+
     @property
     def project_config(self):
         return {
@@ -98,15 +98,14 @@ class TestSimpleBlockingTest(TestBuildBase):
 
     @use_profile("postgres")
     def test__postgres_simple_blocking_test(self):
-        """ Ensure that a failed test on model_a always blocks model_b """
+        """Ensure that a failed test on model_a always blocks model_b"""
         results = self.build(expect_pass=False)
         actual = [r.status for r in results]
-        expected = ['success', 'fail', 'skipped']
+        expected = ["success", "fail", "skipped"]
         self.assertEqual(sorted(actual), sorted(expected))
 
 
 class TestInterdependentModels(TestBuildBase):
-
     @property
     def project_config(self):
         return {
@@ -122,22 +121,22 @@ class TestInterdependentModels(TestBuildBase):
         return "models-interdependent"
 
     def tearDown(self):
-        if os.path.exists(normalize('models-interdependent/model_b.sql')):
-            os.remove(normalize('models-interdependent/model_b.sql'))
-
+        if os.path.exists(normalize("models-interdependent/model_b.sql")):
+            os.remove(normalize("models-interdependent/model_b.sql"))
 
     @use_profile("postgres")
     def test__postgres_interdependent_models(self):
         # check that basic build works
-        shutil.copyfile('test-files/model_b.sql', 'models-interdependent/model_b.sql')
+        shutil.copyfile("test-files/model_b.sql", "models-interdependent/model_b.sql")
         results = self.build()
         self.assertEqual(len(results), 16)
 
         # return null from model_b
-        shutil.copyfile('test-files/model_b_null.sql', 'models-interdependent/model_b.sql')
+        shutil.copyfile(
+            "test-files/model_b_null.sql", "models-interdependent/model_b.sql"
+        )
         results = self.build(expect_pass=False)
         self.assertEqual(len(results), 16)
         actual = [str(r.status) for r in results]
-        expected = ['error']*4 + ['skipped']*7 + ['pass']*2 + ['success']*3
+        expected = ["error"] * 4 + ["skipped"] * 7 + ["pass"] * 2 + ["success"] * 3
         self.assertEqual(sorted(actual), sorted(expected))
-

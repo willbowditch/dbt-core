@@ -27,7 +27,7 @@ class CompileRunner(BaseRunner):
             execution_time=0,
             message=None,
             adapter_response={},
-            failures=None
+            failures=None,
         )
 
     def compile(self, manifest):
@@ -42,7 +42,7 @@ class CompileTask(GraphRunnableTask):
     def get_node_selector(self) -> ResourceTypeSelector:
         if self.manifest is None or self.graph is None:
             raise InternalException(
-                'manifest and graph must be set to get perform node selection'
+                "manifest and graph must be set to get perform node selection"
             )
         return ResourceTypeSelector(
             graph=self.graph,

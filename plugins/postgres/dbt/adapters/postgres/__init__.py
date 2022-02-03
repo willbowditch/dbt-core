@@ -11,4 +11,5 @@ from dbt.include import postgres
 Plugin = AdapterPlugin(
     adapter=PostgresAdapter,
     credentials=PostgresCredentials,
-    include_path=postgres.PACKAGE_PATH)
+    include_path=postgres.PACKAGE_PATH,
+)

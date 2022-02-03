@@ -13,16 +13,16 @@ class TestCLIVarOverride(DBTIntegrationTest):
     @property
     def project_config(self):
         return {
-            'config-version': 2,
-            'vars': {
-                'required': 'present',
+            "config-version": 2,
+            "vars": {
+                "required": "present",
             },
         }
 
-    @use_profile('postgres')
+    @use_profile("postgres")
     def test__postgres_overriden_vars_global(self):
         self.use_default_project()
-        self.use_profile('postgres')
+        self.use_profile("postgres")
 
         # This should be "override"
         self.run_dbt(["run", "--vars", "{required: override}"])
@@ -41,15 +41,15 @@ class TestCLIVarOverridePorject(DBTIntegrationTest):
     @property
     def project_config(self):
         return {
-            'config-version': 2,
-            'vars': {
-                'test': {
-                    'required': 'present',
+            "config-version": 2,
+            "vars": {
+                "test": {
+                    "required": "present",
                 },
             },
         }
 
-    @use_profile('postgres')
+    @use_profile("postgres")
     def test__postgres_overriden_vars_project_level(self):
 
         # This should be "override"

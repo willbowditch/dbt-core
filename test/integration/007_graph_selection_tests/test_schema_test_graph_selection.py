@@ -4,7 +4,6 @@ from dbt.task.test import TestTask
 
 
 class TestSchemaTestGraphSelection(DBTIntegrationTest):
-
     @property
     def schema(self):
         return "graph_selection_tests_007"
@@ -18,8 +17,8 @@ class TestSchemaTestGraphSelection(DBTIntegrationTest):
         return {
             "packages": [
                 {
-                    'git': 'https://github.com/dbt-labs/dbt-integration-project',
-                    'revision': 'dbt/1.0.0',
+                    "git": "https://github.com/dbt-labs/dbt-integration-project",
+                    "revision": "dbt/1.0.0",
                 }
             ]
         }
@@ -27,7 +26,7 @@ class TestSchemaTestGraphSelection(DBTIntegrationTest):
     def run_schema_and_assert(self, include, exclude, expected_tests):
         self.run_sql_file("seed.sql")
         self.run_dbt(["deps"])
-        results = self.run_dbt(['run', '--exclude', 'never_selected'])
+        results = self.run_dbt(["run", "--exclude", "never_selected"])
         self.assertEqual(len(results), 10)
 
         args = FakeArgs()
@@ -42,114 +41,101 @@ class TestSchemaTestGraphSelection(DBTIntegrationTest):
 
         self.assertEqual(ran_tests, expected_sorted)
 
-    @use_profile('postgres')
+    @use_profile("postgres")
     def test__postgres__schema_tests_no_specifiers(self):
         self.run_schema_and_assert(
             None,
             None,
-            ['not_null_emails_email',
-             'unique_table_model_id',
-             'unique_users_id',
-             'unique_users_rollup_gender']
+            [
+                "not_null_emails_email",
+                "unique_table_model_id",
+                "unique_users_id",
+                "unique_users_rollup_gender",
+            ],
         )
 
-    @use_profile('postgres')
+    @use_profile("postgres")
     def test__postgres__schema_tests_specify_model(self):
-        self.run_schema_and_assert(
-            ['users'],
-            None,
-            ['unique_users_id']
-        )
+        self.run_schema_and_assert(["users"], None, ["unique_users_id"])
 
-    @use_profile('postgres')
+    @use_profile("postgres")
     def test__postgres__schema_tests_specify_tag(self):
         self.run_schema_and_assert(
-            ['tag:bi'],
-            None,
-            ['unique_users_id',
-             'unique_users_rollup_gender']
+            ["tag:bi"], None, ["unique_users_id", "unique_users_rollup_gender"]
         )
 
-    @use_profile('postgres')
+    @use_profile("postgres")
     def test__postgres__schema_tests_specify_model_and_children(self):
         self.run_schema_and_assert(
-            ['users+'],
-            None,
-            ['unique_users_id', 'unique_users_rollup_gender']
+            ["users+"], None, ["unique_users_id", "unique_users_rollup_gender"]
         )
 
-    @use_profile('postgres')
+    @use_profile("postgres")
     def test__postgres__schema_tests_specify_tag_and_children(self):
         self.run_schema_and_assert(
-            ['tag:base+'],
+            ["tag:base+"],
             None,
-            ['not_null_emails_email',
-             'unique_users_id',
-             'unique_users_rollup_gender']
+            ["not_null_emails_email", "unique_users_id", "unique_users_rollup_gender"],
         )
 
-    @use_profile('postgres')
+    @use_profile("postgres")
     def test__postgres__schema_tests_specify_model_and_parents(self):
         self.run_schema_and_assert(
-            ['+users_rollup'],
-            None,
-            ['unique_users_id', 'unique_users_rollup_gender']
+            ["+users_rollup"], None, ["unique_users_id", "unique_users_rollup_gender"]
         )
 
-    @use_profile('postgres')
+    @use_profile("postgres")
     def test__postgres__schema_tests_specify_model_and_parents_with_exclude(self):
         self.run_schema_and_assert(
-            ['+users_rollup'],
-            ['users_rollup'],
-            ['unique_users_id']
+            ["+users_rollup"], ["users_rollup"], ["unique_users_id"]
         )
 
-    @use_profile('postgres')
+    @use_profile("postgres")
     def test__postgres__schema_tests_specify_exclude_only(self):
         self.run_schema_and_assert(
             None,
-            ['users_rollup'],
-            ['not_null_emails_email', 'unique_table_model_id', 'unique_users_id']
+            ["users_rollup"],
+            ["not_null_emails_email", "unique_table_model_id", "unique_users_id"],
         )
 
-    @use_profile('postgres')
+    @use_profile("postgres")
     def test__postgres__schema_tests_specify_model_in_pkg(self):
         self.run_schema_and_assert(
-            ['test.users_rollup'],
+            ["test.users_rollup"],
             None,
             # TODO: change this. there's no way to select only direct ancestors
             # atm.
-            ['unique_users_rollup_gender']
+            ["unique_users_rollup_gender"],
         )
 
-    @use_profile('postgres')
+    @use_profile("postgres")
     def test__postgres__schema_tests_with_glob(self):
         self.run_schema_and_assert(
-            ['*'],
-            ['users'],
-            ['not_null_emails_email', 'unique_table_model_id', 'unique_users_rollup_gender']
+            ["*"],
+            ["users"],
+            [
+                "not_null_emails_email",
+                "unique_table_model_id",
+                "unique_users_rollup_gender",
+            ],
         )
 
-    @use_profile('postgres')
+    @use_profile("postgres")
     def test__postgres__schema_tests_dep_package_only(self):
         self.run_schema_and_assert(
-            ['dbt_integration_project'],
-            None,
-            ['unique_table_model_id']
+            ["dbt_integration_project"], None, ["unique_table_model_id"]
         )
 
-    @use_profile('postgres')
+    @use_profile("postgres")
     def test__postgres__schema_tests_model_in_dep_pkg(self):
         self.run_schema_and_assert(
-            ['dbt_integration_project.table_model'],
-            None,
-            ['unique_table_model_id']
+            ["dbt_integration_project.table_model"], None, ["unique_table_model_id"]
         )
 
-    @use_profile('postgres')
+    @use_profile("postgres")
     def test__postgres__schema_tests_exclude_pkg(self):
         self.run_schema_and_assert(
             None,
-            ['dbt_integration_project'],
-            ['not_null_emails_email', 'unique_users_id', 'unique_users_rollup_gender']
+            ["dbt_integration_project"],
+            ["not_null_emails_email", "unique_users_id", "unique_users_rollup_gender"],
         )

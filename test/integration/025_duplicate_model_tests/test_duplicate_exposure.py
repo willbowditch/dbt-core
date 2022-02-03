@@ -3,7 +3,6 @@ from test.integration.base import DBTIntegrationTest, use_profile
 
 
 class TestDuplicateExposure(DBTIntegrationTest):
-
     @property
     def schema(self):
         return "duplicate_exposure_025"
@@ -19,5 +18,6 @@ class TestDuplicateExposure(DBTIntegrationTest):
             self.run_dbt(["compile"])
             self.assertTrue(False, "dbt did not throw for duplicate exposures")
         except CompilationException as e:
-            self.assertTrue(message in str(
-                e), "dbt did not throw the correct error message")
+            self.assertTrue(
+                message in str(e), "dbt did not throw the correct error message"
+            )

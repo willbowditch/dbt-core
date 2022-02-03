@@ -15,9 +15,7 @@ class ConfiguredContext(TargetContext):
     # subclasses are SchemaYamlContext, MacroResolvingContext, ManifestContext
     config: AdapterRequiredConfig
 
-    def __init__(
-        self, config: AdapterRequiredConfig
-    ) -> None:
+    def __init__(self, config: AdapterRequiredConfig) -> None:
         super().__init__(config, config.cli_vars)
 
     @contextproperty
@@ -67,7 +65,7 @@ class ConfiguredVar(Var):
         return self.get_missing_var(var_name)
 
 
-class SchemaYamlVars():
+class SchemaYamlVars:
     def __init__(self):
         self.env_vars = {}
         self.vars = {}
@@ -75,16 +73,16 @@ class SchemaYamlVars():
 
 class SchemaYamlContext(ConfiguredContext):
     # subclass is DocsRuntimeContext
-    def __init__(self, config, project_name: str, schema_yaml_vars: Optional[SchemaYamlVars]):
+    def __init__(
+        self, config, project_name: str, schema_yaml_vars: Optional[SchemaYamlVars]
+    ):
         super().__init__(config)
         self._project_name = project_name
         self.schema_yaml_vars = schema_yaml_vars
 
     @contextproperty
     def var(self) -> ConfiguredVar:
-        return ConfiguredVar(
-            self._ctx, self.config, self._project_name
-        )
+        return ConfiguredVar(self._ctx, self.config, self._project_name)
 
     @contextmember
     def env_var(self, var: str, default: Optional[str] = None) -> str:
@@ -111,13 +109,13 @@ class MacroResolvingContext(ConfiguredContext):
 
     @contextproperty
     def var(self) -> ConfiguredVar:
-        return ConfiguredVar(
-            self._ctx, self.config, self.config.project_name
-        )
+        return ConfiguredVar(self._ctx, self.config, self.config.project_name)
 
 
 def generate_schema_yml_context(
-        config: AdapterRequiredConfig, project_name: str, schema_yaml_vars: SchemaYamlVars = None
+    config: AdapterRequiredConfig,
+    project_name: str,
+    schema_yaml_vars: SchemaYamlVars = None,
 ) -> Dict[str, Any]:
     ctx = SchemaYamlContext(config, project_name, schema_yaml_vars)
     return ctx.to_dict()

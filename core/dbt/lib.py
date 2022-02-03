@@ -5,7 +5,7 @@ from dbt import flags
 from collections import namedtuple
 
 RuntimeArgs = namedtuple(
-    'RuntimeArgs', 'project_dir profiles_dir single_threaded profile_name'
+    "RuntimeArgs", "project_dir profiles_dir single_threaded profile_name"
 )
 
 
@@ -14,18 +14,18 @@ def get_dbt_config(project_dir, single_threaded=False):
     import dbt.adapters.factory
     import dbt.events.functions
 
-    if os.getenv('DBT_PROFILES_DIR'):
-        profiles_dir = os.getenv('DBT_PROFILES_DIR')
+    if os.getenv("DBT_PROFILES_DIR"):
+        profiles_dir = os.getenv("DBT_PROFILES_DIR")
     else:
         profiles_dir = os.path.expanduser("~/.dbt")
 
     # Construct a phony config
-    config = RuntimeConfig.from_args(RuntimeArgs(
-        project_dir, profiles_dir, single_threaded, 'user'
-    ))
+    config = RuntimeConfig.from_args(
+        RuntimeArgs(project_dir, profiles_dir, single_threaded, "user")
+    )
     # Clear previously registered adapters--
     # this fixes cacheing behavior on the dbt-server
-    flags.set_from_args('', config)
+    flags.set_from_args("", config)
     dbt.adapters.factory.reset_adapters()
     # Load the relevant adapter
     dbt.adapters.factory.register_adapter(config)
@@ -45,22 +45,22 @@ def get_task_by_type(type):
     from dbt.task.snapshot import SnapshotTask
     from dbt.task.run_operation import RunOperationTask
 
-    if type == 'run':
+    if type == "run":
         return RunTask
-    elif type == 'test':
+    elif type == "test":
         return TestTask
-    elif type == 'list':
+    elif type == "list":
         return ListTask
-    elif type == 'seed':
+    elif type == "seed":
         return SeedTask
-    elif type == 'build':
+    elif type == "build":
         return BuildTask
-    elif type == 'snapshot':
+    elif type == "snapshot":
         return SnapshotTask
-    elif type == 'run_operation':
+    elif type == "run_operation":
         return RunOperationTask
 
-    raise RuntimeException('not a valid task')
+    raise RuntimeException("not a valid task")
 
 
 def create_task(type, args, manifest, config):
@@ -92,7 +92,7 @@ def _get_operation_node(manifest, project_path, sql):
 
     adapter = dbt.adapters.factory.get_adapter(config)
     # TODO : This needs a real name?
-    sql_node = block_parser.parse_remote(sql, 'name')
+    sql_node = block_parser.parse_remote(sql, "name")
     process_node(config, manifest, sql_node)
     return config, sql_node, adapter
 

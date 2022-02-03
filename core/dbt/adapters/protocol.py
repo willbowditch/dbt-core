@@ -1,17 +1,27 @@
 from dataclasses import dataclass
 from typing import (
-    Type, Hashable, Optional, ContextManager, List, Generic, TypeVar, ClassVar,
-    Tuple, Union, Dict, Any
+    Type,
+    Hashable,
+    Optional,
+    ContextManager,
+    List,
+    Generic,
+    TypeVar,
+    ClassVar,
+    Tuple,
+    Union,
+    Dict,
+    Any,
 )
 from typing_extensions import Protocol
 
 import agate
 
-from dbt.contracts.connection import (
-    Connection, AdapterRequiredConfig, AdapterResponse
-)
+from dbt.contracts.connection import Connection, AdapterRequiredConfig, AdapterResponse
 from dbt.contracts.graph.compiled import (
-    CompiledNode, ManifestNode, NonSourceCompiledNode
+    CompiledNode,
+    ManifestNode,
+    NonSourceCompiledNode,
 )
 from dbt.contracts.graph.parsed import ParsedNode, ParsedSourceDefinition
 from dbt.contracts.graph.model_config import BaseConfig
@@ -34,7 +44,7 @@ class ColumnProtocol(Protocol):
     pass
 
 
-Self = TypeVar('Self', bound='RelationProtocol')
+Self = TypeVar("Self", bound="RelationProtocol")
 
 
 class RelationProtocol(Protocol):
@@ -64,19 +74,11 @@ class CompilerProtocol(Protocol):
         ...
 
 
-AdapterConfig_T = TypeVar(
-    'AdapterConfig_T', bound=AdapterConfig
-)
-ConnectionManager_T = TypeVar(
-    'ConnectionManager_T', bound=ConnectionManagerProtocol
-)
-Relation_T = TypeVar(
-    'Relation_T', bound=RelationProtocol
-)
-Column_T = TypeVar(
-    'Column_T', bound=ColumnProtocol
-)
-Compiler_T = TypeVar('Compiler_T', bound=CompilerProtocol)
+AdapterConfig_T = TypeVar("AdapterConfig_T", bound=AdapterConfig)
+ConnectionManager_T = TypeVar("ConnectionManager_T", bound=ConnectionManagerProtocol)
+Relation_T = TypeVar("Relation_T", bound=RelationProtocol)
+Column_T = TypeVar("Column_T", bound=ColumnProtocol)
+Compiler_T = TypeVar("Compiler_T", bound=CompilerProtocol)
 
 
 class AdapterProtocol(
@@ -87,7 +89,7 @@ class AdapterProtocol(
         Relation_T,
         Column_T,
         Compiler_T,
-    ]
+    ],
 ):
     AdapterSpecificConfigs: ClassVar[Type[AdapterConfig_T]]
     Column: ClassVar[Type[Column_T]]

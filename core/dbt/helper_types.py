@@ -9,7 +9,9 @@ from pathlib import Path
 from typing import Tuple, AbstractSet, Union
 
 from dbt.dataclass_schema import (
-    dbtClassMixin, ValidationError, StrEnum,
+    dbtClassMixin,
+    ValidationError,
+    StrEnum,
 )
 from hologram import FieldEncoder, JsonDict
 from mashumaro.types import SerializableType
@@ -18,11 +20,11 @@ from typing import Callable, cast, Generic, Optional, TypeVar
 
 class Port(int, SerializableType):
     @classmethod
-    def _deserialize(cls, value: Union[int, str]) -> 'Port':
+    def _deserialize(cls, value: Union[int, str]) -> "Port":
         try:
             value = int(value)
         except ValueError:
-            raise ValidationError(f'Cannot encode {value} into port number')
+            raise ValidationError(f"Cannot encode {value} into port number")
 
         return Port(value)
 
@@ -33,7 +35,7 @@ class Port(int, SerializableType):
 class PortEncoder(FieldEncoder):
     @property
     def json_schema(self):
-        return {'type': 'integer', 'minimum': 0, 'maximum': 65535}
+        return {"type": "integer", "minimum": 0, "maximum": 65535}
 
 
 class TimeDeltaFieldEncoder(FieldEncoder[timedelta]):
@@ -49,12 +51,12 @@ class TimeDeltaFieldEncoder(FieldEncoder[timedelta]):
             return timedelta(seconds=value)
         except TypeError:
             raise ValidationError(
-                'cannot encode {} into timedelta'.format(value)
+                "cannot encode {} into timedelta".format(value)
             ) from None
 
     @property
     def json_schema(self) -> JsonDict:
-        return {'type': 'number'}
+        return {"type": "number"}
 
 
 class PathEncoder(FieldEncoder):
@@ -68,16 +70,16 @@ class PathEncoder(FieldEncoder):
             return Path(value)
         except TypeError:
             raise ValidationError(
-                'cannot encode {} into timedelta'.format(value)
+                "cannot encode {} into timedelta".format(value)
             ) from None
 
     @property
     def json_schema(self) -> JsonDict:
-        return {'type': 'string'}
+        return {"type": "string"}
 
 
 class NVEnum(StrEnum):
-    novalue = 'novalue'
+    novalue = "novalue"
 
     def __eq__(self, other):
         return isinstance(other, NVEnum)
@@ -86,20 +88,23 @@ class NVEnum(StrEnum):
 @dataclass
 class NoValue(dbtClassMixin):
     """Sometimes, you want a way to say none that isn't None"""
+
     novalue: NVEnum = NVEnum.novalue
 
 
-dbtClassMixin.register_field_encoders({
-    Port: PortEncoder(),
-    timedelta: TimeDeltaFieldEncoder(),
-    Path: PathEncoder(),
-})
+dbtClassMixin.register_field_encoders(
+    {
+        Port: PortEncoder(),
+        timedelta: TimeDeltaFieldEncoder(),
+        Path: PathEncoder(),
+    }
+)
 
 
 FQNPath = Tuple[str, ...]
 PathSet = AbstractSet[FQNPath]
 
-T = TypeVar('T')
+T = TypeVar("T")
 
 
 # A data type for representing lazily evaluated values.

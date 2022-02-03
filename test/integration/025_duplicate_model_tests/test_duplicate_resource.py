@@ -3,7 +3,6 @@ from test.integration.base import DBTIntegrationTest, use_profile
 
 
 class TestDuplicateSchemaResource(DBTIntegrationTest):
-
     @property
     def schema(self):
         return "duplicate_resource_025"
@@ -17,5 +16,7 @@ class TestDuplicateSchemaResource(DBTIntegrationTest):
         try:
             self.run_dbt(["compile"])
         except CompilationException:
-            self.fail("Compilation Exception raised on model and "
-                      "exposure with the same name")
+            self.fail(
+                "Compilation Exception raised on model and "
+                "exposure with the same name"
+            )
