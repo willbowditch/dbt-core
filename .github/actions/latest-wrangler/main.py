@@ -22,8 +22,10 @@ if __name__ == "__main__":
 
     # Log info if we don't get a 200
     if package_request.status_code != 200:
-        print(f"Call to GH API failed: {package_request.status_code} {package_meta['message']}")
-    
+        print(
+            f"Call to GH API failed: {package_request.status_code} {package_meta['message']}"
+        )
+
     # Make an early exit if there is no matching package in github
     if package_request.status_code == 404:
         if halt_on_missing:
@@ -35,7 +37,7 @@ if __name__ == "__main__":
             sys.exit(0)
 
     # TODO: verify package meta is "correct"
-    # https://github.com/dbt-labs/dbt-core/issues/4640 
+    # https://github.com/dbt-labs/dbt-core/issues/4640
 
     # map versions and tags
     version_tag_map = {
@@ -95,4 +97,3 @@ if __name__ == "__main__":
 
     print(f"::set-output name=latest::{latest}")
     print(f"::set-output name=minor_latest::{minor_latest}")
-    
