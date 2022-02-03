@@ -5,7 +5,6 @@ import pytest
 
 
 class TestMacros(DBTIntegrationTest):
-
     def setUp(self):
         DBTIntegrationTest.setUp(self)
         self.run_sql_file("seed.sql")
@@ -21,10 +20,10 @@ class TestMacros(DBTIntegrationTest):
     @property
     def packages_config(self):
         return {
-            'packages': [
+            "packages": [
                 {
-                    'git': 'https://github.com/dbt-labs/dbt-integration-project',
-                    'revision': 'dbt/1.0.0',
+                    "git": "https://github.com/dbt-labs/dbt-integration-project",
+                    "revision": "dbt/1.0.0",
                 },
             ]
         }
@@ -32,16 +31,16 @@ class TestMacros(DBTIntegrationTest):
     @property
     def project_config(self):
         return {
-            'config-version': 2,
-            'vars': {
-                'test': {
-                    'test': 'DUMMY',
+            "config-version": 2,
+            "vars": {
+                "test": {
+                    "test": "DUMMY",
                 },
             },
             "macro-paths": ["macros"],
         }
 
-    @use_profile('postgres')
+    @use_profile("postgres")
     def test_postgres_working_macros(self):
         self.run_dbt(["deps"])
         results = self.run_dbt(["run"])
@@ -52,7 +51,6 @@ class TestMacros(DBTIntegrationTest):
 
 
 class TestInvalidMacros(DBTIntegrationTest):
-
     def setUp(self):
         DBTIntegrationTest.setUp(self)
 
@@ -64,14 +62,13 @@ class TestInvalidMacros(DBTIntegrationTest):
     def models(self):
         return "models"
 
-    @use_profile('postgres')
+    @use_profile("postgres")
     def test_postgres_invalid_macro(self):
         with pytest.raises(RuntimeError):
             self.run_dbt(["run"])
 
 
 class TestAdapterMacroNoDestination(DBTIntegrationTest):
-
     @property
     def schema(self):
         return "test_macros_016"
@@ -82,15 +79,12 @@ class TestAdapterMacroNoDestination(DBTIntegrationTest):
 
     @property
     def project_config(self):
-        return {
-            'config-version': 2,
-            "macro-paths": ["no-default-macros"]
-        }
+        return {"config-version": 2, "macro-paths": ["no-default-macros"]}
 
-    @use_profile('postgres')
+    @use_profile("postgres")
     def test_postgres_invalid_macro(self):
         with pytest.raises(dbt.exceptions.CompilationException) as exc:
-            self.run_dbt(['run'])
+            self.run_dbt(["run"])
 
         assert "In dispatch: No macro named 'dispatch_to_nowhere' found" in str(exc.value)
 
@@ -102,16 +96,16 @@ class TestMacroOverrideBuiltin(DBTIntegrationTest):
 
     @property
     def models(self):
-        return 'override-get-columns-models'
+        return "override-get-columns-models"
 
     @property
     def project_config(self):
         return {
-            'config-version': 2,
-            'macro-paths': ['override-get-columns-macros'],
+            "config-version": 2,
+            "macro-paths": ["override-get-columns-macros"],
         }
 
-    @use_profile('postgres')
+    @use_profile("postgres")
     def test_postgres_overrides(self):
         # the first time, the model doesn't exist
         self.run_dbt()
@@ -130,16 +124,16 @@ class TestMacroOverridePackage(DBTIntegrationTest):
 
     @property
     def models(self):
-        return 'override-get-columns-models'
+        return "override-get-columns-models"
 
     @property
     def project_config(self):
         return {
-            'config-version': 2,
-            'macro-paths': ['override-postgres-get-columns-macros'],
+            "config-version": 2,
+            "macro-paths": ["override-postgres-get-columns-macros"],
         }
 
-    @use_profile('postgres')
+    @use_profile("postgres")
     def test_postgres_overrides(self):
         # the first time, the model doesn't exist
         self.run_dbt()
@@ -159,17 +153,17 @@ class TestMacroNotOverridePackage(DBTIntegrationTest):
 
     @property
     def models(self):
-        return 'override-get-columns-models'
+        return "override-get-columns-models"
 
     @property
     def project_config(self):
         return {
-            'config-version': 2,
-            'macro-paths': ['override-postgres-get-columns-macros'],
-            'dispatch': [{'macro_namespace': 'dbt', 'search_order': ['dbt']}],
+            "config-version": 2,
+            "macro-paths": ["override-postgres-get-columns-macros"],
+            "dispatch": [{"macro_namespace": "dbt", "search_order": ["dbt"]}],
         }
 
-    @use_profile('postgres')
+    @use_profile("postgres")
     def test_postgres_overrides(self):
         # the first time, the model doesn't exist
         self.run_dbt(expect_pass=False)
@@ -192,25 +186,24 @@ class TestDispatchMacroOverrideBuiltin(TestMacroOverrideBuiltin):
                 }
             ],
         }
-        
+
     @property
     def packages_config(self):
         return {
-            'packages': [
+            "packages": [
                 {
                     "local": "./package_macro_overrides",
                 },
             ]
         }
 
-    @use_profile('postgres')
+    @use_profile("postgres")
     def test_postgres_overrides(self):
         self.run_dbt(["deps"])
         super().test_postgres_overrides()
 
 
 class TestAdapterMacroDeprecated(DBTIntegrationTest):
-
     @property
     def schema(self):
         return "test_macros_016"
@@ -221,14 +214,11 @@ class TestAdapterMacroDeprecated(DBTIntegrationTest):
 
     @property
     def project_config(self):
-        return {
-            'config-version': 2,
-            "macro-paths": ["deprecated-adapter-macro"]
-        }
+        return {"config-version": 2, "macro-paths": ["deprecated-adapter-macro"]}
 
-    @use_profile('postgres')
+    @use_profile("postgres")
     def test_postgres_invalid_macro(self):
         with pytest.raises(dbt.exceptions.CompilationException) as exc:
-            self.run_dbt(['run'])
+            self.run_dbt(["run"])
 
         assert 'The "adapter_macro" macro has been deprecated' in str(exc.value)

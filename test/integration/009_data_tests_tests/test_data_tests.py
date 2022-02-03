@@ -10,10 +10,7 @@ class TestDataTests(DBTIntegrationTest):
 
     @property
     def project_config(self):
-        return {
-            'config-version': 2,
-            "test-paths": [self.test_path]
-        }
+        return {"config-version": 2, "test-paths": [self.test_path]}
 
     @property
     def schema(self):
@@ -29,9 +26,9 @@ class TestDataTests(DBTIntegrationTest):
         test_task = TestTask(args, self.config)
         return test_task.run()
 
-    @use_profile('postgres')
+    @use_profile("postgres")
     def test_postgres_data_tests(self):
-        self.use_profile('postgres')
+        self.use_profile("postgres")
 
         self.run_sql_file("seed.sql")
 
@@ -41,13 +38,13 @@ class TestDataTests(DBTIntegrationTest):
 
         for result in test_results:
             # assert that all deliberately failing tests actually fail
-            if 'fail' in result.node.name:
+            if "fail" in result.node.name:
                 self.assertEqual(result.status, "fail")
                 self.assertFalse(result.skipped)
                 self.assertTrue(result.failures > 0)
             # assert that actual tests pass
             else:
-                self.assertEqual(result.status, 'pass')
+                self.assertEqual(result.status, "pass")
                 self.assertFalse(result.skipped)
                 self.assertEqual(result.failures, 0)
 

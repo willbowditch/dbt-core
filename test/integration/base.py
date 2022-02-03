@@ -25,12 +25,15 @@ from dbt.config import RuntimeConfig
 from dbt.context import providers
 from dbt.logger import log_manager
 from dbt.events.functions import (
-    capture_stdout_logs, fire_event, setup_event_logger, stop_capture_stdout_logs
+    capture_stdout_logs,
+    fire_event,
+    setup_event_logger,
+    stop_capture_stdout_logs,
 )
 from dbt.events.test_types import (
     IntegrationTestInfo,
     IntegrationTestDebug,
-    IntegrationTestException
+    IntegrationTestException,
 )
 from dbt.contracts.graph.manifest import Manifest
 
@@ -56,10 +59,10 @@ class Normalized:
         self.value = value
 
     def __repr__(self):
-        return f'Normalized({self.value!r})'
+        return f"Normalized({self.value!r})"
 
     def __str__(self):
-        return f'Normalized({self.value!s})'
+        return f"Normalized({self.value!s})"
 
     def __eq__(self, other):
         return normalize(self.value) == normalize(other)
@@ -81,7 +84,7 @@ class FakeArgs:
 
 class TestArgs:
     def __init__(self, kwargs):
-        self.which = 'run'
+        self.which = "run"
         self.single_threaded = False
         self.profiles_dir = None
         self.project_dir = None
@@ -89,29 +92,28 @@ class TestArgs:
 
 
 def _profile_from_test_name(test_name):
-    adapter_names = ('postgres', 'presto')
+    adapter_names = ("postgres", "presto")
     adapters_in_name = sum(x in test_name for x in adapter_names)
     if adapters_in_name != 1:
         raise ValueError(
-            'test names must have exactly 1 profile choice embedded, {} has {}'
-            .format(test_name, adapters_in_name)
+            "test names must have exactly 1 profile choice embedded, {} has {}".format(
+                test_name, adapters_in_name
+            )
         )
 
     for adapter_name in adapter_names:
         if adapter_name in test_name:
             return adapter_name
 
-    raise ValueError(
-        'could not find adapter name in test name {}'.format(test_name)
-    )
+    raise ValueError("could not find adapter name in test name {}".format(test_name))
 
 
 def _pytest_test_name():
-    return os.environ['PYTEST_CURRENT_TEST'].split()[0]
+    return os.environ["PYTEST_CURRENT_TEST"].split()[0]
 
 
 def _pytest_get_test_root():
-    test_path = _pytest_test_name().split('::')[0]
+    test_path = _pytest_test_name().split("::")[0]
     relative_to = INITIAL_ROOT
     head = os.path.relpath(test_path, relative_to)
 
@@ -134,119 +136,110 @@ def _really_makedirs(path):
 
 
 class DBTIntegrationTest(unittest.TestCase):
-    CREATE_SCHEMA_STATEMENT = 'CREATE SCHEMA {}'
-    DROP_SCHEMA_STATEMENT = 'DROP SCHEMA IF EXISTS {} CASCADE'
+    CREATE_SCHEMA_STATEMENT = "CREATE SCHEMA {}"
+    DROP_SCHEMA_STATEMENT = "DROP SCHEMA IF EXISTS {} CASCADE"
 
     _randint = random.randint(0, 9999)
-    _runtime_timedelta = (datetime.utcnow() - datetime(1970, 1, 1, 0, 0, 0))
-    _runtime = (
-        (int(_runtime_timedelta.total_seconds() * 1e6)) +
-        _runtime_timedelta.microseconds
-    )
+    _runtime_timedelta = datetime.utcnow() - datetime(1970, 1, 1, 0, 0, 0)
+    _runtime = (int(_runtime_timedelta.total_seconds() * 1e6)) + _runtime_timedelta.microseconds
 
-    prefix = f'test{_runtime}{_randint:04}'
+    prefix = f"test{_runtime}{_randint:04}"
     setup_alternate_db = False
 
     @property
     def database_host(self):
-        return os.getenv('POSTGRES_TEST_HOST', 'localhost')
+        return os.getenv("POSTGRES_TEST_HOST", "localhost")
 
     def postgres_profile(self):
         return {
-            'config': {
-                'send_anonymous_usage_stats': False
-            },
-            'test': {
-                'outputs': {
-                    'default2': {
-                        'type': 'postgres',
-                        'threads': 4,
-                        'host': self.database_host,
-                        'port': int(os.getenv('POSTGRES_TEST_PORT', 5432)),
-                        'user': os.getenv('POSTGRES_TEST_USER', 'root'),
-                        'pass': os.getenv('POSTGRES_TEST_PASS', 'password'),
-                        'dbname': os.getenv('POSTGRES_TEST_DATABASE', 'dbt'),
-                        'schema': self.unique_schema()
+            "config": {"send_anonymous_usage_stats": False},
+            "test": {
+                "outputs": {
+                    "default2": {
+                        "type": "postgres",
+                        "threads": 4,
+                        "host": self.database_host,
+                        "port": int(os.getenv("POSTGRES_TEST_PORT", 5432)),
+                        "user": os.getenv("POSTGRES_TEST_USER", "root"),
+                        "pass": os.getenv("POSTGRES_TEST_PASS", "password"),
+                        "dbname": os.getenv("POSTGRES_TEST_DATABASE", "dbt"),
+                        "schema": self.unique_schema(),
                     },
-                    'noaccess': {
-                        'type': 'postgres',
-                        'threads': 4,
-                        'host': self.database_host,
-                        'port': int(os.getenv('POSTGRES_TEST_PORT', 5432)),
-                        'user': 'noaccess',
-                        'pass': 'password',
-                        'dbname': os.getenv('POSTGRES_TEST_DATABASE', 'dbt'),
-                        'schema': self.unique_schema()
-                    }
+                    "noaccess": {
+                        "type": "postgres",
+                        "threads": 4,
+                        "host": self.database_host,
+                        "port": int(os.getenv("POSTGRES_TEST_PORT", 5432)),
+                        "user": "noaccess",
+                        "pass": "password",
+                        "dbname": os.getenv("POSTGRES_TEST_DATABASE", "dbt"),
+                        "schema": self.unique_schema(),
+                    },
                 },
-                'target': 'default2'
-            }
+                "target": "default2",
+            },
         }
 
     def snowflake_profile(self):
         return {
-            'config': {
-                'send_anonymous_usage_stats': False
-            },
-            'test': {
-                'outputs': {
-                    'default2': {
-                        'type': 'snowflake',
-                        'threads': 4,
-                        'account': os.getenv('SNOWFLAKE_TEST_ACCOUNT'),
-                        'user': os.getenv('SNOWFLAKE_TEST_USER'),
-                        'password': os.getenv('SNOWFLAKE_TEST_PASSWORD'),
-                        'database': os.getenv('SNOWFLAKE_TEST_DATABASE'),
-                        'schema': self.unique_schema(),
-                        'warehouse': os.getenv('SNOWFLAKE_TEST_WAREHOUSE'),
+            "config": {"send_anonymous_usage_stats": False},
+            "test": {
+                "outputs": {
+                    "default2": {
+                        "type": "snowflake",
+                        "threads": 4,
+                        "account": os.getenv("SNOWFLAKE_TEST_ACCOUNT"),
+                        "user": os.getenv("SNOWFLAKE_TEST_USER"),
+                        "password": os.getenv("SNOWFLAKE_TEST_PASSWORD"),
+                        "database": os.getenv("SNOWFLAKE_TEST_DATABASE"),
+                        "schema": self.unique_schema(),
+                        "warehouse": os.getenv("SNOWFLAKE_TEST_WAREHOUSE"),
                     },
-                    'noaccess': {
-                        'type': 'snowflake',
-                        'threads': 4,
-                        'account': os.getenv('SNOWFLAKE_TEST_ACCOUNT'),
-                        'user': 'noaccess',
-                        'password': 'password',
-                        'database': os.getenv('SNOWFLAKE_TEST_DATABASE'),
-                        'schema': self.unique_schema(),
-                        'warehouse': os.getenv('SNOWFLAKE_TEST_WAREHOUSE'),
+                    "noaccess": {
+                        "type": "snowflake",
+                        "threads": 4,
+                        "account": os.getenv("SNOWFLAKE_TEST_ACCOUNT"),
+                        "user": "noaccess",
+                        "password": "password",
+                        "database": os.getenv("SNOWFLAKE_TEST_DATABASE"),
+                        "schema": self.unique_schema(),
+                        "warehouse": os.getenv("SNOWFLAKE_TEST_WAREHOUSE"),
                     },
-                    'oauth': {
-                        'type': 'snowflake',
-                        'threads': 4,
-                        'account': os.getenv('SNOWFLAKE_TEST_ACCOUNT'),
-                        'user': os.getenv('SNOWFLAKE_TEST_USER'),
-                        'oauth_client_id': os.getenv('SNOWFLAKE_TEST_OAUTH_CLIENT_ID'),
-                        'oauth_client_secret': os.getenv('SNOWFLAKE_TEST_OAUTH_CLIENT_SECRET'),
-                        'token': os.getenv('SNOWFLAKE_TEST_OAUTH_REFRESH_TOKEN'),
-                        'database': os.getenv('SNOWFLAKE_TEST_DATABASE'),
-                        'schema': self.unique_schema(),
-                        'warehouse': os.getenv('SNOWFLAKE_TEST_WAREHOUSE'),
-                        'authenticator': 'oauth',
+                    "oauth": {
+                        "type": "snowflake",
+                        "threads": 4,
+                        "account": os.getenv("SNOWFLAKE_TEST_ACCOUNT"),
+                        "user": os.getenv("SNOWFLAKE_TEST_USER"),
+                        "oauth_client_id": os.getenv("SNOWFLAKE_TEST_OAUTH_CLIENT_ID"),
+                        "oauth_client_secret": os.getenv("SNOWFLAKE_TEST_OAUTH_CLIENT_SECRET"),
+                        "token": os.getenv("SNOWFLAKE_TEST_OAUTH_REFRESH_TOKEN"),
+                        "database": os.getenv("SNOWFLAKE_TEST_DATABASE"),
+                        "schema": self.unique_schema(),
+                        "warehouse": os.getenv("SNOWFLAKE_TEST_WAREHOUSE"),
+                        "authenticator": "oauth",
                     },
                 },
-                'target': 'default2'
-            }
+                "target": "default2",
+            },
         }
 
     def presto_profile(self):
         return {
-            'config': {
-                'send_anonymous_usage_stats': False
-            },
-            'test': {
-                'outputs': {
-                    'default2': {
-                        'type': 'presto',
-                        'method': 'none',
-                        'threads': 1,
-                        'schema': self.unique_schema(),
-                        'database': 'hive',
-                        'host': 'presto',
-                        'port': 8080,
+            "config": {"send_anonymous_usage_stats": False},
+            "test": {
+                "outputs": {
+                    "default2": {
+                        "type": "presto",
+                        "method": "none",
+                        "threads": 1,
+                        "schema": self.unique_schema(),
+                        "database": "hive",
+                        "host": "presto",
+                        "port": 8080,
                     },
                 },
-                'target': 'default2'
-            }
+                "target": "default2",
+            },
         }
 
     @property
@@ -262,7 +255,7 @@ class DBTIntegrationTest(unittest.TestCase):
 
         to_return = "{}_{}".format(self.prefix, schema)
 
-        if self.adapter_type == 'snowflake':
+        if self.adapter_type == "snowflake":
             return to_return.upper()
 
         return to_return.lower()
@@ -270,7 +263,7 @@ class DBTIntegrationTest(unittest.TestCase):
     @property
     def default_database(self):
         database = self.config.credentials.database
-        if self.adapter_type == 'snowflake':
+        if self.adapter_type == "snowflake":
             return database.upper()
         return database
 
@@ -279,35 +272,35 @@ class DBTIntegrationTest(unittest.TestCase):
         return None
 
     def get_profile(self, adapter_type):
-        if adapter_type == 'postgres':
+        if adapter_type == "postgres":
             return self.postgres_profile()
-        elif adapter_type == 'presto':
+        elif adapter_type == "presto":
             return self.presto_profile()
         else:
-            raise ValueError('invalid adapter type {}'.format(adapter_type))
+            raise ValueError("invalid adapter type {}".format(adapter_type))
 
     def _pick_profile(self):
-        test_name = self.id().split('.')[-1]
+        test_name = self.id().split(".")[-1]
         return _profile_from_test_name(test_name)
 
     def _symlink_test_folders(self):
         for entry in os.listdir(self.test_original_source_path):
             src = os.path.join(self.test_original_source_path, entry)
             tst = os.path.join(self.test_root_dir, entry)
-            if os.path.isdir(src) or src.endswith('.sql'):
+            if os.path.isdir(src) or src.endswith(".sql"):
                 # symlink all sql files and all directories.
                 os.symlink(src, tst)
-        os.symlink(self._logs_dir, os.path.join(self.test_root_dir, 'logs'))
+        os.symlink(self._logs_dir, os.path.join(self.test_root_dir, "logs"))
 
     @property
     def test_root_realpath(self):
-        if sys.platform == 'darwin':
+        if sys.platform == "darwin":
             return os.path.realpath(self.test_root_dir)
         else:
             return self.test_root_dir
 
     def _generate_test_root_dir(self):
-        return normalize(tempfile.mkdtemp(prefix='dbt-int-test-'))
+        return normalize(tempfile.mkdtemp(prefix="dbt-int-test-"))
 
     def setUp(self):
         self.dbt_core_install_root = os.path.dirname(dbt.__file__)
@@ -315,7 +308,7 @@ class DBTIntegrationTest(unittest.TestCase):
         self.initial_dir = INITIAL_ROOT
         os.chdir(self.initial_dir)
         # before we go anywhere, collect the initial path info
-        self._logs_dir = os.path.join(self.initial_dir, 'logs', self.prefix)
+        self._logs_dir = os.path.join(self.initial_dir, "logs", self.prefix)
         setup_event_logger(self._logs_dir)
         _really_makedirs(self._logs_dir)
         self.test_original_source_path = _pytest_get_test_root()
@@ -325,12 +318,14 @@ class DBTIntegrationTest(unittest.TestCase):
         try:
             self._symlink_test_folders()
         except Exception as exc:
-            msg = '\n\t'.join((
-                'Failed to symlink test folders!',
-                'initial_dir={0.initial_dir}',
-                'test_original_source_path={0.test_original_source_path}',
-                'test_root_dir={0.test_root_dir}'
-            )).format(self)
+            msg = "\n\t".join(
+                (
+                    "Failed to symlink test folders!",
+                    "initial_dir={0.initial_dir}",
+                    "test_original_source_path={0.test_original_source_path}",
+                    "test_root_dir={0.test_root_dir}",
+                )
+            ).format(self)
             fire_event(IntegrationTestException(msg=msg))
 
             # if logging isn't set up, I still really want this message.
@@ -352,12 +347,12 @@ class DBTIntegrationTest(unittest.TestCase):
     def use_default_project(self, overrides=None):
         # create a dbt_project.yml
         base_project_config = {
-            'name': 'test',
-            'version': '1.0',
-            'config-version': 2,
-            'test-paths': [],
-            'model-paths': [self.models],
-            'profile': 'test',
+            "name": "test",
+            "version": "1.0",
+            "config-version": 2,
+            "test-paths": [],
+            "model-paths": [self.models],
+            "profile": "test",
         }
 
         project_config = {}
@@ -365,7 +360,7 @@ class DBTIntegrationTest(unittest.TestCase):
         project_config.update(self.project_config)
         project_config.update(overrides or {})
 
-        with open("dbt_project.yml", 'w') as f:
+        with open("dbt_project.yml", "w") as f:
             yaml.safe_dump(project_config, f, default_flow_style=True)
 
     def use_profile(self, adapter_type):
@@ -381,19 +376,19 @@ class DBTIntegrationTest(unittest.TestCase):
             os.makedirs(self.test_root_dir)
 
         flags.PROFILES_DIR = self.test_root_dir
-        profiles_path = os.path.join(self.test_root_dir, 'profiles.yml')
-        with open(profiles_path, 'w') as f:
+        profiles_path = os.path.join(self.test_root_dir, "profiles.yml")
+        with open(profiles_path, "w") as f:
             yaml.safe_dump(profile_config, f, default_flow_style=True)
         self._profile_config = profile_config
 
     def set_packages(self):
         if self.packages_config is not None:
-            with open('packages.yml', 'w') as f:
+            with open("packages.yml", "w") as f:
                 yaml.safe_dump(self.packages_config, f, default_flow_style=True)
 
     def set_selectors(self):
         if self.selectors_config is not None:
-            with open('selectors.yml', 'w') as f:
+            with open("selectors.yml", "w") as f:
                 yaml.safe_dump(self.selectors_config, f, default_flow_style=True)
 
     def load_config(self):
@@ -402,9 +397,9 @@ class DBTIntegrationTest(unittest.TestCase):
         # it's important to use a different connection handle here so
         # we don't look into an incomplete transaction
         kwargs = {
-            'profile': None,
-            'profiles_dir': self.test_root_dir,
-            'target': None,
+            "profile": None,
+            "profiles_dir": self.test_root_dir,
+            "target": None,
         }
 
         config = RuntimeConfig.from_args(TestArgs(kwargs))
@@ -430,7 +425,7 @@ class DBTIntegrationTest(unittest.TestCase):
         adapter = get_adapter(self.config)
         if adapter is not self.adapter:
             adapter.cleanup_connections()
-        if not hasattr(self, 'adapter'):
+        if not hasattr(self, "adapter"):
             self.adapter = adapter
 
         self._drop_schemas()
@@ -445,10 +440,10 @@ class DBTIntegrationTest(unittest.TestCase):
             fire_event(IntegrationTestException(msg=msg))
 
     def _get_schema_fqn(self, database, schema):
-        schema_fqn = self.quote_as_configured(schema, 'schema')
-        if self.adapter_type == 'snowflake':
-            database = self.quote_as_configured(database, 'database')
-            schema_fqn = '{}.{}'.format(database, schema_fqn)
+        schema_fqn = self.quote_as_configured(schema, "schema")
+        if self.adapter_type == "snowflake":
+            database = self.quote_as_configured(database, "database")
+            schema_fqn = "{}.{}".format(database, schema_fqn)
         return schema_fqn
 
     def _create_schema_named(self, database, schema):
@@ -457,7 +452,7 @@ class DBTIntegrationTest(unittest.TestCase):
         self._created_schemas.add(schema_fqn)
 
     def _drop_schema_named(self, database, schema):
-        if self.adapter_type == 'presto':
+        if self.adapter_type == "presto":
             relation = self.adapter.Relation.create(database=database, schema=schema)
             self.adapter.drop_schema(relation)
         else:
@@ -466,14 +461,14 @@ class DBTIntegrationTest(unittest.TestCase):
 
     def _create_schemas(self):
         schema = self.unique_schema()
-        with self.adapter.connection_named('__test'):
+        with self.adapter.connection_named("__test"):
             self._create_schema_named(self.default_database, schema)
-            if self.setup_alternate_db and self.adapter_type == 'snowflake':
+            if self.setup_alternate_db and self.adapter_type == "snowflake":
                 self._create_schema_named(self.alternative_database, schema)
 
     def _drop_schemas_adapter(self):
         schema = self.unique_schema()
-        if self.adapter_type == 'presto':
+        if self.adapter_type == "presto":
             self._drop_schema_named(self.default_database, schema)
             if self.setup_alternate_db and self.alternative_database:
                 self._drop_schema_named(self.alternative_database, schema)
@@ -481,19 +476,15 @@ class DBTIntegrationTest(unittest.TestCase):
     def _drop_schemas_sql(self):
         schema = self.unique_schema()
         # we always want to drop these if necessary, we'll clear it soon.
-        self._created_schemas.add(
-            self._get_schema_fqn(self.default_database, schema)
-        )
+        self._created_schemas.add(self._get_schema_fqn(self.default_database, schema))
         # on postgres, this will make you sad
         drop_alternative = (
-            self.setup_alternate_db and
-            self.adapter_type not in {'postgres'} and
-            self.alternative_database
+            self.setup_alternate_db
+            and self.adapter_type not in {"postgres"}
+            and self.alternative_database
         )
         if drop_alternative:
-            self._created_schemas.add(
-                self._get_schema_fqn(self.alternative_database, schema)
-            )
+            self._created_schemas.add(self._get_schema_fqn(self.alternative_database, schema))
 
         for schema_fqn in self._created_schemas:
             self.run_sql(self.DROP_SCHEMA_STATEMENT.format(schema_fqn))
@@ -501,8 +492,8 @@ class DBTIntegrationTest(unittest.TestCase):
         self._created_schemas.clear()
 
     def _drop_schemas(self):
-        with self.adapter.connection_named('__test'):
-            if self.adapter_type == 'presto':
+        with self.adapter.connection_named("__test"):
+            if self.adapter_type == "presto":
                 self._drop_schemas_adapter()
             else:
                 self._drop_schemas_sql()
@@ -510,7 +501,7 @@ class DBTIntegrationTest(unittest.TestCase):
     @property
     def project_config(self):
         return {
-            'config-version': 2,
+            "config-version": 2,
         }
 
     @property
@@ -519,9 +510,7 @@ class DBTIntegrationTest(unittest.TestCase):
 
     def run_dbt(self, args=None, expect_pass=True, profiles_dir=True):
         res, success = self.run_dbt_and_check(args=args, profiles_dir=profiles_dir)
-        self.assertEqual(
-            success, expect_pass,
-            "dbt exit state did not match expected")
+        self.assertEqual(success, expect_pass, "dbt exit state did not match expected")
 
         return res
 
@@ -543,20 +532,20 @@ class DBTIntegrationTest(unittest.TestCase):
 
         final_args = []
 
-        if os.getenv('DBT_TEST_SINGLE_THREADED') in ('y', 'Y', '1'):
-            final_args.append('--single-threaded')
+        if os.getenv("DBT_TEST_SINGLE_THREADED") in ("y", "Y", "1"):
+            final_args.append("--single-threaded")
 
         final_args.extend(args)
 
         if profiles_dir:
-            final_args.extend(['--profiles-dir', self.test_root_dir])
-        final_args.append('--log-cache-events')
+            final_args.extend(["--profiles-dir", self.test_root_dir])
+        final_args.append("--log-cache-events")
         msg = f"Invoking dbt with {final_args}"
         fire_event(IntegrationTestInfo(msg=msg))
         return dbt.handle_and_check(final_args)
 
     def run_sql_file(self, path, kwargs=None):
-        with open(path, 'r') as f:
+        with open(path, "r") as f:
             statements = f.read().split(";")
             for statement in statements:
                 self.run_sql(statement, kwargs=kwargs)
@@ -565,12 +554,12 @@ class DBTIntegrationTest(unittest.TestCase):
     def transform_sql(self, query, kwargs=None):
         to_return = query
 
-        if self.adapter_type == 'snowflake':
+        if self.adapter_type == "snowflake":
             to_return = to_return.replace("BIGSERIAL", "BIGINT AUTOINCREMENT")
 
         base_kwargs = {
-            'schema': self.unique_schema(),
-            'database': self.adapter.quote(self.default_database),
+            "schema": self.unique_schema(),
+            "database": self.adapter.quote(self.default_database),
         }
         if kwargs is None:
             kwargs = {}
@@ -584,9 +573,9 @@ class DBTIntegrationTest(unittest.TestCase):
         cursor = conn.handle.cursor()
         try:
             cursor.execute(sql)
-            if fetch == 'one':
+            if fetch == "one":
                 return cursor.fetchall()[0]
-            elif fetch == 'all':
+            elif fetch == "all":
                 return cursor.fetchall()
             else:
                 # we have to fetch.
@@ -606,14 +595,14 @@ class DBTIntegrationTest(unittest.TestCase):
             try:
                 cursor.execute(sql)
                 conn.handle.commit()
-                if fetch == 'one':
+                if fetch == "one":
                     return cursor.fetchone()
-                elif fetch == 'all':
+                elif fetch == "all":
                     return cursor.fetchall()
                 else:
                     return
             except BaseException as e:
-                if conn.handle and not getattr(conn.handle, 'closed', True):
+                if conn.handle and not getattr(conn.handle, "closed", True):
                     conn.handle.rollback()
                 print(sql)
                 print(e)
@@ -621,9 +610,9 @@ class DBTIntegrationTest(unittest.TestCase):
             finally:
                 conn.transaction_open = False
 
-    def run_sql(self, query, fetch='None', kwargs=None, connection_name=None):
+    def run_sql(self, query, fetch="None", kwargs=None, connection_name=None):
         if connection_name is None:
-            connection_name = '__test'
+            connection_name = "__test"
 
         if query.strip() == "":
             return
@@ -633,14 +622,14 @@ class DBTIntegrationTest(unittest.TestCase):
         with self.get_connection(connection_name) as conn:
             msg = f'test connection "{conn.name}" executing: {sql}'
             fire_event(IntegrationTestDebug(msg=msg))
-            if self.adapter_type == 'presto':
+            if self.adapter_type == "presto":
                 return self.run_sql_presto(sql, fetch, conn)
             else:
                 return self.run_sql_common(sql, fetch, conn)
 
     def _ilike(self, target, value):
         # presto has this regex substitution monstrosity instead of 'ilike'
-        if self.adapter_type == 'presto':
+        if self.adapter_type == "presto":
             return r"regexp_like({}, '(?i)\A{}\Z')".format(target, value)
         else:
             return "{} ilike '{}'".format(target, value)
@@ -649,30 +638,30 @@ class DBTIntegrationTest(unittest.TestCase):
         tables = set(tables)
         if database is None:
             database = self.default_database
-        sql = 'show columns in schema {database}.{schema}'.format(
-            database=self.quote_as_configured(database, 'database'),
-            schema=self.quote_as_configured(schema, 'schema')
+        sql = "show columns in schema {database}.{schema}".format(
+            database=self.quote_as_configured(database, "database"),
+            schema=self.quote_as_configured(schema, "schema"),
         )
         # assumption: this will be much  faster than doing one query/table
         # because in tests, we'll want most of our tables most of the time.
-        columns = self.run_sql(sql, fetch='all')
+        columns = self.run_sql(sql, fetch="all")
         results = []
         for column in columns:
             table_name, _, column_name, json_data_type = column[:4]
             character_maximum_length = None
             if table_name in tables:
                 typeinfo = json.loads(json_data_type)
-                data_type = typeinfo['type']
-                if data_type == 'TEXT':
-                    character_maximum_length = max(typeinfo['length'], 16777216)
+                data_type = typeinfo["type"]
+                if data_type == "TEXT":
+                    character_maximum_length = max(typeinfo["length"], 16777216)
                 results.append((table_name, column_name, data_type, character_maximum_length))
         return results
 
     def get_many_table_columns_information_schema(self, tables, schema, database=None):
-        if self.adapter_type == 'presto':
-            columns = 'table_name, column_name, data_type'
+        if self.adapter_type == "presto":
+            columns = "table_name, column_name, data_type"
         else:
-            columns = 'table_name, column_name, data_type, character_maximum_length'
+            columns = "table_name, column_name, data_type, character_maximum_length"
 
         sql = """
                 select {columns}
@@ -681,31 +670,31 @@ class DBTIntegrationTest(unittest.TestCase):
                   and ({table_filter})
                 order by column_name asc"""
 
-        db_string = ''
+        db_string = ""
         if database:
-            db_string = self.quote_as_configured(database, 'database') + '.'
+            db_string = self.quote_as_configured(database, "database") + "."
 
         table_filters_s = " OR ".join(
-            self._ilike('table_name', table.replace('"', ''))
-            for table in tables
+            self._ilike("table_name", table.replace('"', "")) for table in tables
         )
-        schema_filter = self._ilike('table_schema', schema)
+        schema_filter = self._ilike("table_schema", schema)
 
         sql = sql.format(
-                columns=columns,
-                schema_filter=schema_filter,
-                table_filter=table_filters_s,
-                db_string=db_string)
+            columns=columns,
+            schema_filter=schema_filter,
+            table_filter=table_filters_s,
+            db_string=db_string,
+        )
 
-        columns = self.run_sql(sql, fetch='all')
+        columns = self.run_sql(sql, fetch="all")
         return list(map(self.filter_many_columns, columns))
 
     def get_many_table_columns(self, tables, schema, database=None):
-        if self.adapter_type == 'snowflake':
+        if self.adapter_type == "snowflake":
             result = self.get_many_table_columns_snowflake(tables, schema, database)
         else:
             result = self.get_many_table_columns_information_schema(tables, schema, database)
-        result.sort(key=lambda x: '{}.{}'.format(x[0], x[1]))
+        result.sort(key=lambda x: "{}.{}".format(x[0], x[1]))
         return result
 
     def filter_many_columns(self, column):
@@ -715,7 +704,7 @@ class DBTIntegrationTest(unittest.TestCase):
         else:
             table_name, column_name, data_type, char_size = column
         # in snowflake, all varchar widths are created equal
-        if self.adapter_type == 'snowflake':
+        if self.adapter_type == "snowflake":
             if char_size and char_size < 16777216:
                 char_size = 16777216
         return (table_name, column_name, data_type, char_size)
@@ -729,8 +718,8 @@ class DBTIntegrationTest(unittest.TestCase):
         were not called by handle_and_check (for asserts, etc)
         """
         if name is None:
-            name = '__test'
-        with patch.object(providers, 'get_adapter', return_value=self.adapter):
+            name = "__test"
+        with patch.object(providers, "get_adapter", return_value=self.adapter):
             with self.adapter.connection_named(name):
                 conn = self.adapter.connections.get_thread_connection()
                 yield conn
@@ -739,8 +728,7 @@ class DBTIntegrationTest(unittest.TestCase):
         with self.get_connection():
             columns = self.adapter.get_columns_in_relation(relation)
 
-        return sorted(((c.name, c.dtype, c.char_size) for c in columns),
-                      key=lambda x: x[0])
+        return sorted(((c.name, c.dtype, c.char_size) for c in columns), key=lambda x: x[0])
 
     def get_table_columns(self, table, schema=None, database=None):
         schema = self.unique_schema() if schema is None else schema
@@ -749,8 +737,8 @@ class DBTIntegrationTest(unittest.TestCase):
             database=database,
             schema=schema,
             identifier=table,
-            type='table',
-            quote_policy=self.config.quoting
+            type="table",
+            quote_policy=self.config.quoting,
         )
         return self.get_relation_columns(relation)
 
@@ -766,27 +754,27 @@ class DBTIntegrationTest(unittest.TestCase):
         return res
 
     def get_models_in_schema_snowflake(self, schema):
-        sql = 'show objects in schema {}.{}'.format(
-            self.quote_as_configured(self.default_database, 'database'),
-            self.quote_as_configured(schema, 'schema')
+        sql = "show objects in schema {}.{}".format(
+            self.quote_as_configured(self.default_database, "database"),
+            self.quote_as_configured(schema, "schema"),
         )
         results = {}
-        for row in self.run_sql(sql, fetch='all'):
+        for row in self.run_sql(sql, fetch="all"):
             # I sure hope these never change!
             name = row[1]
             kind = row[4]
 
-            if kind == 'TABLE':
-                kind = 'table'
-            elif kind == 'VIEW':
-                kind = 'view'
+            if kind == "TABLE":
+                kind = "table"
+            elif kind == "VIEW":
+                kind = "view"
 
             results[name] = kind
         return results
 
     def get_models_in_schema(self, schema=None):
         schema = self.unique_schema() if schema is None else schema
-        if self.adapter_type == 'snowflake':
+        if self.adapter_type == "snowflake":
             return self.get_models_in_schema_snowflake(schema)
 
         sql = """
@@ -800,8 +788,8 @@ class DBTIntegrationTest(unittest.TestCase):
                 order by table_name
                 """
 
-        sql = sql.format(self._ilike('table_schema', schema))
-        result = self.run_sql(sql, fetch='all')
+        sql = sql.format(self._ilike("table_schema", schema))
+        result = self.run_sql(sql, fetch="all")
 
         return {model_name: materialization for (model_name, materialization) in result}
 
@@ -810,15 +798,19 @@ class DBTIntegrationTest(unittest.TestCase):
             columns = self.get_relation_columns(relation_a)
         column_names = [c[0] for c in columns]
 
-        sql = self.adapter.get_rows_different_sql(
-            relation_a, relation_b, column_names
-        )
+        sql = self.adapter.get_rows_different_sql(relation_a, relation_b, column_names)
 
         return sql
 
-    def assertTablesEqual(self, table_a, table_b,
-                          table_a_schema=None, table_b_schema=None,
-                          table_a_db=None, table_b_db=None):
+    def assertTablesEqual(
+        self,
+        table_a,
+        table_b,
+        table_a_schema=None,
+        table_b_schema=None,
+        table_a_db=None,
+        table_b_db=None,
+    ):
         if table_a_schema is None:
             table_a_schema = self.unique_schema()
 
@@ -837,18 +829,10 @@ class DBTIntegrationTest(unittest.TestCase):
         self._assertTableColumnsEqual(relation_a, relation_b)
 
         sql = self._assertTablesEqualSql(relation_a, relation_b)
-        result = self.run_sql(sql, fetch='one')
+        result = self.run_sql(sql, fetch="one")
 
-        self.assertEqual(
-            result[0],
-            0,
-            'row_count_difference nonzero: ' + sql
-        )
-        self.assertEqual(
-            result[1],
-            0,
-            'num_mismatched nonzero: ' + sql
-        )
+        self.assertEqual(result[0], 0, "row_count_difference nonzero: " + sql)
+        self.assertEqual(result[1], 0, "num_mismatched nonzero: " + sql)
 
     def _make_relation(self, identifier, schema=None, database=None):
         if schema is None:
@@ -859,12 +843,11 @@ class DBTIntegrationTest(unittest.TestCase):
             database=database,
             schema=schema,
             identifier=identifier,
-            quote_policy=self.config.quoting
+            quote_policy=self.config.quoting,
         )
 
     def get_many_relation_columns(self, relations):
-        """Returns a dict of (datbase, schema) -> (dict of (table_name -> list of columns))
-        """
+        """Returns a dict of (datbase, schema) -> (dict of (table_name -> list of columns))"""
         schema_fqns = {}
         for rel in relations:
             this_schema = schema_fqns.setdefault((rel.database, rel.schema), [])
@@ -903,7 +886,7 @@ class DBTIntegrationTest(unittest.TestCase):
             elif len(relation) == 1:
                 relation = self._make_relation(relation[0], default_schema, default_database)
             else:
-                raise ValueError('relation must be a sequence of 1, 2, or 3 values')
+                raise ValueError("relation must be a sequence of 1, 2, or 3 values")
 
             specs.append(relation)
 
@@ -915,14 +898,15 @@ class DBTIntegrationTest(unittest.TestCase):
         for relation in specs:
             key = (relation.database, relation.schema, relation.identifier)
             # get a good error here instead of a hard-to-diagnose KeyError
-            self.assertIn(key, column_specs, f'No columns found for {key}')
+            self.assertIn(key, column_specs, f"No columns found for {key}")
             columns = column_specs[key]
             if first_columns is None:
                 first_columns = columns
             else:
                 self.assertEqual(
-                    first_columns, columns,
-                    '{} did not match {}'.format(str(specs[0]), str(relation))
+                    first_columns,
+                    columns,
+                    "{} did not match {}".format(str(specs[0]), str(relation)),
                 )
 
         # make sure everyone has the same data. if we got here, everyone had
@@ -932,20 +916,11 @@ class DBTIntegrationTest(unittest.TestCase):
             if first_relation is None:
                 first_relation = relation
             else:
-                sql = self._assertTablesEqualSql(first_relation, relation,
-                                                 columns=first_columns)
-                result = self.run_sql(sql, fetch='one')
+                sql = self._assertTablesEqualSql(first_relation, relation, columns=first_columns)
+                result = self.run_sql(sql, fetch="one")
 
-                self.assertEqual(
-                    result[0],
-                    0,
-                    'row_count_difference nonzero: ' + sql
-                )
-                self.assertEqual(
-                    result[1],
-                    0,
-                    'num_mismatched nonzero: ' + sql
-                )
+                self.assertEqual(result[0], 0, "row_count_difference nonzero: " + sql)
+                self.assertEqual(result[1], 0, "num_mismatched nonzero: " + sql)
 
     def assertManyTablesEqual(self, *args):
         schema = self.unique_schema()
@@ -970,21 +945,13 @@ class DBTIntegrationTest(unittest.TestCase):
                 self.assertEqual(base_result, other_result)
 
                 other_relation = self._make_relation(other_table)
-                sql = self._assertTablesEqualSql(first_relation,
-                                                 other_relation,
-                                                 columns=base_result)
-                result = self.run_sql(sql, fetch='one')
+                sql = self._assertTablesEqualSql(
+                    first_relation, other_relation, columns=base_result
+                )
+                result = self.run_sql(sql, fetch="one")
 
-                self.assertEqual(
-                    result[0],
-                    0,
-                    'row_count_difference nonzero: ' + sql
-                )
-                self.assertEqual(
-                    result[1],
-                    0,
-                    'num_mismatched nonzero: ' + sql
-                )
+                self.assertEqual(result[0], 0, "row_count_difference nonzero: " + sql)
+                self.assertEqual(result[1], 0, "num_mismatched nonzero: " + sql)
 
     def _assertTableRowCountsEqual(self, relation_a, relation_b):
         cmp_query = """
@@ -1001,82 +968,84 @@ class DBTIntegrationTest(unittest.TestCase):
             select table_a.num_rows - table_b.num_rows as difference
             from table_a, table_b
 
-        """.format(str(relation_a), str(relation_b))
+        """.format(
+            str(relation_a), str(relation_b)
+        )
 
-        res = self.run_sql(cmp_query, fetch='one')
+        res = self.run_sql(cmp_query, fetch="one")
 
-        self.assertEqual(int(res[0]), 0, "Row count of table {} doesn't match row count of table {}. ({} rows different)".format(
-                relation_a.identifier,
-                relation_b.identifier,
-                res[0]
-            )
+        self.assertEqual(
+            int(res[0]),
+            0,
+            "Row count of table {} doesn't match row count of table {}. ({} rows different)".format(
+                relation_a.identifier, relation_b.identifier, res[0]
+            ),
         )
 
     def assertTableDoesNotExist(self, table, schema=None, database=None):
         columns = self.get_table_columns(table, schema, database)
 
-        self.assertEqual(
-            len(columns),
-            0
-        )
+        self.assertEqual(len(columns), 0)
 
     def assertTableDoesExist(self, table, schema=None, database=None):
         columns = self.get_table_columns(table, schema, database)
 
-        self.assertGreater(
-            len(columns),
-            0
-        )
+        self.assertGreater(len(columns), 0)
 
     def _assertTableColumnsEqual(self, relation_a, relation_b):
         table_a_result = self.get_relation_columns(relation_a)
         table_b_result = self.get_relation_columns(relation_b)
 
-        text_types = {'text', 'character varying', 'character', 'varchar'}
+        text_types = {"text", "character varying", "character", "varchar"}
 
         self.assertEqual(len(table_a_result), len(table_b_result))
         for a_column, b_column in zip(table_a_result, table_b_result):
             a_name, a_type, a_size = a_column
             b_name, b_type, b_size = b_column
-            self.assertEqual(a_name, b_name,
-                '{} vs {}: column "{}" != "{}"'.format(
-                    relation_a, relation_b, a_name, b_name
-                ))
+            self.assertEqual(
+                a_name,
+                b_name,
+                '{} vs {}: column "{}" != "{}"'.format(relation_a, relation_b, a_name, b_name),
+            )
 
-            self.assertEqual(a_type, b_type,
+            self.assertEqual(
+                a_type,
+                b_type,
                 '{} vs {}: column "{}" has type "{}" != "{}"'.format(
                     relation_a, relation_b, a_name, a_type, b_type
-                ))
+                ),
+            )
 
-            if self.adapter_type == 'presto' and None in (a_size, b_size):
+            if self.adapter_type == "presto" and None in (a_size, b_size):
                 # None is compatible with any size
                 continue
 
-            self.assertEqual(a_size, b_size,
+            self.assertEqual(
+                a_size,
+                b_size,
                 '{} vs {}: column "{}" has size "{}" != "{}"'.format(
                     relation_a, relation_b, a_name, a_size, b_size
-                ))
+                ),
+            )
 
     def assertEquals(self, *args, **kwargs):
         # assertEquals is deprecated. This makes the warnings less chatty
         self.assertEqual(*args, **kwargs)
 
     def assertBetween(self, timestr, start, end=None):
-        datefmt = '%Y-%m-%dT%H:%M:%S.%fZ'
+        datefmt = "%Y-%m-%dT%H:%M:%S.%fZ"
         if end is None:
             end = datetime.utcnow()
 
         parsed = datetime.strptime(timestr, datefmt)
 
-        self.assertLessEqual(start, parsed,
-            'parsed date {} happened before {}'.format(
-                parsed,
-                start.strftime(datefmt))
+        self.assertLessEqual(
+            start,
+            parsed,
+            "parsed date {} happened before {}".format(parsed, start.strftime(datefmt)),
         )
-        self.assertGreaterEqual(end, parsed,
-            'parsed date {} happened after {}'.format(
-                parsed,
-                end.strftime(datefmt))
+        self.assertGreaterEqual(
+            end, parsed, "parsed date {} happened after {}".format(parsed, end.strftime(datefmt))
         )
 
     def copy_file(self, src, dest) -> None:
@@ -1105,27 +1074,30 @@ def use_profile(profile_name):
         def test_snowflake_thing(self):
             self.assertEqual(self.adapter_type, 'snowflake')
     """
+
     def outer(wrapped):
-        @getattr(pytest.mark, 'profile_'+profile_name)
+        @getattr(pytest.mark, "profile_" + profile_name)
         @wraps(wrapped)
         def func(self, *args, **kwargs):
             return wrapped(self, *args, **kwargs)
+
         # sanity check at import time
         assert _profile_from_test_name(wrapped.__name__) == profile_name
         return func
+
     return outer
 
 
 class AnyFloat:
-    """Any float. Use this in assertEqual() calls to assert that it is a float.
-    """
+    """Any float. Use this in assertEqual() calls to assert that it is a float."""
+
     def __eq__(self, other):
         return isinstance(other, float)
 
 
 class AnyString:
-    """Any string. Use this in assertEqual() calls to assert that it is a string.
-    """
+    """Any string. Use this in assertEqual() calls to assert that it is a string."""
+
     def __eq__(self, other):
         return isinstance(other, str)
 
@@ -1144,13 +1116,13 @@ class AnyStringWith:
         return self.contains in other
 
     def __repr__(self):
-        return 'AnyStringWith<{!r}>'.format(self.contains)
+        return "AnyStringWith<{!r}>".format(self.contains)
 
 
 def get_manifest():
-    path = './target/partial_parse.msgpack'
+    path = "./target/partial_parse.msgpack"
     if os.path.exists(path):
-        with open(path, 'rb') as fp:
+        with open(path, "rb") as fp:
             manifest_mp = fp.read()
         manifest: Manifest = Manifest.from_msgpack(manifest_mp)
         return manifest

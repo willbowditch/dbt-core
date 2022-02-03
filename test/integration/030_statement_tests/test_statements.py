@@ -2,7 +2,6 @@ from test.integration.base import DBTIntegrationTest, use_profile
 
 
 class TestStatements(DBTIntegrationTest):
-
     @property
     def schema(self):
         return "statements_030"
@@ -18,10 +17,10 @@ class TestStatements(DBTIntegrationTest):
     @property
     def project_config(self):
         return {
-            'config-version': 2,
-            'seeds': {
-                'quote_columns': False,
-            }
+            "config-version": 2,
+            "seeds": {
+                "quote_columns": False,
+            },
         }
 
     @use_profile("postgres")

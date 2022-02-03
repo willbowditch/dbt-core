@@ -13,27 +13,27 @@ class TestAliases(DBTIntegrationTest):
     @property
     def project_config(self):
         return {
-            'config-version': 2,
-            "macro-paths": ['macros'],
+            "config-version": 2,
+            "macro-paths": ["macros"],
         }
 
-    @use_profile('postgres')
+    @use_profile("postgres")
     def test_postgres_customer_alias_name(self):
-        results = self.run_dbt(['run'])
+        results = self.run_dbt(["run"])
         self.assertEqual(len(results), 2)
-        self.run_dbt(['test'])
+        self.run_dbt(["test"])
 
 
 class TestAliasesWithConfig(TestAliases):
     @property
     def project_config(self):
         return {
-            'config-version': 2,
-            "macro-paths": ['macros-configs'],
+            "config-version": 2,
+            "macro-paths": ["macros-configs"],
         }
 
-    @use_profile('postgres')
+    @use_profile("postgres")
     def test_postgres_customer_alias_name(self):
-        results = self.run_dbt(['run'])
+        results = self.run_dbt(["run"])
         self.assertEqual(len(results), 2)
-        self.run_dbt(['test'])
+        self.run_dbt(["test"])

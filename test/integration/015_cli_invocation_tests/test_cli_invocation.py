@@ -41,11 +41,11 @@ def temporary_working_directory() -> str:
     out : str
         The temporary working directory.
     """
-    # N.B: supressing the OSError is necessary for older (pre 3.10) versions of python 
+    # N.B: supressing the OSError is necessary for older (pre 3.10) versions of python
     # which do not support the `ignore_cleanup_errors` in tempfile::TemporaryDirectory.
     # See: https://github.com/python/cpython/pull/24793
     #
-    # In our case the cleanup is redundent since windows handles clearing 
+    # In our case the cleanup is redundent since windows handles clearing
     # Appdata/Local/Temp at the os level anyway.
 
     with contextlib.suppress(OSError):
@@ -56,9 +56,7 @@ def temporary_working_directory() -> str:
 
 def get_custom_profiles_config(database_host, custom_schema):
     return {
-        "config": {
-            "send_anonymous_usage_stats": False
-        },
+        "config": {"send_anonymous_usage_stats": False},
         "test": {
             "outputs": {
                 "default": {
@@ -69,18 +67,15 @@ def get_custom_profiles_config(database_host, custom_schema):
                     "user": "root",
                     "pass": "password",
                     "dbname": "dbt",
-                    "schema": custom_schema
+                    "schema": custom_schema,
                 },
             },
             "target": "default",
-        }
+        },
     }
 
 
-def create_directory_with_custom_profiles(
-    directory: str,
-    profiles: Dict
-) -> None:
+def create_directory_with_custom_profiles(directory: str, profiles: Dict) -> None:
     """
     Create directory with profiles.yml.
 
@@ -99,31 +94,31 @@ def create_directory_with_custom_profiles(
 
 
 class ModelCopyingIntegrationTest(DBTIntegrationTest):
-
     def _symlink_test_folders(self):
         # dbt's normal symlink behavior breaks this test, so special-case it
         for entry in os.listdir(self.test_original_source_path):
             src = os.path.join(self.test_original_source_path, entry)
             tst = os.path.join(self.test_root_dir, entry)
-            if entry == 'models':
+            if entry == "models":
                 shutil.copytree(src, tst)
-            elif entry == 'local_dependency':
+            elif entry == "local_dependency":
                 continue
-            elif os.path.isdir(entry) or entry.endswith('.sql'):
+            elif os.path.isdir(entry) or entry.endswith(".sql"):
                 os.symlink(src, tst)
 
     @property
     def packages_config(self):
-        path = os.path.join(self.test_original_source_path, 'local_dependency')
+        path = os.path.join(self.test_original_source_path, "local_dependency")
         return {
-            'packages': [{
-                'local': path,
-            }],
+            "packages": [
+                {
+                    "local": path,
+                }
+            ],
         }
 
 
 class TestCLIInvocation(ModelCopyingIntegrationTest):
-
     def setUp(self):
         super().setUp()
         self.run_sql_file("seed.sql")
@@ -136,35 +131,32 @@ class TestCLIInvocation(ModelCopyingIntegrationTest):
     def models(self):
         return "models"
 
-    @use_profile('postgres')
+    @use_profile("postgres")
     def test_postgres_toplevel_dbt_run(self):
-        self.run_dbt(['deps'])
-        results = self.run_dbt(['run'])
+        self.run_dbt(["deps"])
+        results = self.run_dbt(["run"])
         self.assertEqual(len(results), 1)
         self.assertTablesEqual("seed", "model")
 
-    @use_profile('postgres')
+    @use_profile("postgres")
     def test_postgres_subdir_dbt_run(self):
         os.chdir(os.path.join(self.models, "subdir1"))
-        self.run_dbt(['deps'])
+        self.run_dbt(["deps"])
 
-        results = self.run_dbt(['run'])
+        results = self.run_dbt(["run"])
         self.assertEqual(len(results), 1)
         self.assertTablesEqual("seed", "model")
 
 
 class TestCLIInvocationWithProfilesDir(ModelCopyingIntegrationTest):
-
     def setUp(self):
         super().setUp()
 
         self.run_sql(f"DROP SCHEMA IF EXISTS {self.custom_schema} CASCADE;")
         self.run_sql(f"CREATE SCHEMA {self.custom_schema};")
 
-        profiles = get_custom_profiles_config(
-            self.database_host, self.custom_schema)
-        create_directory_with_custom_profiles(
-            "./dbt-profile", profiles)
+        profiles = get_custom_profiles_config(self.database_host, self.custom_schema)
+        create_directory_with_custom_profiles("./dbt-profile", profiles)
 
         self.run_sql_file("seed_custom.sql")
 
@@ -184,18 +176,18 @@ class TestCLIInvocationWithProfilesDir(ModelCopyingIntegrationTest):
     def models(self):
         return "models"
 
-    @use_profile('postgres')
+    @use_profile("postgres")
     def test_postgres_toplevel_dbt_run_with_profile_dir_arg(self):
-        self.run_dbt(['deps'])
-        results = self.run_dbt(['run', '--profiles-dir', 'dbt-profile'], profiles_dir=False)
+        self.run_dbt(["deps"])
+        results = self.run_dbt(["run", "--profiles-dir", "dbt-profile"], profiles_dir=False)
         self.assertEqual(len(results), 1)
 
-        actual = self.run_sql("select id from {}.model".format(self.custom_schema), fetch='one')
+        actual = self.run_sql("select id from {}.model".format(self.custom_schema), fetch="one")
 
-        expected = (1, )
+        expected = (1,)
         self.assertEqual(actual, expected)
 
-        res = self.run_dbt(['test', '--profiles-dir', 'dbt-profile'], profiles_dir=False)
+        res = self.run_dbt(["test", "--profiles-dir", "dbt-profile"], profiles_dir=False)
 
         # make sure the test runs against `custom_schema`
         for test_result in res:
@@ -203,7 +195,6 @@ class TestCLIInvocationWithProfilesDir(ModelCopyingIntegrationTest):
 
 
 class TestCLIInvocationWithProjectDir(ModelCopyingIntegrationTest):
-
     @property
     def schema(self):
         return "test_cli_invocation_015"
@@ -212,11 +203,11 @@ class TestCLIInvocationWithProjectDir(ModelCopyingIntegrationTest):
     def models(self):
         return "models"
 
-    @use_profile('postgres')
+    @use_profile("postgres")
     def test_postgres_dbt_commands_with_cwd_as_project_dir(self):
         self._run_simple_dbt_commands(os.getcwd())
 
-    @use_profile('postgres')
+    @use_profile("postgres")
     def test_postgres_dbt_commands_with_randomdir_as_project_dir(self):
         workdir = self.test_root_dir
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -224,7 +215,7 @@ class TestCLIInvocationWithProjectDir(ModelCopyingIntegrationTest):
             self._run_simple_dbt_commands(workdir)
             os.chdir(workdir)
 
-    @use_profile('postgres')
+    @use_profile("postgres")
     def test_postgres_dbt_commands_with_relative_dir_as_project_dir(self):
         workdir = self.test_root_dir
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -233,19 +224,18 @@ class TestCLIInvocationWithProjectDir(ModelCopyingIntegrationTest):
             os.chdir(workdir)
 
     def _run_simple_dbt_commands(self, project_dir):
-        self.run_dbt(['deps', '--project-dir', project_dir])
-        self.run_dbt(['seed', '--project-dir', project_dir])
-        self.run_dbt(['run', '--project-dir', project_dir])
-        self.run_dbt(['test', '--project-dir', project_dir])
-        self.run_dbt(['parse', '--project-dir', project_dir])
-        self.run_dbt(['clean', '--project-dir', project_dir])
+        self.run_dbt(["deps", "--project-dir", project_dir])
+        self.run_dbt(["seed", "--project-dir", project_dir])
+        self.run_dbt(["run", "--project-dir", project_dir])
+        self.run_dbt(["test", "--project-dir", project_dir])
+        self.run_dbt(["parse", "--project-dir", project_dir])
+        self.run_dbt(["clean", "--project-dir", project_dir])
         # In case of 'dbt clean' also test that the clean-targets directories were deleted.
         for target in self.config.clean_targets:
             assert not os.path.isdir(target)
 
 
 class TestCLIInvocationWithProfilesAndProjectDir(ModelCopyingIntegrationTest):
-
     @property
     def schema(self):
         return "test_cli_invocation_015"
@@ -259,8 +249,7 @@ class TestCLIInvocationWithProfilesAndProjectDir(ModelCopyingIntegrationTest):
         return "{}_custom".format(self.unique_schema())
 
     def _test_postgres_sub_command_with_profiles_separate_from_project_dir(
-        self,
-        dbt_sub_command: str
+        self, dbt_sub_command: str
     ):
         """
         Test if a sub command runs well when a profiles dir is separate from a
@@ -271,8 +260,7 @@ class TestCLIInvocationWithProfilesAndProjectDir(ModelCopyingIntegrationTest):
         workdir = os.getcwd()
         with temporary_working_directory() as tmpdir:
 
-            profiles = get_custom_profiles_config(
-                self.database_host, self.custom_schema)
+            profiles = get_custom_profiles_config(self.database_host, self.custom_schema)
             create_directory_with_custom_profiles(profiles_dir, profiles)
 
             project_dir = os.path.relpath(workdir, os.getcwd())
@@ -280,7 +268,11 @@ class TestCLIInvocationWithProfilesAndProjectDir(ModelCopyingIntegrationTest):
                 os.remove(f"{project_dir}/profiles.yml")
 
             other_args = [
-                dbt_sub_command, "--profiles-dir", profiles_dir, "--project-dir", project_dir
+                dbt_sub_command,
+                "--profiles-dir",
+                profiles_dir,
+                "--project-dir",
+                project_dir,
             ]
             self.run_dbt(other_args, profiles_dir=False)
 

@@ -1,5 +1,6 @@
 from test.integration.base import DBTIntegrationTest, use_profile
 
+
 class TestExternalReference(DBTIntegrationTest):
     @property
     def schema(self):
@@ -12,18 +13,10 @@ class TestExternalReference(DBTIntegrationTest):
     def setUp(self):
         super().setUp()
         self.use_default_project()
-        self.external_schema = self.unique_schema()+'z'
-        self.run_sql(
-            'create schema "{}"'.format(self.external_schema)
-        )
-        self.run_sql(
-            'create table "{}"."external" (id integer)'
-            .format(self.external_schema)
-        )
-        self.run_sql(
-            'insert into "{}"."external" values (1), (2)'
-            .format(self.external_schema)
-        )
+        self.external_schema = self.unique_schema() + "z"
+        self.run_sql('create schema "{}"'.format(self.external_schema))
+        self.run_sql('create table "{}"."external" (id integer)'.format(self.external_schema))
+        self.run_sql('insert into "{}"."external" values (1), (2)'.format(self.external_schema))
 
     def tearDown(self):
         # This has to happen before we drop the external schema, because
@@ -33,7 +26,7 @@ class TestExternalReference(DBTIntegrationTest):
             self._drop_schema_named(self.default_database, self.external_schema)
         super().tearDown()
 
-    @use_profile('postgres')
+    @use_profile("postgres")
     def test__postgres__external_reference(self):
         self.assertEqual(len(self.run_dbt()), 1)
         # running it again should succeed
@@ -59,20 +52,18 @@ class TestExternalDependency(DBTIntegrationTest):
             self._drop_schema_named(self.default_database, self.external_schema)
         super().tearDown()
 
-    @use_profile('postgres')
+    @use_profile("postgres")
     def test__postgres__external_reference(self):
         self.assertEqual(len(self.run_dbt()), 1)
 
         # create a view outside of the dbt schema that depends on this model
-        self.external_schema = self.unique_schema()+'zz'
+        self.external_schema = self.unique_schema() + "zz"
+        self.run_sql('create schema "{}"'.format(self.external_schema))
         self.run_sql(
-            'create schema "{}"'.format(self.external_schema)
-        )
-        self.run_sql(
-            'create view "{}"."external" as (select * from {}.my_model)'
-            .format(self.external_schema, self.unique_schema())
+            'create view "{}"."external" as (select * from {}.my_model)'.format(
+                self.external_schema, self.unique_schema()
+            )
         )
 
         # running it again should succeed
         self.assertEqual(len(self.run_dbt()), 1)
-

@@ -4,12 +4,8 @@ from test.integration.base import DBTIntegrationTest, use_profile
 class TestCustomSchema(DBTIntegrationTest):
     def setUp(self):
         super().setUp()
-        self._created_schemas.add(
-            self._get_schema_fqn(self.default_database, self.v2_schema())
-        )
-        self._created_schemas.add(
-            self._get_schema_fqn(self.default_database, self.xf_schema())
-        )
+        self._created_schemas.add(self._get_schema_fqn(self.default_database, self.v2_schema()))
+        self._created_schemas.add(self._get_schema_fqn(self.default_database, self.xf_schema()))
 
     @property
     def schema(self):
@@ -25,7 +21,7 @@ class TestCustomSchema(DBTIntegrationTest):
     def xf_schema(self):
         return f"{self.unique_schema()}_test"
 
-    @use_profile('postgres')
+    @use_profile("postgres")
     def test__postgres__custom_schema_no_prefix(self):
         self.run_sql_file("seed.sql")
 
@@ -42,15 +38,9 @@ class TestCustomSchema(DBTIntegrationTest):
 class TestCustomProjectSchemaWithPrefix(DBTIntegrationTest):
     def setUp(self):
         super().setUp()
-        self._created_schemas.add(
-            self._get_schema_fqn(self.default_database, self.v1_schema())
-        )
-        self._created_schemas.add(
-            self._get_schema_fqn(self.default_database, self.v2_schema())
-        )
-        self._created_schemas.add(
-            self._get_schema_fqn(self.default_database, self.xf_schema())
-        )
+        self._created_schemas.add(self._get_schema_fqn(self.default_database, self.v1_schema()))
+        self._created_schemas.add(self._get_schema_fqn(self.default_database, self.v2_schema()))
+        self._created_schemas.add(self._get_schema_fqn(self.default_database, self.xf_schema()))
 
     @property
     def schema(self):
@@ -63,30 +53,28 @@ class TestCustomProjectSchemaWithPrefix(DBTIntegrationTest):
     @property
     def profile_config(self):
         return {
-            'test': {
-                'outputs': {
-                    'my-target': {
-                        'type': 'postgres',
-                        'threads': 1,
-                        'host': self.database_host,
-                        'port': 5432,
-                        'user': 'root',
-                        'pass': 'password',
-                        'dbname': 'dbt',
-                        'schema': self.unique_schema(),
+            "test": {
+                "outputs": {
+                    "my-target": {
+                        "type": "postgres",
+                        "threads": 1,
+                        "host": self.database_host,
+                        "port": 5432,
+                        "user": "root",
+                        "pass": "password",
+                        "dbname": "dbt",
+                        "schema": self.unique_schema(),
                     }
                 },
-                'target': 'my-target'
+                "target": "my-target",
             }
         }
 
     @property
     def project_config(self):
         return {
-            'config-version': 2,
-            "models": {
-                "schema": "dbt_test"
-            },
+            "config-version": 2,
+            "models": {"schema": "dbt_test"},
         }
 
     def v1_schema(self):
@@ -108,7 +96,7 @@ class TestCustomProjectSchemaWithPrefix(DBTIntegrationTest):
     def assert_schemas_not_created(self, expected):
         assert not self._list_schemas().intersection(expected)
 
-    @use_profile('postgres')
+    @use_profile("postgres")
     def test__postgres__custom_schema_with_prefix(self):
         schema = self.unique_schema()
         new_schemas = {self.v1_schema(), self.v2_schema(), self.xf_schema()}
@@ -117,9 +105,9 @@ class TestCustomProjectSchemaWithPrefix(DBTIntegrationTest):
 
         self.run_sql_file("seed.sql")
 
-        self.run_dbt(['ls'])
+        self.run_dbt(["ls"])
         self.assert_schemas_not_created(new_schemas)
-        self.run_dbt(['compile'])
+        self.run_dbt(["compile"])
         self.assert_schemas_not_created(new_schemas)
 
         results = self.run_dbt()
@@ -135,15 +123,9 @@ class TestCustomSchemaWithCustomMacro(DBTIntegrationTest):
     def setUp(self):
         super().setUp()
 
-        self._created_schemas.add(
-            self._get_schema_fqn(self.default_database, self.v1_schema())
-        )
-        self._created_schemas.add(
-            self._get_schema_fqn(self.default_database, self.v2_schema())
-        )
-        self._created_schemas.add(
-            self._get_schema_fqn(self.default_database, self.xf_schema())
-        )
+        self._created_schemas.add(self._get_schema_fqn(self.default_database, self.v1_schema()))
+        self._created_schemas.add(self._get_schema_fqn(self.default_database, self.v2_schema()))
+        self._created_schemas.add(self._get_schema_fqn(self.default_database, self.xf_schema()))
 
     @property
     def schema(self):
@@ -156,31 +138,31 @@ class TestCustomSchemaWithCustomMacro(DBTIntegrationTest):
     @property
     def profile_config(self):
         return {
-            'test': {
-                'outputs': {
-                    'prod': {
-                        'type': 'postgres',
-                        'threads': 1,
-                        'host': self.database_host,
-                        'port': 5432,
-                        'user': 'root',
-                        'pass': 'password',
-                        'dbname': 'dbt',
-                        'schema': self.unique_schema(),
+            "test": {
+                "outputs": {
+                    "prod": {
+                        "type": "postgres",
+                        "threads": 1,
+                        "host": self.database_host,
+                        "port": 5432,
+                        "user": "root",
+                        "pass": "password",
+                        "dbname": "dbt",
+                        "schema": self.unique_schema(),
                     }
                 },
-                'target': 'prod'
+                "target": "prod",
             }
         }
 
     @property
     def project_config(self):
         return {
-            'config-version': 2,
-            'macro-paths': ['custom-macros'],
-            'models': {
-                'schema': 'dbt_test',
-            }
+            "config-version": 2,
+            "macro-paths": ["custom-macros"],
+            "models": {
+                "schema": "dbt_test",
+            },
         }
 
     def v1_schema(self):
@@ -192,7 +174,7 @@ class TestCustomSchemaWithCustomMacro(DBTIntegrationTest):
     def xf_schema(self):
         return f"test_{self.unique_schema()}_macro"
 
-    @use_profile('postgres')
+    @use_profile("postgres")
     def test__postgres__custom_schema_from_macro(self):
         self.run_sql_file("seed.sql")
 
@@ -221,30 +203,26 @@ class TestCustomSchemaDispatchedPackageMacro(TestCustomSchemaWithCustomMacro):
                     "search_order": ["test", "package_macro_overrides", "dbt"],
                 }
             ],
-            "models": {
-                "schema": "dbt_test"
-            },
-            
+            "models": {"schema": "dbt_test"},
         }
-        
+
     @property
     def packages_config(self):
         return {
-            'packages': [
+            "packages": [
                 {
                     "local": "./package_macro_overrides",
                 },
             ]
         }
 
-    @use_profile('postgres')
+    @use_profile("postgres")
     def test__postgres__custom_schema_from_macro(self):
         self.run_dbt(["deps"])
         super().test__postgres__custom_schema_from_macro
 
 
 class TestCustomSchemaWithCustomMacroConfigs(TestCustomSchemaWithCustomMacro):
-
     @property
     def schema(self):
         return "custom_macro_cfg_024"
@@ -252,14 +230,12 @@ class TestCustomSchemaWithCustomMacroConfigs(TestCustomSchemaWithCustomMacro):
     @property
     def project_config(self):
         return {
-            'config-version': 2,
-            'macro-paths': ['custom-macros-configs'],
-            'models': {
-                'schema': 'dbt_test'
-            },
+            "config-version": 2,
+            "macro-paths": ["custom-macros-configs"],
+            "models": {"schema": "dbt_test"},
         }
 
-    @use_profile('postgres')
+    @use_profile("postgres")
     def test__postgres__custom_schema_from_macro(self):
         self.run_sql_file("seed.sql")
         results = self.run_dbt()
@@ -279,12 +255,8 @@ class TestCustomSchemaWithCustomMacroFromModelName(DBTIntegrationTest):
     def setUp(self):
         super().setUp()
 
-        self._created_schemas.add(
-            self._get_schema_fqn(self.default_database, self.v1_schema())
-        )
-        self._created_schemas.add(
-            self._get_schema_fqn(self.default_database, self.v2_schema())
-        )
+        self._created_schemas.add(self._get_schema_fqn(self.default_database, self.v1_schema()))
+        self._created_schemas.add(self._get_schema_fqn(self.default_database, self.v2_schema()))
 
     @property
     def schema(self):
@@ -297,35 +269,35 @@ class TestCustomSchemaWithCustomMacroFromModelName(DBTIntegrationTest):
     @property
     def profile_config(self):
         return {
-            'test': {
-                'outputs': {
-                    'prod': {
-                        'type': 'postgres',
-                        'threads': 1,
-                        'host': self.database_host,
-                        'port': 5432,
-                        'user': 'root',
-                        'pass': 'password',
-                        'dbname': 'dbt',
-                        'schema': self.unique_schema(),
+            "test": {
+                "outputs": {
+                    "prod": {
+                        "type": "postgres",
+                        "threads": 1,
+                        "host": self.database_host,
+                        "port": 5432,
+                        "user": "root",
+                        "pass": "password",
+                        "dbname": "dbt",
+                        "schema": self.unique_schema(),
                     }
                 },
-                'target': 'prod'
+                "target": "prod",
             }
         }
 
     @property
     def project_config(self):
         return {
-            'config-version': 2,
-            'macro-paths': ['custom-macros-multischema'],
-            'seed-paths': ['seed'],
-            'seeds': {
-                'quote_columns': False,
-            },            
-            'models': {
-                'schema': 'dbt_test',
-            }
+            "config-version": 2,
+            "macro-paths": ["custom-macros-multischema"],
+            "seed-paths": ["seed"],
+            "seeds": {
+                "quote_columns": False,
+            },
+            "models": {
+                "schema": "dbt_test",
+            },
         }
 
     def v1_schema(self):
@@ -334,12 +306,12 @@ class TestCustomSchemaWithCustomMacroFromModelName(DBTIntegrationTest):
     def v2_schema(self):
         return f"second_schema"
 
-    @use_profile('postgres')
+    @use_profile("postgres")
     def test__postgres__custom_schema_from_macro_model_name(self):
         self.run_sql_file("seed.sql")
         default_schema = self.unique_schema()
 
-        results = self.run_dbt(['seed'])
+        results = self.run_dbt(["seed"])
         self.assertEqual(len(results), 2)
         self.assertTableDoesExist("my_seed", self.v1_schema())
         self.assertTableDoesExist("my_agg", self.v2_schema())
@@ -350,4 +322,3 @@ class TestCustomSchemaWithCustomMacroFromModelName(DBTIntegrationTest):
         self.assertTablesEqual("seed", "view_1", default_schema, self.v1_schema())
         self.assertTablesEqual("seed", "view_2", default_schema, self.v2_schema())
         self.assertTablesEqual("agg", "view_3", default_schema, default_schema)
-

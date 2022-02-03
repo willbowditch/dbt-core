@@ -1,11 +1,11 @@
-from test.integration.base import DBTIntegrationTest,  use_profile
+from test.integration.base import DBTIntegrationTest, use_profile
 import os
 
 
 class BaseTestCustomMaterialization(DBTIntegrationTest):
     @property
     def schema(self):
-        return 'dbt_custom_materializations_053'
+        return "dbt_custom_materializations_053"
 
     @staticmethod
     def dir(value):
@@ -21,55 +21,37 @@ class TestOverrideAdapterDependency(BaseTestCustomMaterialization):
     # materialization, we honor that materialization
     @property
     def packages_config(self):
-        return {
-            'packages': [
-                {
-                    'local': 'override-view-adapter-dep'
-                }
-            ]
-        }
+        return {"packages": [{"local": "override-view-adapter-dep"}]}
 
-    @use_profile('postgres')
+    @use_profile("postgres")
     def test_postgres_adapter_dependency(self):
-        self.run_dbt(['deps'])
+        self.run_dbt(["deps"])
         # this should error because the override is buggy
-        self.run_dbt(['run'], expect_pass=False)
+        self.run_dbt(["run"], expect_pass=False)
 
 
 class TestOverrideDefaultDependency(BaseTestCustomMaterialization):
     @property
     def packages_config(self):
-        return {
-            'packages': [
-                {
-                    'local': 'override-view-default-dep'
-                }
-            ]
-        }
+        return {"packages": [{"local": "override-view-default-dep"}]}
 
-    @use_profile('postgres')
+    @use_profile("postgres")
     def test_postgres_default_dependency(self):
-        self.run_dbt(['deps'])
+        self.run_dbt(["deps"])
         # this should error because the override is buggy
-        self.run_dbt(['run'], expect_pass=False)
+        self.run_dbt(["run"], expect_pass=False)
 
 
 class TestOverrideAdapterDependencyPassing(BaseTestCustomMaterialization):
     @property
     def packages_config(self):
-        return {
-            'packages': [
-                {
-                    'local': 'override-view-adapter-pass-dep'
-                }
-            ]
-        }
+        return {"packages": [{"local": "override-view-adapter-pass-dep"}]}
 
-    @use_profile('postgres')
+    @use_profile("postgres")
     def test_postgres_default_dependency(self):
-        self.run_dbt(['deps'])
+        self.run_dbt(["deps"])
         # this should pass because the override is ok
-        self.run_dbt(['run'])
+        self.run_dbt(["run"])
 
 
 class TestOverrideAdapterLocal(BaseTestCustomMaterialization):
@@ -78,38 +60,26 @@ class TestOverrideAdapterLocal(BaseTestCustomMaterialization):
 
     @property
     def packages_config(self):
-        return {
-            'packages': [
-                {
-                    'local': 'override-view-adapter-pass-dep'
-                }
-            ]
-        }
+        return {"packages": [{"local": "override-view-adapter-pass-dep"}]}
 
     @property
     def project_config(self):
-        return {
-            'config-version': 2,
-            'macro-paths': ['override-view-adapter-macros']
-        }
+        return {"config-version": 2, "macro-paths": ["override-view-adapter-macros"]}
 
-    @use_profile('postgres')
+    @use_profile("postgres")
     def test_postgres_default_dependency(self):
-        self.run_dbt(['deps'])
+        self.run_dbt(["deps"])
         # this should error because the override is buggy
-        self.run_dbt(['run'], expect_pass=False)
+        self.run_dbt(["run"], expect_pass=False)
 
 
 class TestOverrideDefaultReturn(BaseTestCustomMaterialization):
     @property
     def project_config(self):
-        return {
-            'config-version': 2,
-            'macro-paths': ['override-view-return-no-relation']
-        }
+        return {"config-version": 2, "macro-paths": ["override-view-return-no-relation"]}
 
-    @use_profile('postgres')
+    @use_profile("postgres")
     def test_postgres_default_dependency(self):
-        self.run_dbt(['deps'])
-        results = self.run_dbt(['run'], expect_pass=False)
-        assert 'did not explicitly return a list of relations' in results[0].message
+        self.run_dbt(["deps"])
+        results = self.run_dbt(["run"], expect_pass=False)
+        assert "did not explicitly return a list of relations" in results[0].message

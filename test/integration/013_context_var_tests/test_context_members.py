@@ -13,10 +13,10 @@ class TestContextVars(DBTIntegrationTest):
     @property
     def project_config(self):
         return {
-            'config-version': 2,
-            'test-paths': ['tests'],
+            "config-version": 2,
+            "test-paths": ["tests"],
         }
 
-    @use_profile('postgres')
+    @use_profile("postgres")
     def test_json_data_tests_postgres(self):
-        self.assertEqual(len(self.run_dbt(['test'])), 2)
+        self.assertEqual(len(self.run_dbt(["test"])), 2)
