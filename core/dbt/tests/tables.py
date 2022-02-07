@@ -254,7 +254,7 @@ class TableComparison:
     # override for presto
     @property
     def column_schema(self):
-        return 'table_name, column_name, data_type, character_maximum_length' 
+        return 'table_name, column_name, data_type, character_maximum_length'
 
     # This should be overridden for Snowflake
     def get_many_table_columns_information_schema(self, tables, schema, database=None):
