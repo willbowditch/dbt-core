@@ -1,5 +1,5 @@
 import pytest
-from tests.util import run_dbt, get_manifest
+from dbt.tests.util import run_dbt, get_manifest
 
 
 model_sql = """

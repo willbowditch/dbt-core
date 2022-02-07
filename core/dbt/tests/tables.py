@@ -1,4 +1,4 @@
-from tests.util import run_sql
+from dbt.tests.util import run_sql
 from dbt.context import providers
 from unittest.mock import patch
 from contextlib import contextmanager

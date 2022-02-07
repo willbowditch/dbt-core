@@ -1,5 +1,5 @@
 import pytest
-from tests.util import run_dbt
+from dbt.tests.util import run_dbt
 
 # from `test/integration/test_simple_seed`, test_postgres_simple_seed
 

@@ -1,7 +1,7 @@
 import pytest
 import os
-from tests.tables import TableComparison
-from tests.util import run_dbt
+from dbt.tests.tables import TableComparison
+from dbt.tests.util import run_dbt
 
 from tests.functional.simple_copy.test_simple_copy import (
     advanced_incremental_sql,

@@ -1,7 +1,7 @@
 import pytest
 import os
-from tests.util import run_dbt, run_sql_file
-from tests.tables import TableComparison, get_tables_in_schema
+from dbt.tests.util import run_dbt, run_sql_file
+from dbt.tests.tables import TableComparison, get_tables_in_schema
 
 
 ephemeral_copy_sql = """
