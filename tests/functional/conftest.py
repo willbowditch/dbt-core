@@ -8,6 +8,7 @@ from argparse import Namespace
 import dbt.flags as flags
 from dbt.config.runtime import RuntimeConfig
 from dbt.adapters.factory import get_adapter, register_adapter
+from dbt.tests.util import run_sql_file
 
 import yaml
 
@@ -266,3 +267,9 @@ def project(
         # the following feels kind of fragile. TODO: better way of getting database
         database=profiles_yml['test']['outputs']['default']['dbname'],
     )
+
+
+@pytest.fixture
+def create_tables(data_dir, unique_schema):
+    path = os.path.join(data_dir, 'seed.sql')
+    run_sql_file(path, unique_schema)

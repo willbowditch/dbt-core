@@ -322,6 +322,8 @@ def _ilike(target, value):
 
 
 def get_tables_in_schema(schema):
+    # TODO the get_models_in_schema has a special case for snowflake, do we still need it
+
     sql = """
             select table_name,
                     case when table_type = 'BASE TABLE' then 'table'
