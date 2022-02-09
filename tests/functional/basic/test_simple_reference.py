@@ -114,33 +114,27 @@ order by gender asc
 @pytest.fixture
 def models():
     return {
-        'ephemeral_copy.sql': ephemeral_copy_sql,
-        'ephemeral_summary.sql': ephemeral_summary_sql,
-        'incremental_copy.sql': incremental_copy_sql,
-        'incremental_summary.sql': incremental_summary_sql,
-        'materialized_copy.sql': materialized_copy_sql,
-        'materialized_summary.sql': materialized_summary_sql,
-        'view_copy.sql': view_copy_sql,
-        'view_summary.sql': view_summary_sql,
-        'view_using_ref.sql': view_using_ref_sql,
+        "ephemeral_copy.sql": ephemeral_copy_sql,
+        "ephemeral_summary.sql": ephemeral_summary_sql,
+        "incremental_copy.sql": incremental_copy_sql,
+        "incremental_summary.sql": incremental_summary_sql,
+        "materialized_copy.sql": materialized_copy_sql,
+        "materialized_summary.sql": materialized_summary_sql,
+        "view_copy.sql": view_copy_sql,
+        "view_summary.sql": view_summary_sql,
+        "view_using_ref.sql": view_using_ref_sql,
     }
 
 
 @pytest.fixture
 def project_config_update():
     return {
-        'vars': {
-            'test': {
-                'var_ref': '{{ ref("view_copy") }}',
+        "vars": {
+            "test": {
+                "var_ref": '{{ ref("view_copy") }}',
             },
         },
     }
-
-
-@pytest.fixture
-def create_tables(test_data_dir, unique_schema):
-    path = os.path.join(test_data_dir, 'seed.sql')
-    run_sql_file(path, unique_schema)
 
 
 # This test checks that with different materializations we get the right
@@ -167,7 +161,7 @@ def test_simple_reference(project, create_tables):
     table_comp.assert_tables_equal("summary_expected", "ephemeral_summary")
     table_comp.assert_tables_equal("summary_expected", "view_using_ref")
 
-    path = os.path.join(project.test_data_dir, 'update.sql')
+    path = os.path.join(project.test_data_dir, "update.sql")
     run_sql_file(path, project.test_schema)
 
     results = run_dbt()
@@ -189,7 +183,7 @@ def test_simple_reference_with_models(project, create_tables):
 
     # Run materialized_copy, ephemeral_copy, and their dependents
     # ephemeral_copy should not actually be materialized b/c it is ephemeral
-    results = run_dbt(['run', '--models', 'materialized_copy', 'ephemeral_copy'])
+    results = run_dbt(["run", "--models", "materialized_copy", "ephemeral_copy"])
     assert len(results) == 1
 
     # Copies should match
@@ -199,13 +193,13 @@ def test_simple_reference_with_models(project, create_tables):
     table_comp.assert_tables_equal("seed", "materialized_copy")
 
     created_tables = get_tables_in_schema(project.test_schema)
-    assert 'materialized_copy' in created_tables
+    assert "materialized_copy" in created_tables
 
 
 def test_simple_reference_with_models_and_children(project, create_tables):
 
     # Run materialized_copy, ephemeral_copy, and their dependents
-    results = run_dbt(['run', '--models', 'materialized_copy+', 'ephemeral_copy+'])
+    results = run_dbt(["run", "--models", "materialized_copy+", "ephemeral_copy+"])
     assert len(results) == 3
 
     table_comp = TableComparison(
@@ -221,18 +215,18 @@ def test_simple_reference_with_models_and_children(project, create_tables):
 
     created_tables = get_tables_in_schema(project.test_schema)
 
-    assert 'incremental_copy' not in created_tables
-    assert 'incremental_summary' not in created_tables
-    assert 'view_copy' not in created_tables
-    assert 'view_summary' not in created_tables
+    assert "incremental_copy" not in created_tables
+    assert "incremental_summary" not in created_tables
+    assert "view_copy" not in created_tables
+    assert "view_summary" not in created_tables
 
     # make sure this wasn't errantly materialized
-    assert 'ephemeral_copy' not in created_tables
+    assert "ephemeral_copy" not in created_tables
 
-    assert 'materialized_copy' in created_tables
-    assert 'materialized_summary' in created_tables
-    assert created_tables['materialized_copy'] == 'table'
-    assert created_tables['materialized_summary'] == 'table'
+    assert "materialized_copy" in created_tables
+    assert "materialized_summary" in created_tables
+    assert created_tables["materialized_copy"] == "table"
+    assert created_tables["materialized_summary"] == "table"
 
-    assert 'ephemeral_summary' in created_tables
-    assert created_tables['ephemeral_summary'] == 'table'
+    assert "ephemeral_summary" in created_tables
+    assert created_tables["ephemeral_summary"] == "table"
