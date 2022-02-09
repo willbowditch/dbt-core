@@ -1,10 +1,11 @@
 use crate::exceptions::{CalculateError, IOError};
 use chrono::prelude::*;
 use itertools::Itertools;
-use serde::{Deserialize, Serialize};
+use serde::{de::Error, Deserialize, Deserializer, Serialize, Serializer};
 use std::fs;
 use std::fs::DirEntry;
 use std::path::{Path, PathBuf};
+use std::str::FromStr;
 
 // This type exactly matches the type of array elements
 // from hyperfine's output. Deriving `Serialize` and `Deserialize`
@@ -28,6 +29,25 @@ pub struct Measurement {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Measurements {
     pub results: Vec<Measurement>,
+}
+
+// struct representation for "major.minor.patch" version.
+// useful for ordering versions to get the latest
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub struct Version {
+    major: i32,
+    minor: i32,
+    patch: i32
+}
+
+// A JSON structure outputted by the release process that contains
+// a history of all previous version baseline measurements.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct Baseline {
+    pub version: Version,
+    pub metric: String,
+    pub ts: DateTime<Utc>,
+    pub measurement: Measurement,
 }
 
 // Output data from a comparison between runs on the baseline
@@ -58,6 +78,37 @@ pub struct MeasurementGroup {
     pub version: String,
     pub run: String,
     pub measurement: Measurement,
+}
+
+// Serializes a Version struct into a "major.minor.patch" string.
+impl Serialize for Version {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        format!("{}.{}.{}", self.major, self.minor, self.patch).serialize(serializer)
+    }
+}
+
+// Deserializes a Version struct from a "major.minor.patch" string.
+impl<'de> Deserialize<'de> for Version {
+    fn deserialize<D>(deserializer: D) -> Result<Version, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let s: &str = Deserialize::deserialize(deserializer)?;
+    
+        let ints: Vec<i32> = s
+            .split(".")
+            .map( |x| x.parse::<i32>())
+            .collect::<Result<Vec<i32>, <i32 as FromStr>::Err>>()
+            .map_err(D::Error::custom)?;
+            
+        match ints[..] {
+            [major, minor, patch] => Ok(Version { major: major, minor: minor, patch: patch }),
+            _ => Err(D::Error::custom("Must be in the format \"major.minor.patch\" where each component is an integer."))
+        }
+    }
 }
 
 // Given two measurements, return all the calculations. Calculations are
@@ -298,5 +349,14 @@ mod tests {
         // expect no regressions
         println!("{:#?}", regressions);
         assert!(regressions.is_empty());
+    }
+
+    // The serializer and deserializer are custom implementations
+    // so they should be tested that they match.
+    #[test]
+    fn version_serialize_loop() {
+        let v = Version { major: 1, minor: 2, patch: 3 };
+        let v2 = serde_json::from_str::<Version>(&serde_json::to_string_pretty(&v).unwrap());
+        assert_eq!(v, v2.unwrap());
     }
 }
