@@ -6,7 +6,7 @@ The action spins up a github action container for each project-command combinati
 Performance baselines measured during our release process and are committed to this directory via github action. (TODO make the file and name it here).
 
 ## Threshold
-Particle physicists commonly use a 5σ ("five sigma") standard for the threshold of a new discovery because it means that measurement would have been caused by randomly with less than one in a million odds. With performance regressions we want to be conservative enough that the vast majority of the time detected regressions are true while not being so conservative as to miss most actual regressions. This performance regression test suite uses a 3σ standard so that only about 1 in every 300 runs detects a false performance regression. Here is a chart of sigma standards and their cooresponding odds for a normal distribution:
+Particle physicists commonly use a 5σ ("five sigma") standard for the threshold of a new discovery because that measurement could have been caused by random chance with less than one in a million odds. With performance regressions we want to be conservative enough that the vast majority of the time detected regressions are true while not being so conservative as to miss most actual regressions. This performance regression test suite uses a 3σ standard so that only about 1 in every 300 runs detects a false performance regression. Here is a chart of sigma standards and their cooresponding odds for a normal distribution:
 
 | σ   | Chances            |
 | --- | ------------------ |
