@@ -3,7 +3,9 @@ import pytest
 import random
 import time
 from argparse import Namespace
+from datetime import datetime
 import dbt.flags as flags
+
 from dbt.config.runtime import RuntimeConfig
 from dbt.adapters.factory import get_adapter, register_adapter
 from dbt.events.functions import setup_event_logger
@@ -98,12 +100,13 @@ def project_config_update():
 
 
 @pytest.fixture
-def dbt_project_yml(project_root, project_config_update):
+def dbt_project_yml(project_root, project_config_update, logs_dir):
     project_config = {
         "config-version": 2,
         "name": "test",
         "version": "0.1.0",
         "profile": "test",
+        "log-path": logs_dir
     }
     if project_config_update:
         project_config.update(project_config_update)
@@ -231,6 +234,20 @@ def project_files(project_root, models, macros, snapshots, seeds, tests):
     write_project_files(project_root, "tests", tests)
 
 
+@pytest.fixture(scope="session")
+def logs_dir(request):
+    # create a directory name that will be unique per test session
+    _randint = random.randint(0, 9999)
+    _runtime_timedelta = (datetime.utcnow() - datetime(1970, 1, 1, 0, 0, 0))
+    _runtime = (
+        (int(_runtime_timedelta.total_seconds() * 1e6)) +
+        _runtime_timedelta.microseconds
+    )
+    prefix = f'test{_runtime}{_randint:04}'
+
+    return os.path.join(request.config.rootdir, 'logs', prefix)
+
+
 class TestProjInfo:
     def __init__(
         self,
@@ -267,8 +284,9 @@ def project(
     project_files,
     shared_data_dir,
     test_data_dir,
+    logs_dir,
 ):
-    setup_event_logger("logs")
+    setup_event_logger(logs_dir)
     os.chdir(project_root)
     # Return whatever is needed later in tests but can only come from fixtures, so we can keep
     # the signatures in the test signature to a minimum.
