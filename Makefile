@@ -38,11 +38,11 @@ integration-fail-fast: .env integration-postgres-fail-fast ## Alias for integrat
 
 .PHONY: integration-postgres
 integration-postgres: .env ## Runs postgres integration tests with py38.
-	$(DOCKER_CMD) tox -e py38-postgres -- -nauto test/integration
+	$(DOCKER_CMD) tox -e py38-postgres -- -nauto
 
 .PHONY: integration-postgres-fail-fast
 integration-postgres-fail-fast: .env ## Runs postgres integration tests with py38 in "fail fast" mode.
-	$(DOCKER_CMD) tox -e py38-postgres -- -x -nauto test/integration
+	$(DOCKER_CMD) tox -e py38-postgres -- -x -nauto
 
 .PHONY: setup-db
 setup-db: ## Setup Postgres database with docker-compose for system testing.

@@ -237,6 +237,7 @@ class TestTask(RunTask):
         Read schema files + custom data tests and validate that
         constraints are satisfied.
     """
+    __test__ = False
 
     def raise_on_first_error(self):
         return False
