@@ -113,6 +113,8 @@ A short list of tools used in `dbt-core` testing that will be helpful to your un
 
 A deep understanding of these tools in not required to effectively contribute to `dbt-core`, but we recommend checking out the attached documentation if you're interested in learning more about them.
 
+- [changie](https://changie.dev/) for generating `CHANGELOG` lines.
+
 #### virtual environments
 
 We strongly recommend using virtual environments when developing code in `dbt-core`. We recommend creating this virtualenv
