@@ -1,0 +1,7 @@
+kind: Under the Hood
+body: Added `dbt-core` to version line of `CHANGELOG`.
+time: 2022-02-14T09:31:41.562892-06:00
+custom:
+  Author: oliver
+  Issue: "6655"
+  PR: "5544"
