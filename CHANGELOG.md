@@ -43,17 +43,14 @@ Contributors:
 - Restore previous log level (DEBUG) when a test depends on a disabled resource. Still WARN if the resource is missing ([#4594](https://github.com/dbt-labs/dbt-core/issues/4594), [#4647](https://github.com/dbt-labs/dbt-core/pull/4647))
 - Add project name validation to `dbt init` ([#4490](https://github.com/dbt-labs/dbt-core/issues/4490),[#4536](https://github.com/dbt-labs/dbt-core/pull/4536))
 - Support click versions in the v7.x series ([#4681](https://github.com/dbt-labs/dbt-core/pull/4681))
+- adapter compability messaging added([#4438](https://github.com/dbt-labs/dbt-core/pull/4438) [#4565](https://github.com/dbt-labs/dbt-core/pull/4565))
 
 Contributors:
 * [@amirkdv](https://github.com/amirkdv) ([#4536](https://github.com/dbt-labs/dbt-core/pull/4536))
 * [@twilly](https://github.com/twilly) ([#4681](https://github.com/dbt-labs/dbt-core/pull/4681))
-
-## dbt-core 1.0.2 (TBD)
-### Fixes
-- adapter compability messaging added([#4438](https://github.com/dbt-labs/dbt-core/pull/4438) [#4565](https://github.com/dbt-labs/dbt-core/pull/4565))
-
-Contributors:
 * [@nkyuray](https://github.com/nkyuray) ([#4565](https://github.com/dbt-labs/dbt-core/pull/4565))
+
+
 ## dbt-core 1.0.1 (January 03, 2022)
 
 

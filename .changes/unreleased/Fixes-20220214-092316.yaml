@@ -1,0 +1,7 @@
+kind: Fixes
+body: Fixing old changelog issues to prove you can.
+time: 2022-02-14T09:23:16.115883-06:00
+custom:
+  Author: not-emmyoop
+  Issue: "4444"
+  PR: "5555"
