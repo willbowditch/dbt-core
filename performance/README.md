@@ -35,14 +35,14 @@ The following example data was collected locally on a macbook pro using the same
 
 In dbt v1.0.1, we have the following mean and standard deviation when parsing a dbt project with 2000 models:
 
-mean: 49.82  
-stddev: 0.5212  
+mean: 49.82<br/>
+stddev: 0.5212<br/>
 
 The 2-sided 3 sigma range can be calculated with these two values via:
 
-μ ± 3 σ  
-49.82 ± (3 * 0.5212)  
-[48.26, 51.38]  
+μ ± 3 σ<br/>
+49.82 ± (3 * 0.5212)<br/>
+[48.26, 51.38]<br/>
 
 It follows that the 1-sided 3 sigma range is just [49.82, 51.38].
 
