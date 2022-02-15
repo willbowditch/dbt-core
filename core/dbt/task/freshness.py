@@ -29,10 +29,10 @@ from dbt.node_types import NodeType
 
 from dbt.graph import ResourceTypeSelector
 from dbt.contracts.graph.parsed import ParsedSourceDefinition
-from dbt.path_utils import FRESHNESS_RESULT_ARCHIVE_DIR_NAME
 
 
 RESULT_FILE_NAME = "sources.json"
+
 
 class FreshnessRunner(BaseRunner):
     def on_skip(self):
@@ -186,15 +186,6 @@ class FreshnessTask(GraphRunnableTask):
             return os.path.realpath(self.args.output)
         else:
             return os.path.join(self.config.target_path, RESULT_FILE_NAME)
-    
-    def archive_path(self):
-        if self.args.output:
-            return os.path.realpath(self.args.output + '/' + FRESHNESS_RESULT_ARCHIVE_DIR_NAME)
-        
-        else:
-            if not os.path.exists(os.path.join(self.config.target_path, FRESHNESS_RESULT_ARCHIVE_DIR_NAME)):
-                os.mkdir(os.path.join(self.config.target_path, FRESHNESS_RESULT_ARCHIVE_DIR_NAME))
-            return os.path.join(self.config.target_path, FRESHNESS_RESULT_ARCHIVE_DIR_NAME, RESULT_FILE_NAME)
 
     def raise_on_first_error(self):
         return False
@@ -214,10 +205,8 @@ class FreshnessTask(GraphRunnableTask):
 
     def write_result(self, result):
         artifact = FreshnessExecutionResultArtifact.from_result(result)
-        if os.path.exists(self.result_path()):
-            os.rename(self.result_path(), self.archive_path())
         artifact.write(self.result_path())
-        
+
     def get_result(self, results, elapsed_time, generated_at):
         return FreshnessResult.from_node_results(
             elapsed_time=elapsed_time, generated_at=generated_at, results=results
