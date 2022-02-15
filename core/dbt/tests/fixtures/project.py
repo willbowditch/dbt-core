@@ -30,7 +30,9 @@ def profiles_root(tmpdir):
 @pytest.fixture
 def project_root(tmpdir):
     # tmpdir docs - https://docs.pytest.org/en/6.2.x/tmpdir.html
-    return tmpdir.mkdir("project")
+    project_root = tmpdir.mkdir("project")
+    print(f"\n=== Test project_root: {project_root}")
+    return project_root
 
 
 # This is for data used by multiple tests, in the 'tests/data' directory

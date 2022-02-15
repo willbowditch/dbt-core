@@ -18,7 +18,7 @@ def run_dbt(args: List[str] = None, expect_pass=True):
     if args is None:
         args = ["run"]
 
-    print("Invoking dbt with {}".format(args))
+    print("\n\nInvoking dbt with {}".format(args))
     res, success = handle_and_check(args)
     assert success == expect_pass, "dbt exit state did not match expected"
     return res
