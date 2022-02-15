@@ -1,1 +1,0 @@
-FRESHNESS_RESULT_ARCHIVE_DIR_NAME = 'archive_sources'
