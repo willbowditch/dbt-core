@@ -44,9 +44,8 @@ class PreviousState:
 # current state is more difficult because we have to read the project config first before this class is instantiated
 class CurrentState:
     def __init__(self, path=None):
-        self.path: Path = path or 'target' #TODO: fix this by importing target_path later
+        self.path: Path = path or Path('target') #TODO: fix this by importing target_path later
         self.sources: Optional[FreshnessExecutionResultArtifact] = None
-
         sources_path = self.path / 'sources.json'
         if sources_path.exists() and sources_path.is_file():
             try:
