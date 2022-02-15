@@ -40,6 +40,17 @@ pub struct Version {
     patch: i32
 }
 
+impl Version {
+    #[cfg(test)]
+    fn new(major: i32, minor: i32, patch: i32) -> Version {
+        Version { major: major, minor: minor, patch: patch }
+    }
+
+    fn compare_from(&self, versions: &[Version]) -> Version {
+        unimplemented!()
+    }
+}
+
 // A JSON structure outputted by the release process that contains
 // a history of all previous version baseline measurements.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -97,13 +108,13 @@ impl<'de> Deserialize<'de> for Version {
         D: Deserializer<'de>,
     {
         let s: &str = Deserialize::deserialize(deserializer)?;
-    
+
         let ints: Vec<i32> = s
             .split(".")
             .map( |x| x.parse::<i32>())
             .collect::<Result<Vec<i32>, <i32 as FromStr>::Err>>()
             .map_err(D::Error::custom)?;
-            
+
         match ints[..] {
             [major, minor, patch] => Ok(Version { major: major, minor: minor, patch: patch }),
             _ => Err(D::Error::custom("Must be in the format \"major.minor.patch\" where each component is an integer."))
@@ -358,5 +369,43 @@ mod tests {
         let v = Version { major: 1, minor: 2, patch: 3 };
         let v2 = serde_json::from_str::<Version>(&serde_json::to_string_pretty(&v).unwrap());
         assert_eq!(v, v2.unwrap());
+    }
+
+    // Given a list of versions, and one particular version,
+    // return an ordered list of all the historical versions
+    #[test]
+    fn version_compare_order() {
+        let versions = vec![
+            Version::new(1,0,2),
+            Version::new(1,1,0),
+            Version::new(1,1,1),
+            Version::new(1,0,1),
+            Version::new(1,0,0),
+            Version::new(0,21,1),
+            Version::new(0,21,0),
+            Version::new(0,20,2),
+            Version::new(0,20,1),
+            Version::new(0,20,0)
+        ];
+
+        assert_eq!(
+            Version::new(1,0,1),
+            Version::new(1,0,2).compare_from(&versions)
+        );
+
+        assert_eq!(
+            Version::new(1,0,0),
+            Version::new(1,0,1).compare_from(&versions)
+        );
+
+        assert_eq!(
+            Version::new(1,1,0),
+            Version::new(1,0,0).compare_from(&versions)
+        );
+
+        assert_eq!(
+            Version::new(1,0,0),
+            Version::new(0,21,1).compare_from(&versions)
+        );
     }
 }
