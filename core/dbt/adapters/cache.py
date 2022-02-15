@@ -18,9 +18,10 @@ from dbt.events.types import (
     RenameSchema,
     TemporaryRelation,
     UncachedRelation,
-    UpdateReference
+    UpdateReference,
 )
 from dbt.utils import lowercase
+from dbt.helper_types import Lazy
 
 
 def dot_separated(key: _ReferenceKey) -> str:
@@ -28,7 +29,7 @@ def dot_separated(key: _ReferenceKey) -> str:
 
     :param _ReferenceKey key: The key to stringify.
     """
-    return '.'.join(map(str, key))
+    return ".".join(map(str, key))
 
 
 class _CachedRelation:
@@ -40,14 +41,15 @@ class _CachedRelation:
         that refer to this relation.
     :attr BaseRelation inner: The underlying dbt relation.
     """
+
     def __init__(self, inner):
         self.referenced_by = {}
         self.inner = inner
 
     def __str__(self) -> str:
-        return (
-            '_CachedRelation(database={}, schema={}, identifier={}, inner={})'
-        ).format(self.database, self.schema, self.identifier, self.inner)
+        return ("_CachedRelation(database={}, schema={}, identifier={}, inner={})").format(
+            self.database, self.schema, self.identifier, self.inner
+        )
 
     @property
     def database(self) -> Optional[str]:
@@ -81,7 +83,7 @@ class _CachedRelation:
         """
         return _make_key(self)
 
-    def add_reference(self, referrer: '_CachedRelation'):
+    def add_reference(self, referrer: "_CachedRelation"):
         """Add a reference from referrer to self, indicating that if this node
         were drop...cascaded, the referrer would be dropped as well.
 
@@ -125,9 +127,9 @@ class _CachedRelation:
         # table_name is ever anything but the identifier (via .create())
         self.inner = self.inner.incorporate(
             path={
-                'database': new_relation.inner.database,
-                'schema': new_relation.inner.schema,
-                'identifier': new_relation.inner.identifier
+                "database": new_relation.inner.database,
+                "schema": new_relation.inner.schema,
+                "identifier": new_relation.inner.identifier,
             },
         )
 
@@ -143,8 +145,9 @@ class _CachedRelation:
         """
         if new_key in self.referenced_by:
             dbt.exceptions.raise_cache_inconsistent(
-                'in rename of "{}" -> "{}", new name is in the cache already'
-                .format(old_key, new_key)
+                'in rename of "{}" -> "{}", new name is in the cache already'.format(
+                    old_key, new_key
+                )
             )
 
         if old_key not in self.referenced_by:
@@ -169,13 +172,16 @@ class RelationsCache:
         The adapters also hold this lock while filling the cache.
     :attr Set[str] schemas: The set of known/cached schemas, all lowercased.
     """
+
     def __init__(self) -> None:
         self.relations: Dict[_ReferenceKey, _CachedRelation] = {}
         self.lock = threading.RLock()
         self.schemas: Set[Tuple[Optional[str], Optional[str]]] = set()
 
     def add_schema(
-        self, database: Optional[str], schema: Optional[str],
+        self,
+        database: Optional[str],
+        schema: Optional[str],
     ) -> None:
         """Add a schema to the set of known schemas (case-insensitive)
 
@@ -185,7 +191,9 @@ class RelationsCache:
         self.schemas.add((lowercase(database), lowercase(schema)))
 
     def drop_schema(
-        self, database: Optional[str], schema: Optional[str],
+        self,
+        database: Optional[str],
+        schema: Optional[str],
     ) -> None:
         """Drop the given schema and remove it from the set of known schemas.
 
@@ -229,10 +237,7 @@ class RelationsCache:
         # self.relations or any cache entry's referenced_by during iteration
         # it's a runtime error!
         with self.lock:
-            return {
-                dot_separated(k): v.dump_graph_entry()
-                for k, v in self.relations.items()
-            }
+            return {dot_separated(k): v.dump_graph_entry() for k, v in self.relations.items()}
 
     def _setdefault(self, relation: _CachedRelation):
         """Add a relation to the cache, or return it if it already exists.
@@ -260,15 +265,13 @@ class RelationsCache:
             return
         if referenced is None:
             dbt.exceptions.raise_cache_inconsistent(
-                'in add_link, referenced link key {} not in cache!'
-                .format(referenced_key)
+                "in add_link, referenced link key {} not in cache!".format(referenced_key)
             )
 
         dependent = self.relations.get(dependent_key)
         if dependent is None:
             dbt.exceptions.raise_cache_inconsistent(
-                'in add_link, dependent link key {} not in cache!'
-                .format(dependent_key)
+                "in add_link, dependent link key {} not in cache!".format(dependent_key)
             )
 
         assert dependent is not None  # we just raised!
@@ -291,25 +294,20 @@ class RelationsCache:
         :raises InternalError: If either entry does not exist.
         """
         ref_key = _make_key(referenced)
+        dep_key = _make_key(dependent)
         if (ref_key.database, ref_key.schema) not in self:
             # if we have not cached the referenced schema at all, we must be
             # referring to a table outside our control. There's no need to make
             # a link - we will never drop the referenced relation during a run.
-            fire_event(UncachedRelation(dep_key=dependent, ref_key=ref_key))
+            fire_event(UncachedRelation(dep_key=dep_key, ref_key=ref_key))
             return
         if ref_key not in self.relations:
             # Insert a dummy "external" relation.
-            referenced = referenced.replace(
-                type=referenced.External
-            )
+            referenced = referenced.replace(type=referenced.External)
             self.add(referenced)
-
-        dep_key = _make_key(dependent)
         if dep_key not in self.relations:
             # Insert a dummy "external" relation.
-            dependent = dependent.replace(
-                type=referenced.External
-            )
+            dependent = dependent.replace(type=referenced.External)
             self.add(dependent)
         fire_event(AddLink(dep_key=dep_key, ref_key=ref_key))
         with self.lock:
@@ -323,11 +321,11 @@ class RelationsCache:
         """
         cached = _CachedRelation(relation)
         fire_event(AddRelation(relation=_make_key(cached)))
-        fire_event(DumpBeforeAddGraph(dump=self.dump_graph()))
+        fire_event(DumpBeforeAddGraph(dump=Lazy.defer(lambda: self.dump_graph())))
 
         with self.lock:
             self._setdefault(cached)
-        fire_event(DumpAfterAddGraph(dump=self.dump_graph()))
+        fire_event(DumpAfterAddGraph(dump=Lazy.defer(lambda: self.dump_graph())))
 
     def _remove_refs(self, keys):
         """Removes all references to all entries in keys. This does not
@@ -342,17 +340,17 @@ class RelationsCache:
         for cached in self.relations.values():
             cached.release_references(keys)
 
-    def _drop_cascade_relation(self, dropped):
+    def _drop_cascade_relation(self, dropped_key):
         """Drop the given relation and cascade it appropriately to all
         dependent relations.
 
         :param _CachedRelation dropped: An existing _CachedRelation to drop.
         """
-        if dropped not in self.relations:
-            fire_event(DropMissingRelation(relation=dropped))
+        if dropped_key not in self.relations:
+            fire_event(DropMissingRelation(relation=dropped_key))
             return
-        consequences = self.relations[dropped].collect_consequences()
-        fire_event(DropCascade(dropped=dropped, consequences=consequences))
+        consequences = self.relations[dropped_key].collect_consequences()
+        fire_event(DropCascade(dropped=dropped_key, consequences=consequences))
         self._remove_refs(consequences)
 
     def drop(self, relation):
@@ -366,10 +364,10 @@ class RelationsCache:
         :param str schema: The schema of the relation to drop.
         :param str identifier: The identifier of the relation to drop.
         """
-        dropped = _make_key(relation)
-        fire_event(DropRelation(dropped=dropped))
+        dropped_key = _make_key(relation)
+        fire_event(DropRelation(dropped=dropped_key))
         with self.lock:
-            self._drop_cascade_relation(dropped)
+            self._drop_cascade_relation(dropped_key)
 
     def _rename_relation(self, old_key, new_relation):
         """Rename a relation named old_key to new_key, updating references.
@@ -416,8 +414,9 @@ class RelationsCache:
         """
         if new_key in self.relations:
             dbt.exceptions.raise_cache_inconsistent(
-                'in rename, new key {} already in cache: {}'
-                .format(new_key, list(self.relations.keys()))
+                "in rename, new key {} already in cache: {}".format(
+                    new_key, list(self.relations.keys())
+                )
             )
 
         if old_key not in self.relations:
@@ -441,7 +440,7 @@ class RelationsCache:
         new_key = _make_key(new)
         fire_event(RenameSchema(old_key=old_key, new_key=new_key))
 
-        fire_event(DumpBeforeRenameSchema(dump=self.dump_graph()))
+        fire_event(DumpBeforeRenameSchema(dump=Lazy.defer(lambda: self.dump_graph())))
 
         with self.lock:
             if self._check_rename_constraints(old_key, new_key):
@@ -449,11 +448,9 @@ class RelationsCache:
             else:
                 self._setdefault(_CachedRelation(new))
 
-        fire_event(DumpAfterRenameSchema(dump=self.dump_graph()))
+        fire_event(DumpAfterRenameSchema(dump=Lazy.defer(lambda: self.dump_graph())))
 
-    def get_relations(
-        self, database: Optional[str], schema: Optional[str]
-    ) -> List[Any]:
+    def get_relations(self, database: Optional[str], schema: Optional[str]) -> List[Any]:
         """Case-insensitively yield all relations matching the given schema.
 
         :param str schema: The case-insensitive schema name to list from.
@@ -464,14 +461,14 @@ class RelationsCache:
         schema = lowercase(schema)
         with self.lock:
             results = [
-                r.inner for r in self.relations.values()
-                if (lowercase(r.schema) == schema and
-                    lowercase(r.database) == database)
+                r.inner
+                for r in self.relations.values()
+                if (lowercase(r.schema) == schema and lowercase(r.database) == database)
             ]
 
         if None in results:
             dbt.exceptions.raise_cache_inconsistent(
-                'in get_relations, a None relation was found in the cache!'
+                "in get_relations, a None relation was found in the cache!"
             )
         return results
 
