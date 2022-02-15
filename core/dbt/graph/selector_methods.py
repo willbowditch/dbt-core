@@ -35,20 +35,20 @@ SELECTOR_DELIMITER = ":"
 
 
 class MethodName(StrEnum):
-    FQN = 'fqn'
-    Tag = 'tag'
-    Source = 'source'
-    Path = 'path'
-    Package = 'package'
-    Config = 'config'
-    TestName = 'test_name'
-    TestType = 'test_type'
-    ResourceType = 'resource_type'
-    State = 'state'
-    Exposure = 'exposure'
-    Metric = 'metric'
-    Result = 'result'
-    SourceFresher = 'source_fresher'
+    FQN = "fqn"
+    Tag = "tag"
+    Source = "source"
+    Path = "path"
+    Package = "package"
+    Config = "config"
+    TestName = "test_name"
+    TestType = "test_type"
+    ResourceType = "resource_type"
+    State = "state"
+    Exposure = "exposure"
+    Metric = "metric"
+    Result = "result"
+    SourceFresher = "source_fresher"
 
 
 def is_selected_node(fqn: List[str], node_selector: str):
