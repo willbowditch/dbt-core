@@ -1,4 +1,4 @@
-# Include README
+# Include Module
 
 The Include module is reponsible for housing default macro definitions, starter project scaffold, and the html file used to generate the docs page.
 
