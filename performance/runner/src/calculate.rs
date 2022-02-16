@@ -48,21 +48,21 @@ impl Version {
 
     fn compare_from(&self, version: &Version, versions: &[Version]) -> Option<Version> {
         #[derive(Debug, Clone, Eq, PartialEq)]
-        struct VersionTree {
-            parent: Box<Option<VersionTree>>,
-            major_child: Box<Option<VersionTree>>,
-            minor_child: Box<Option<VersionTree>>,
-            patch_child: Box<Option<VersionTree>>,
+        struct VersionTree<'a> {
+            parent: &'a Option<VersionTree<'a>>,
+            major_child: &'a Option<VersionTree<'a>>,
+            minor_child: &'a Option<VersionTree<'a>>,
+            patch_child: &'a Option<VersionTree<'a>>,
             version: Version
         }
 
-        impl VersionTree {
+        impl<'a> VersionTree<'a> {
             fn new(v: &Version) -> VersionTree {
                 VersionTree {
-                    parent: Box::new(None),
-                    major_child: Box::new(None),
-                    minor_child: Box::new(None),
-                    patch_child: Box::new(None),
+                    parent: &None,
+                    major_child: &None,
+                    minor_child: &None,
+                    patch_child: &None,
                     version: v.clone()
                 }
             }
