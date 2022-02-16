@@ -4,6 +4,7 @@ use itertools::Itertools;
 use serde::{de::Error, Deserialize, Deserializer, Serialize, Serializer};
 use std::fs;
 use std::fs::DirEntry;
+use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
@@ -33,7 +34,7 @@ pub struct Measurements {
 
 // struct representation for "major.minor.patch" version.
 // useful for ordering versions to get the latest
-#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct Version {
     major: i32,
     minor: i32,
@@ -46,70 +47,30 @@ impl Version {
         Version { major: major, minor: minor, patch: patch }
     }
 
-    fn compare_from(&self, version: &Version, versions: &[Version]) -> Option<Version> {
-        #[derive(Debug, Clone, Eq, PartialEq)]
-        struct VersionTree<'a> {
-            parent: &'a Option<VersionTree<'a>>,
-            major_child: &'a Option<VersionTree<'a>>,
-            minor_child: &'a Option<VersionTree<'a>>,
-            patch_child: &'a Option<VersionTree<'a>>,
-            version: Version
-        }
+    fn compare_from(&self, versions: &[Version]) -> Option<Version> {
+        let mut sorted: Vec<&Version> = versions.into_iter().collect();
+        sorted.push(self);
+        sorted.sort();
+        sorted.reverse();
 
-        impl<'a> VersionTree<'a> {
-            fn new(v: &Version) -> VersionTree {
-                VersionTree {
-                    parent: &None,
-                    major_child: &None,
-                    minor_child: &None,
-                    patch_child: &None,
-                    version: v.clone()
-                }
-            }
-
-            fn from(versions: &[Version]) -> Option<VersionTree> {
-                match versions {
-                    [] => None,
-                    [v0, vs @ ..] => {
-                        let tree = VersionTree::new(v0);
-                        let full_tree = vs.iter().fold(tree, |t, v| {
-                            t.add(v)
-                        });
-                        Some(full_tree)
-                    }
-                }
-            }
-
-            fn add(&self, v: &Version) -> VersionTree {
-                unimplemented!()
-            }
-
-            fn get(&self, v: &Version) -> Option<&VersionTree>  {
-                if self.version == *v {
-                    Some(self)
-                } else if v.major > self.version.major {
-                    // the requested version is a later major version
-                    let child = self.major_child.as_ref()?;
-                    child.get(v)
-                } else if v.minor > self.version.minor {
-                    // the requested version is the same major, and later minor
-                    let child = self.minor_child.as_ref()?;
-                    child.get(v)
-                } else if v.patch > self.version.patch {
-                    // the requested version is the same major, and later minor
-                    let child = self.minor_child.as_ref()?;
-                    child.get(v)
-                } else {
-                    // there is no match for this version in the tree
-                    None
-                }
+        match &sorted[..] {
+            [] => None,
+            [&v] => Some(Version::max(v, *self)),
+            [_head, _middle @ .., &last] => {
+                let mut vs: Vec<(Version, Option<Version>)> = sorted
+                    .clone()
+                    .into_iter()
+                    .map(|x| *x)
+                    .zip(sorted[1..]
+                        .into_iter()
+                        .map(|x| Some(**x))
+                    ).collect();
+                vs.push((last, None));
+                let m: HashMap<Version, Option<Version>> = vs.into_iter().collect();
+                // using unwrap because we added `version` to the hashmap in this function.
+                *m.get(self).unwrap()
             }
         }
-
-        let tree = VersionTree::from(versions)?;
-        let node = tree.get(version)?;
-        let target = (*node.parent).clone()?;
-        Some(target.version)
     }
 }
 
@@ -460,14 +421,17 @@ mod tests {
             Version::new(1,0,1).compare_from(&versions)
         );
 
+        // this is a little controversial. 1.1.0 is a branch off
+        // 1.0.0, but comparing it to 1.0.2 _shouldn't_ be a big deal
+        // since patch releases shouldn't have much interesting in them.
         assert_eq!(
-            Some(Version::new(1,1,0)),
-            Version::new(1,0,0).compare_from(&versions)
+            Some(Version::new(1,0,2)),
+            Version::new(1,1,0).compare_from(&versions)
         );
 
         assert_eq!(
-            Some(Version::new(1,0,0)),
-            Version::new(0,21,1).compare_from(&versions)
+            Some(Version::new(0,21,1)),
+            Version::new(1,0,0).compare_from(&versions)
         );
 
         assert_eq!(
@@ -478,7 +442,7 @@ mod tests {
         // this one is a little controversial. If we're missing data,
         // this asserts we use the most recent data we have.
         assert_eq!(
-            None,
+            Some(Version::new(1,0,2)),
             Version::new(1,0,6).compare_from(&versions)
         );
     }
