@@ -71,20 +71,38 @@ impl Version {
                 match versions {
                     [] => None,
                     [v0, vs @ ..] => {
-                        let tree = vs.into_iter().fold(VersionTree::new(v0), |tree, v| {
-                            tree.add(v)
+                        let tree = VersionTree::new(v0);
+                        let full_tree = vs.iter().fold(tree, |t, v| {
+                            t.add(v)
                         });
-                        Some(tree)
+                        Some(full_tree)
                     }
                 }
             }
 
-            fn add(self, v: &Version) -> VersionTree {
+            fn add(&self, v: &Version) -> VersionTree {
                 unimplemented!()
             }
 
-            fn get(self, v: &Version) -> Option<&VersionTree>  {
-                unimplemented!()
+            fn get(&self, v: &Version) -> Option<&VersionTree>  {
+                if self.version == *v {
+                    Some(self)
+                } else if v.major > self.version.major {
+                    // the requested version is a later major version
+                    let child = self.major_child.as_ref()?;
+                    child.get(v)
+                } else if v.minor > self.version.minor {
+                    // the requested version is the same major, and later minor
+                    let child = self.minor_child.as_ref()?;
+                    child.get(v)
+                } else if v.patch > self.version.patch {
+                    // the requested version is the same major, and later minor
+                    let child = self.minor_child.as_ref()?;
+                    child.get(v)
+                } else {
+                    // there is no match for this version in the tree
+                    None
+                }
             }
         }
 
@@ -433,23 +451,35 @@ mod tests {
         ];
 
         assert_eq!(
-            Version::new(1,0,1),
+            Some(Version::new(1,0,1)),
             Version::new(1,0,2).compare_from(&versions)
         );
 
         assert_eq!(
-            Version::new(1,0,0),
+            Some(Version::new(1,0,0)),
             Version::new(1,0,1).compare_from(&versions)
         );
 
         assert_eq!(
-            Version::new(1,1,0),
+            Some(Version::new(1,1,0)),
             Version::new(1,0,0).compare_from(&versions)
         );
 
         assert_eq!(
-            Version::new(1,0,0),
+            Some(Version::new(1,0,0)),
             Version::new(0,21,1).compare_from(&versions)
+        );
+
+        assert_eq!(
+            None,
+            Version::new(0,14,0).compare_from(&versions)
+        );
+
+        // this one is a little controversial. If we're missing data,
+        // this asserts we use the most recent data we have.
+        assert_eq!(
+            None,
+            Version::new(1,0,6).compare_from(&versions)
         );
     }
 }
