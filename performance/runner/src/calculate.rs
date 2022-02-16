@@ -2,9 +2,9 @@ use crate::exceptions::{CalculateError, IOError};
 use chrono::prelude::*;
 use itertools::Itertools;
 use serde::{de::Error, Deserialize, Deserializer, Serialize, Serializer};
+use std::collections::HashMap;
 use std::fs;
 use std::fs::DirEntry;
-use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
@@ -38,13 +38,17 @@ pub struct Measurements {
 pub struct Version {
     major: i32,
     minor: i32,
-    patch: i32
+    patch: i32,
 }
 
 impl Version {
     #[cfg(test)]
     fn new(major: i32, minor: i32, patch: i32) -> Version {
-        Version { major: major, minor: minor, patch: patch }
+        Version {
+            major: major,
+            minor: minor,
+            patch: patch,
+        }
     }
 
     fn compare_from(&self, versions: &[Version]) -> Option<Version> {
@@ -61,10 +65,8 @@ impl Version {
                     .clone()
                     .into_iter()
                     .map(|x| *x)
-                    .zip(sorted[1..]
-                        .into_iter()
-                        .map(|x| Some(**x))
-                    ).collect();
+                    .zip(sorted[1..].into_iter().map(|x| Some(**x)))
+                    .collect();
                 vs.push((last, None));
                 let m: HashMap<Version, Option<Version>> = vs.into_iter().collect();
                 // using unwrap because we added `version` to the hashmap in this function.
@@ -134,13 +136,19 @@ impl<'de> Deserialize<'de> for Version {
 
         let ints: Vec<i32> = s
             .split(".")
-            .map( |x| x.parse::<i32>())
+            .map(|x| x.parse::<i32>())
             .collect::<Result<Vec<i32>, <i32 as FromStr>::Err>>()
             .map_err(D::Error::custom)?;
 
         match ints[..] {
-            [major, minor, patch] => Ok(Version { major: major, minor: minor, patch: patch }),
-            _ => Err(D::Error::custom("Must be in the format \"major.minor.patch\" where each component is an integer."))
+            [major, minor, patch] => Ok(Version {
+                major: major,
+                minor: minor,
+                patch: patch,
+            }),
+            _ => Err(D::Error::custom(
+                "Must be in the format \"major.minor.patch\" where each component is an integer.",
+            )),
         }
     }
 }
@@ -389,7 +397,11 @@ mod tests {
     // so they should be tested that they match.
     #[test]
     fn version_serialize_loop() {
-        let v = Version { major: 1, minor: 2, patch: 3 };
+        let v = Version {
+            major: 1,
+            minor: 2,
+            patch: 3,
+        };
         let v2 = serde_json::from_str::<Version>(&serde_json::to_string_pretty(&v).unwrap());
         assert_eq!(v, v2.unwrap());
     }
@@ -399,51 +411,48 @@ mod tests {
     #[test]
     fn version_compare_order() {
         let versions = vec![
-            Version::new(1,0,2),
-            Version::new(1,1,0),
-            Version::new(1,1,1),
-            Version::new(1,0,1),
-            Version::new(1,0,0),
-            Version::new(0,21,1),
-            Version::new(0,21,0),
-            Version::new(0,20,2),
-            Version::new(0,20,1),
-            Version::new(0,20,0)
+            Version::new(1, 0, 2),
+            Version::new(1, 1, 0),
+            Version::new(1, 1, 1),
+            Version::new(1, 0, 1),
+            Version::new(1, 0, 0),
+            Version::new(0, 21, 1),
+            Version::new(0, 21, 0),
+            Version::new(0, 20, 2),
+            Version::new(0, 20, 1),
+            Version::new(0, 20, 0),
         ];
 
         assert_eq!(
-            Some(Version::new(1,0,1)),
-            Version::new(1,0,2).compare_from(&versions)
+            Some(Version::new(1, 0, 1)),
+            Version::new(1, 0, 2).compare_from(&versions)
         );
 
         assert_eq!(
-            Some(Version::new(1,0,0)),
-            Version::new(1,0,1).compare_from(&versions)
+            Some(Version::new(1, 0, 0)),
+            Version::new(1, 0, 1).compare_from(&versions)
         );
 
         // this is a little controversial. 1.1.0 is a branch off
         // 1.0.0, but comparing it to 1.0.2 _shouldn't_ be a big deal
         // since patch releases shouldn't have much interesting in them.
         assert_eq!(
-            Some(Version::new(1,0,2)),
-            Version::new(1,1,0).compare_from(&versions)
+            Some(Version::new(1, 0, 2)),
+            Version::new(1, 1, 0).compare_from(&versions)
         );
 
         assert_eq!(
-            Some(Version::new(0,21,1)),
-            Version::new(1,0,0).compare_from(&versions)
+            Some(Version::new(0, 21, 1)),
+            Version::new(1, 0, 0).compare_from(&versions)
         );
 
-        assert_eq!(
-            None,
-            Version::new(0,14,0).compare_from(&versions)
-        );
+        assert_eq!(None, Version::new(0, 14, 0).compare_from(&versions));
 
         // this one is a little controversial. If we're missing data,
         // this asserts we use the most recent data we have.
         assert_eq!(
-            Some(Version::new(1,0,2)),
-            Version::new(1,0,6).compare_from(&versions)
+            Some(Version::new(1, 0, 2)),
+            Version::new(1, 0, 6).compare_from(&versions)
         );
     }
 }
