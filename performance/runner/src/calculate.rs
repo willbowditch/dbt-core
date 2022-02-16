@@ -33,7 +33,7 @@ pub struct Measurements {
 
 // struct representation for "major.minor.patch" version.
 // useful for ordering versions to get the latest
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub struct Version {
     major: i32,
     minor: i32,
@@ -46,8 +46,52 @@ impl Version {
         Version { major: major, minor: minor, patch: patch }
     }
 
-    fn compare_from(&self, versions: &[Version]) -> Version {
-        unimplemented!()
+    fn compare_from(&self, version: &Version, versions: &[Version]) -> Option<Version> {
+        #[derive(Debug, Clone, Eq, PartialEq)]
+        struct VersionTree {
+            parent: Box<Option<VersionTree>>,
+            major_child: Box<Option<VersionTree>>,
+            minor_child: Box<Option<VersionTree>>,
+            patch_child: Box<Option<VersionTree>>,
+            version: Version
+        }
+
+        impl VersionTree {
+            fn new(v: &Version) -> VersionTree {
+                VersionTree {
+                    parent: Box::new(None),
+                    major_child: Box::new(None),
+                    minor_child: Box::new(None),
+                    patch_child: Box::new(None),
+                    version: v.clone()
+                }
+            }
+
+            fn from(versions: &[Version]) -> Option<VersionTree> {
+                match versions {
+                    [] => None,
+                    [v0, vs @ ..] => {
+                        let tree = vs.into_iter().fold(VersionTree::new(v0), |tree, v| {
+                            tree.add(v)
+                        });
+                        Some(tree)
+                    }
+                }
+            }
+
+            fn add(self, v: &Version) -> VersionTree {
+                unimplemented!()
+            }
+
+            fn get(self, v: &Version) -> Option<&VersionTree>  {
+                unimplemented!()
+            }
+        }
+
+        let tree = VersionTree::from(versions)?;
+        let node = tree.get(version)?;
+        let target = (*node.parent).clone()?;
+        Some(target.version)
     }
 }
 
