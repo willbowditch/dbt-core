@@ -137,6 +137,12 @@ def project_config_update():
     }
 
 
+@pytest.fixture
+def create_tables(test_data_dir, unique_schema):
+    path = os.path.join(test_data_dir, "seed.sql")
+    run_sql_file(path, unique_schema)
+
+
 # This test checks that with different materializations we get the right
 # tables copied or built.
 def test_simple_reference(project, create_tables):
