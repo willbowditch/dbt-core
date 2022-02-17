@@ -19,14 +19,18 @@
 - Drop support for Python 3.7.0 + 3.7.1 ([#4584](https://github.com/dbt-labs/dbt-core/issues/4584), [#4585](https://github.com/dbt-labs/dbt-core/pull/4585), [#4643](https://github.com/dbt-labs/dbt-core/pull/4643))
 - Re-format codebase (except tests) using pre-commit hooks ([#3195](https://github.com/dbt-labs/dbt-core/issues/3195), [#4697](https://github.com/dbt-labs/dbt-core/pull/4697))
 - Add deps module README ([#4686](https://github.com/dbt-labs/dbt-core/pull/4686/))
+- Support click versions in the v7.x series ([#4681](https://github.com/dbt-labs/dbt-core/pull/4681))
 
 Contributors:
 - [@NiallRees](https://github.com/NiallRees) ([#4447](https://github.com/dbt-labs/dbt-core/pull/4447))
 - [@alswang18](https://github.com/alswang18) ([#4644](https://github.com/dbt-labs/dbt-core/pull/4644))
 - [@emartens](https://github.com/ehmartens) ([#4701](https://github.com/dbt-labs/dbt-core/pull/4701))
 - [@mdesmet](https://github.com/mdesmet) ([#4604](https://github.com/dbt-labs/dbt-core/pull/4604))
+- [@twilly](https://github.com/twilly) ([#4681](https://github.com/dbt-labs/dbt-core/pull/4681))
 
 ## dbt-core 1.0.2 (TBD)
+
+## dbt-core 1.0.2rc1 (February 04, 2022)
 
 ### Fixes
 - Projects created using `dbt init` now have the correct `seeds` directory created (instead of `data`) ([#4588](https://github.com/dbt-labs/dbt-core/issues/4588), [#4599](https://github.com/dbt-labs/dbt-core/pull/4589))
@@ -35,20 +39,13 @@ Contributors:
 - Fix bug in retry logic for bad response from hub and when there is a bad git tarball download. ([#4577](https://github.com/dbt-labs/dbt-core/issues/4577), [#4579](https://github.com/dbt-labs/dbt-core/issues/4579), [#4609](https://github.com/dbt-labs/dbt-core/pull/4609))
 - Restore previous log level (DEBUG) when a test depends on a disabled resource. Still WARN if the resource is missing ([#4594](https://github.com/dbt-labs/dbt-core/issues/4594), [#4647](https://github.com/dbt-labs/dbt-core/pull/4647))
 - Add project name validation to `dbt init` ([#4490](https://github.com/dbt-labs/dbt-core/issues/4490),[#4536](https://github.com/dbt-labs/dbt-core/pull/4536))
-- Support click versions in the v7.x series ([#4681](https://github.com/dbt-labs/dbt-core/pull/4681))
+- Adapter compability messaging added([#4438](https://github.com/dbt-labs/dbt-core/pull/4438) [#4565](https://github.com/dbt-labs/dbt-core/pull/4565))
 
 Contributors:
 * [@amirkdv](https://github.com/amirkdv) ([#4536](https://github.com/dbt-labs/dbt-core/pull/4536))
-* [@twilly](https://github.com/twilly) ([#4681](https://github.com/dbt-labs/dbt-core/pull/4681))
-
-## dbt-core 1.0.2 (TBD)
-### Fixes
-- adapter compability messaging added([#4438](https://github.com/dbt-labs/dbt-core/pull/4438) [#4565](https://github.com/dbt-labs/dbt-core/pull/4565))
-
-Contributors:
 * [@nkyuray](https://github.com/nkyuray) ([#4565](https://github.com/dbt-labs/dbt-core/pull/4565))
-## dbt-core 1.0.1 (January 03, 2022)
 
+## dbt-core 1.0.1 (January 03, 2022)
 
 ## dbt-core 1.0.1rc1 (December 20, 2021)
 
