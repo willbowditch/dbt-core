@@ -13,6 +13,7 @@ class PreviousState:
         self.manifest: Optional[WritableManifest] = None
         self.results: Optional[RunResultsArtifact] = None
         self.sources: Optional[FreshnessExecutionResultArtifact] = None
+        self.sources_current: Optional[FreshnessExecutionResultArtifact] = None
 
         manifest_path = self.path / 'manifest.json'
         if manifest_path.exists() and manifest_path.is_file():
