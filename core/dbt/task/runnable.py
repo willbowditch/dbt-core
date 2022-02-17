@@ -1,6 +1,7 @@
 import os
 import time
 import json
+from pathlib import Path
 from abc import abstractmethod
 from concurrent.futures import as_completed
 from datetime import datetime
@@ -110,7 +111,10 @@ class GraphRunnableTask(ManifestTask):
 
     def set_previous_state(self):
         if self.args.state is not None:
-            self.previous_state = PreviousState(self.args.state)
+            self.previous_state = PreviousState(
+                path = self.args.state,
+                current_path = Path(self.config.target_path)
+            )
 
     def index_offset(self, value: int) -> int:
         return value

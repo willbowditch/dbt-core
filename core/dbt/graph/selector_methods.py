@@ -22,7 +22,7 @@ from dbt.contracts.graph.parsed import (
     ParsedGenericTestNode,
     ParsedSourceDefinition,
 )
-from dbt.contracts.state import PreviousState, CurrentState
+from dbt.contracts.state import PreviousState
 from dbt.exceptions import (
     InternalException,
     RuntimeException,
@@ -527,21 +527,19 @@ class SourceFresherSelectorMethod(SelectorMethod): #TODO: this requires Selector
     def search(
         self, included_nodes: Set[UniqueId], selector: str
     ) -> Iterator[UniqueId]:
-        self.current_state = CurrentState() #TODO: fix this by importing target_path later
 
         if self.previous_state is None or \
            self.previous_state.sources is None:
             raise InternalException(
                 'No previous state comparison freshness results in sources.json'
             )
-        elif self.current_state is None or \
-             self.current_state.sources is None:
+        elif self.previous_state.sources_current is None:
             raise InternalException(
                 'No current state comparison freshness results in sources.json'
             )
 
         current_state_sources = {
-            result.unique_id:result.max_loaded_at for result in self.current_state.sources.results
+            result.unique_id:result.max_loaded_at for result in self.previous_state.sources_current.results
         }
 
         previous_state_sources = {

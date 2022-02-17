@@ -7,8 +7,9 @@ from dbt.exceptions import IncompatibleSchemaException
 
 
 class PreviousState:
-    def __init__(self, path: Path):
+    def __init__(self, path: Path, current_path: Path):
         self.path: Path = path
+        self.current_path: Path = current_path
         self.manifest: Optional[WritableManifest] = None
         self.results: Optional[RunResultsArtifact] = None
         self.sources: Optional[FreshnessExecutionResultArtifact] = None
@@ -37,19 +38,10 @@ class PreviousState:
                 exc.add_filename(str(sources_path))
                 raise
 
-# bring in the project class that needs to be instantiated
-# define the target path at this step(how do I consider a different target path? based on dbt_project.yml)
-# the problem I'm facing right now is that the project config is populated AFTER this step
-# the reason this works with previous state is that we manually set the previous state path
-# current state is more difficult because we have to read the project config first before this class is instantiated
-class CurrentState:
-    def __init__(self, path=None):
-        self.path: Path = path or Path('target') #TODO: fix this by importing target_path later
-        self.sources: Optional[FreshnessExecutionResultArtifact] = None
-        sources_path = self.path / 'sources.json'
-        if sources_path.exists() and sources_path.is_file():
+        sources_current_path = self.current_path / 'sources.json'
+        if sources_current_path.exists() and sources_current_path.is_file():
             try:
-                self.sources = FreshnessExecutionResultArtifact.read(str(sources_path))
+                self.sources_current = FreshnessExecutionResultArtifact.read(str(sources_current_path))
             except IncompatibleSchemaException as exc:
-                exc.add_filename(str(sources_path))
+                exc.add_filename(str(sources_current_path))
                 raise
