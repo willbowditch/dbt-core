@@ -1078,6 +1078,44 @@ class ProviderContext(ManifestContext):
 
         """  # noqa
         return self.manifest.flat_graph
+    
+    @contextmember
+    def get_metric(self, metric_name) -> Dict[str, Any]:
+        # should this accept a metric name or unique_id?
+        # I think name, with an optional two-argument version that accepts package name as well (like 'ref')
+        
+        if not self.execute:
+            return None
+            # do nothing
+        
+        else:
+            # get the dictionary representation of the metric by this name
+            metrics = self.graph["metrics"].values()
+            this_metric = next((m for m in metrics if m['name'] == metric_name), None)
+            # should we only include a subset of keys?
+            # i.e. the ones that are most relevant to actual metrics calculations,
+            # and exclude "internal" manifest fields like depends_on, refs, created_at, etc
+            
+            if this_metric:
+                # 'model' will appear as "ref('model_name')" (string)
+                # 'refs' will appear as [['model_name']]
+                
+                # somehow resolve this to the actual reference???
+                # without raising an obnoxious error saying that we can't
+                
+                # note this will run fine in OperationRefResolver / OperationProvider / generate_runtime_macro_context,
+                # if this code is included in a model node that is compiled/run, it will raise a "ref_bad_context" error
+                # UNLESS the model running it has an explicit dependency on the model defined for this metric.
+                # does that... make sense? do we even need/want to support this inside model code?
+                # doesn't that mean the model should really be 'ref'ing a metric?
+                # this leads me down all sorts of wacky paths...
+                
+                # simplest + most expedient for now
+                # overwrite the string "ref('model_name')" with the actual relation returned by that `ref()`
+                this_metric["model"] = self.ref(*this_metric["refs"][0])
+            
+            return this_metric
+
 
     @contextproperty("model")
     def ctx_model(self) -> Dict[str, Any]:
