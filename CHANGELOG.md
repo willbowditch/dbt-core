@@ -24,12 +24,14 @@
 - Drop support for Python 3.7.0 + 3.7.1 ([#4584](https://github.com/dbt-labs/dbt-core/issues/4584), [#4585](https://github.com/dbt-labs/dbt-core/pull/4585), [#4643](https://github.com/dbt-labs/dbt-core/pull/4643))
 - Re-format codebase (except tests) using pre-commit hooks ([#3195](https://github.com/dbt-labs/dbt-core/issues/3195), [#4697](https://github.com/dbt-labs/dbt-core/pull/4697))
 - Add deps module README ([#4686](https://github.com/dbt-labs/dbt-core/pull/4686/))
+- Add a space before justification periods, to allow double-click to select a node in CLI output ([#4737](https://github.com/dbt-labs/dbt-core/issues/4737), [#4744](https://github.com/dbt-labs/dbt-core/pull/4744))
 
 Contributors:
 - [@NiallRees](https://github.com/NiallRees) ([#4447](https://github.com/dbt-labs/dbt-core/pull/4447))
 - [@alswang18](https://github.com/alswang18) ([#4644](https://github.com/dbt-labs/dbt-core/pull/4644))
 - [@emartens](https://github.com/ehmartens) ([#4701](https://github.com/dbt-labs/dbt-core/pull/4701))
 - [@mdesmet](https://github.com/mdesmet) ([#4604](https://github.com/dbt-labs/dbt-core/pull/4604))
+- [@joellabes](https://github.com/joellabes) ([#4744](https://github.com/dbt-labs/dbt-core/pull/4744))
 
 ## dbt-core 1.0.2 (TBD)
 
