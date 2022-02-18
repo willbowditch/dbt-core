@@ -9,6 +9,24 @@ Performance baselines measured during our release process are committed to this 
 
 If your commit has failed one of the performance regression tests, it does not necessarily mean your commit has a performance regression. However, the observed runtime value was so much slower than the expected value that it was unlikely to be random noise. This means that any commit after the release it is being compared against through this failing commit might contain the cause. Start by investigating the failing commit and working your way backwards.
 
+Here's an example of how this could happen:
+
+```
+Commit
+A      <- last release
+B
+C      <- perf regression
+D
+E
+F      <- the only failing commit
+```
+- Commit A is measured to have an expected value for one performance metric of 30 seconds with a standard deviation of 0.5 seconds.
+- Commit B doesn't introduce a performance regression and passes the performance regression tests.
+- Commit C introduces a performance regression such that the new expected value of the metric is 32 seconds with a standard deviation still at 0.5 seconds, but we don't know this because we don't estimate the whole performance distribution on every commit for performance reasons. It passes the performance regression test because we happened to sample a value of 31 seconds which is within our threshold for the original model. It's also only 2 standard deviations away from the actual performance model of commit C so this situation isn't even particularly unlikely.
+- Commit D samples a value of 31.4 seconds and passes
+- Commit E samples a value of 31.2 seconds and passes
+- Commit F samples a value of 32.9 seconds and fails
+
 ## The Statistics
 Particle physicists need to be confident in declaring new discoveries, snack manufacturers need to be sure each snack is within the regulated margin of error for nutrition facts, and weight-rated climbing gear needs to be produced so you can trust your life to every unit that comes off the line. All of these use cases use the same kind of math to meet their needs: sigma-based p-values. This section will peel apart that math with the help of a physicist and walk through how we apply this approach to performance regression testing in this test suite.
 
@@ -16,7 +34,7 @@ You are likely familiar with forming a hypothesis of the form "A and B are corre
 
 Given this definition of p-value, we need to explicitly call out the common tendancy to apply _probability inversion_ to our observations. To quote [Dr. Tommaso Dorigo](https://www.science20.com/quantum_diaries_survivor/fundamental_glossary_higgs_broadcast-85365) again, "If your ability on the long jump puts you in the 99.99% percentile, that does not mean that you are a kangaroo, and neither can one infer that the probability that you belong to the human race is 0.01%." Using our previously defined terms, the p-value is _not_ the probability that the null hypothesis _is true_.
 
-This brings us to calculating sigma values. Sigma refers to the standard deviation of a statistical model, which is used as a measurement of how far away an observed value is from the expected value. When we say that we have a "3 sigma result" we are saying that if the null hypothesis is true, this is a particularly unlikely observation. Not that the null hypothesis is true. Exactly how unlikely depends on what the expected values from our research hypothesis are. In the context of performance regression testing, if the null hypothesis is false, we are expecting the results to be _slower_ than the expected value not _slower or faster_. Looking at a normal distrubiton below, we can see that we only care about one _half_ of the distribution: the half where the values are slower than the expected value. This means that when we're calculating the p-value we are not including both sides of the normal distribution.
+This brings us to calculating sigma values. Sigma refers to the standard deviation of a statistical model, which is used as a measurement of how far away an observed value is from the expected value. When we say that we have a "3 sigma result" we are saying that if the null hypothesis is true, this is a particularly unlikely observation. Not that the null hypothesis is false. Exactly how unlikely depends on what the expected values from our research hypothesis are. In the context of performance regression testing, if the null hypothesis is false, we are expecting the results to be _slower_ than the expected value not _slower or faster_. Looking at a normal distrubiton below, we can see that we only care about one _half_ of the distribution: the half where the values are slower than the expected value. This means that when we're calculating the p-value we are not including both sides of the normal distribution.
 
 ![normal distibution](./images/normal.svg)
 
@@ -67,3 +85,4 @@ TODO
 - add more projects to test different configurations that have been known bottlenecks
 - add more dbt commands to measure
 - reading new metrics from a file so no one has to edit rust source to add them to the suite
+- build in a git-bisect run to automatically identify the commits that caused a performance regression by modeling each commit's expected value for the failing metric. Output the command to run this in each performance regression failure message.
