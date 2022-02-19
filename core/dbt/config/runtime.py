@@ -161,7 +161,7 @@ class RuntimeConfig(Project, Profile, AdapterRequiredConfig):
 
         :returns dict: The serialized configuration.
         """
-        result = self.to_project_config(with_packages=True)
+        result = self.to_project_config(with_packages=True, path_info_only=False)
         result.update(self.to_profile_info(serialize_credentials=True))
         result["cli_vars"] = deepcopy(self.cli_vars)
         return result
@@ -494,6 +494,20 @@ class UnsetProfileConfig(RuntimeConfig):
             cli_vars=cli_vars,
             dependencies=dependencies,
         )
+        
+    def serialize(self) -> Dict[str, Any]:
+        """Serialize the full configuration to a single dictionary. For any
+        instance that has passed validate() (which happens in __init__), it
+        matches the Configuration contract.
+
+        Note that args are not serialized.
+
+        :returns dict: The serialized configuration.
+        """
+        result = self.to_project_config(with_packages=True, path_info_only=True)
+        result.update(self.to_profile_info(serialize_credentials=True))
+        result["cli_vars"] = deepcopy(self.cli_vars)
+        return result
 
     @classmethod
     def _get_rendered_profile(

@@ -570,7 +570,7 @@ class Project:
             with_packages=True
         )
 
-    def to_project_config(self, with_packages=False):
+    def to_project_config(self, with_packages=False, path_info_only=True):
         """Return a dict representation of the config that could be written to
         disk with `yaml.safe_dump` to get this configuration.
 
@@ -595,16 +595,16 @@ class Project:
                 "snapshot-paths": self.snapshot_paths,
                 "clean-targets": self.clean_targets,
                 "log-path": self.log_path,
-                "quoting": self.quoting,
-                "models": self.models,
-                "on-run-start": self.on_run_start,
-                "on-run-end": self.on_run_end,
-                "dispatch": self.dispatch,
-                "seeds": self.seeds,
-                "snapshots": self.snapshots,
-                "sources": self.sources,
-                "tests": self.tests,
-                "vars": self.vars.to_dict(),
+                "quoting": {} if path_info_only else self.quoting,
+                "models": {} if path_info_only else self.models,
+                "on-run-start": [] if path_info_only else self.on_run_start,
+                "on-run-end": [] if path_info_only else self.on_run_end,
+                "dispatch": [] if path_info_only else self.dispatch,
+                "seeds": {} if path_info_only else self.seeds,
+                "snapshots": {} if path_info_only else self.snapshots,
+                "sources": {} if path_info_only else self.sources,
+                "tests": {} if path_info_only else self.tests,
+                "vars": {} if path_info_only else self.vars.to_dict(),
                 "require-dbt-version": [v.to_version_string() for v in self.dbt_version],
                 "config-version": self.config_version,
             }
