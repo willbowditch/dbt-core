@@ -6,7 +6,7 @@ from datetime import datetime
 import dbt.flags as flags
 
 from dbt.config.runtime import RuntimeConfig
-from dbt.adapters.factory import get_adapter, register_adapter
+from dbt.adapters.factory import get_adapter, register_adapter, reset_adapters
 from dbt.events.functions import setup_event_logger
 
 import yaml
@@ -151,19 +151,22 @@ def selectors_yml(project_root, selectors):
 
 
 @pytest.fixture
-def schema(unique_schema, project_root, profiles_root):
+def schema(unique_schema, project_root, profiles_root, profiles_yml, dbt_project_yml):
     # Dummy args just to get adapter up and running
-    args = Namespace(profiles_dir=str(profiles_root), project_dir=str(project_root))
+    # The profiles.yml and dbt_project.yml should already be written out
+    args = Namespace(
+        profiles_dir=str(profiles_root), project_dir=str(project_root), target=None, profile=None
+    )
     runtime_config = RuntimeConfig.from_args(args)
 
     register_adapter(runtime_config)
     adapter = get_adapter(runtime_config)
-    # execute(adapter, "drop schema if exists {} cascade".format(unique_schema))
+    execute(adapter, "drop schema if exists {} cascade".format(unique_schema))
     execute(adapter, "create schema {}".format(unique_schema))
     yield adapter
-    adapter = get_adapter(runtime_config)
-    # adapter.cleanup_connections()
     execute(adapter, "drop schema if exists {} cascade".format(unique_schema))
+    adapter.cleanup_connections()
+    reset_adapters()
 
 
 def execute(adapter, sql, connection_name="__test"):

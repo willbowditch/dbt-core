@@ -2,7 +2,6 @@ import pytest
 import os
 from dbt.tests.util import run_dbt, copy_file
 from dbt.tests.tables import TableComparison, get_tables_in_schema
-from dbt.adapters.factory import get_adapter_by_type
 
 
 ephemeral_copy_sql = """
@@ -174,9 +173,8 @@ def test_simple_reference(project):
     results = run_dbt()
     assert len(results) == 8
 
-    adapter = get_adapter_by_type("postgres")
     table_comp = TableComparison(
-        adapter=adapter, unique_schema=project.test_schema, database=project.database
+        adapter=project.adapter, unique_schema=project.test_schema, database=project.database
     )
 
     # Copies should match
@@ -227,9 +225,8 @@ def test_simple_reference_with_models_and_children(project):
     results = run_dbt(["run", "--models", "materialized_copy+", "ephemeral_copy+"])
     assert len(results) == 3
 
-    adapter = get_adapter_by_type("postgres")
     table_comp = TableComparison(
-        adapter=adapter, unique_schema=project.test_schema, database=project.database
+        adapter=project.adapter, unique_schema=project.test_schema, database=project.database
     )
 
     # Copies should match
@@ -268,9 +265,8 @@ def test_simple_ref_with_models(project):
     assert len(results) == 1
 
     # Copies should match
-    adapter = get_adapter_by_type("postgres")
     table_comp = TableComparison(
-        adapter=adapter, unique_schema=project.test_schema, database=project.database
+        adapter=project.adapter, unique_schema=project.test_schema, database=project.database
     )
     table_comp.assert_tables_equal("users", "materialized_copy")
 

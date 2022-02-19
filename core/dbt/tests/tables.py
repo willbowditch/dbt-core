@@ -3,6 +3,16 @@ from dbt.context import providers
 from unittest.mock import patch
 from contextlib import contextmanager
 
+# This code was copied from the earlier test framework in test/integration/base.py
+# The goal is to vastly simplify this and replace it with calls to macros.
+# For now, we use this to get the tests converted in a more straightforward way.
+# Assertions:
+#   assert_tables_equal  (old: assertTablesEqual)
+#   assert_many_relations_equal  (old: assertManyRelationsEqual)
+#   assert_many_tables_equal  (old: assertManyTablesEqual)
+#   assert_table_does_not_exist  (old: assertTableDoesNotExist)
+#   assert_table_does_exist  (old: assertTableDoesExist)
+
 
 class TableComparison:
     def __init__(self, adapter, unique_schema, database):
@@ -15,13 +25,7 @@ class TableComparison:
         else:
             self.quoting = {"database": False, "schema": False, "identifier": False}
 
-    def _assert_tables_equal_sql(self, relation_a, relation_b, columns=None):
-        if columns is None:
-            columns = self.get_relation_columns(relation_a)
-        column_names = [c[0] for c in columns]
-        sql = self.adapter.get_rows_different_sql(relation_a, relation_b, column_names)
-        return sql
-
+    # assertion used in tests
     def assert_tables_equal(
         self,
         table_a,
@@ -54,35 +58,7 @@ class TableComparison:
         assert result[0] == 0, "row_count_difference nonzero: " + sql
         assert result[1] == 0, "num_mismatched nonzero: " + sql
 
-    def _make_relation(self, identifier, schema=None, database=None):
-        if schema is None:
-            schema = self.unique_schema
-        if database is None:
-            database = self.default_database
-        return self.adapter.Relation.create(
-            database=database, schema=schema, identifier=identifier, quote_policy=self.quoting
-        )
-
-    def get_many_relation_columns(self, relations):
-        """Returns a dict of (datbase, schema) -> (dict of (table_name -> list of columns))"""
-        schema_fqns = {}
-        for rel in relations:
-            this_schema = schema_fqns.setdefault((rel.database, rel.schema), [])
-            this_schema.append(rel.identifier)
-
-        column_specs = {}
-        for key, tables in schema_fqns.items():
-            database, schema = key
-            columns = self.get_many_table_columns(tables, schema, database=database)
-            table_columns = {}
-            for col in columns:
-                table_columns.setdefault(col[0], []).append(col[1:])
-            for rel_name, columns in table_columns.items():
-                key = (database, schema, rel_name)
-                column_specs[key] = columns
-
-        return column_specs
-
+    # assertion used in tests
     def assert_many_relations_equal(self, relations, default_schema=None, default_database=None):
         if default_schema is None:
             default_schema = self.unique_schema
@@ -139,6 +115,7 @@ class TableComparison:
                 assert result[0] == 0, "row_count_difference nonzero: " + sql
                 assert result[1] == 0, "num_mismatched nonzero: " + sql
 
+    # assertion used in tests
     def assert_many_tables_equal(self, *args):
         schema = self.unique_schema
 
@@ -172,42 +149,18 @@ class TableComparison:
                 assert result[0] == 0, "row_count_difference nonzero: " + sql
                 assert result[1] == 0, "num_mismatched nonzero: " + sql
 
-    def _assert_table_row_counts_equal(self, relation_a, relation_b):
-        cmp_query = """
-            with table_a as (
-
-                select count(*) as num_rows from {}
-
-            ), table_b as (
-
-                select count(*) as num_rows from {}
-
-            )
-
-            select table_a.num_rows - table_b.num_rows as difference
-            from table_a, table_b
-
-        """.format(
-            str(relation_a), str(relation_b)
-        )
-
-        res = run_sql(cmp_query, self.unique_schema, database=self.default_database, fetch="one")
-
-        msg = (
-            f"Row count of table {relation_a.identifier} doesn't match row count of "
-            f"table {relation_b.identifier}. ({res[0]} rows different"
-        )
-        assert int(res[0]) == 0, msg
-
+    # assertion used in tests
     def assert_table_does_not_exist(self, table, schema=None, database=None):
         columns = self.get_table_columns(table, schema, database)
         assert len(columns) == 0
 
+    # assertion used in tests
     def assert_table_does_exist(self, table, schema=None, database=None):
         columns = self.get_table_columns(table, schema, database)
 
         assert len(columns) > 0
 
+    # called by assert_tables_equal
     def _assert_table_columns_equal(self, relation_a, relation_b):
         table_a_result = self.get_relation_columns(relation_a)
         table_b_result = self.get_relation_columns(relation_b)
@@ -232,7 +185,6 @@ class TableComparison:
     def get_relation_columns(self, relation):
         with self.get_connection():
             columns = self.adapter.get_columns_in_relation(relation)
-
         return sorted(((c.name, c.dtype, c.char_size) for c in columns), key=lambda x: x[0])
 
     def get_table_columns(self, table, schema=None, database=None):
@@ -247,6 +199,7 @@ class TableComparison:
         )
         return self.get_relation_columns(relation)
 
+    # called by assert_many_table_equal
     def get_table_columns_as_dict(self, tables, schema=None):
         col_matrix = self.get_many_table_columns(tables, schema)
         res = {}
@@ -263,7 +216,7 @@ class TableComparison:
     def column_schema(self):
         return "table_name, column_name, data_type, character_maximum_length"
 
-    # This should be overridden for Snowflake
+    # This should be overridden for Snowflake. Called by get_many_table_columns.
     def get_many_table_columns_information_schema(self, tables, schema, database=None):
         columns = self.column_schema
 
@@ -293,12 +246,7 @@ class TableComparison:
         columns = run_sql(sql, self.unique_schema, database=self.default_database, fetch="all")
         return list(map(self.filter_many_columns, columns))
 
-    def get_many_table_columns(self, tables, schema, database=None):
-        result = self.get_many_table_columns_information_schema(tables, schema, database)
-        result.sort(key=lambda x: "{}.{}".format(x[0], x[1]))
-        return result
-
-    # Snoflake needs a static char_size
+    # Snowflake needs a static char_size
     def filter_many_columns(self, column):
         if len(column) == 3:
             table_name, column_name, data_type = column
@@ -310,8 +258,7 @@ class TableComparison:
     @contextmanager
     def get_connection(self, name=None):
         """Create a test connection context where all executed macros, etc will
-        get self.adapter as the adapter.
-
+        use the adapter created in the schema fixture.
         This allows tests to run normal adapter macros as if reset_adapters()
         were not called by handle_and_check (for asserts, etc)
         """
@@ -321,6 +268,49 @@ class TableComparison:
             with self.adapter.connection_named(name):
                 conn = self.adapter.connections.get_thread_connection()
                 yield conn
+
+    def _make_relation(self, identifier, schema=None, database=None):
+        if schema is None:
+            schema = self.unique_schema
+        if database is None:
+            database = self.default_database
+        return self.adapter.Relation.create(
+            database=database, schema=schema, identifier=identifier, quote_policy=self.quoting
+        )
+
+    # called by get_many_relation_columns
+    def get_many_table_columns(self, tables, schema, database=None):
+        result = self.get_many_table_columns_information_schema(tables, schema, database)
+        result.sort(key=lambda x: "{}.{}".format(x[0], x[1]))
+        return result
+
+    # called by assert_many_relations_equal
+    def get_many_relation_columns(self, relations):
+        """Returns a dict of (datbase, schema) -> (dict of (table_name -> list of columns))"""
+        schema_fqns = {}
+        for rel in relations:
+            this_schema = schema_fqns.setdefault((rel.database, rel.schema), [])
+            this_schema.append(rel.identifier)
+
+        column_specs = {}
+        for key, tables in schema_fqns.items():
+            database, schema = key
+            columns = self.get_many_table_columns(tables, schema, database=database)
+            table_columns = {}
+            for col in columns:
+                table_columns.setdefault(col[0], []).append(col[1:])
+            for rel_name, columns in table_columns.items():
+                key = (database, schema, rel_name)
+                column_specs[key] = columns
+
+        return column_specs
+
+    def _assert_tables_equal_sql(self, relation_a, relation_b, columns=None):
+        if columns is None:
+            columns = self.get_relation_columns(relation_a)
+        column_names = [c[0] for c in columns]
+        sql = self.adapter.get_rows_different_sql(relation_a, relation_b, column_names)
+        return sql
 
 
 # needs overriding for presto
