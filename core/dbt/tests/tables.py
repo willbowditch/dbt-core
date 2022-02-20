@@ -1,7 +1,8 @@
-from dbt.tests.util import run_sql
 from dbt.context import providers
 from unittest.mock import patch
 from contextlib import contextmanager
+from dbt.events.functions import fire_event
+from dbt.events.test_types import IntegrationTestDebug
 
 # This code was copied from the earlier test framework in test/integration/base.py
 # The goal is to vastly simplify this and replace it with calls to macros.
@@ -53,7 +54,7 @@ class TableComparison:
         self._assert_table_columns_equal(relation_a, relation_b)
 
         sql = self._assert_tables_equal_sql(relation_a, relation_b)
-        result = run_sql(sql, self.unique_schema, fetch="one")
+        result = self.run_sql(sql, fetch="one")
 
         assert result[0] == 0, "row_count_difference nonzero: " + sql
         assert result[1] == 0, "num_mismatched nonzero: " + sql
@@ -108,9 +109,7 @@ class TableComparison:
                 sql = self._assert_tables_equal_sql(
                     first_relation, relation, columns=first_columns
                 )
-                result = run_sql(
-                    sql, self.unique_schema, database=self.default_database, fetch="one"
-                )
+                result = self.run_sql(sql, fetch="one")
 
                 assert result[0] == 0, "row_count_difference nonzero: " + sql
                 assert result[1] == 0, "num_mismatched nonzero: " + sql
@@ -142,9 +141,7 @@ class TableComparison:
                 sql = self._assert_tables_equal_sql(
                     first_relation, other_relation, columns=base_result
                 )
-                result = run_sql(
-                    sql, self.unique_schema, database=self.default_database, fetch="one"
-                )
+                result = self.run_sql(sql, fetch="one")
 
                 assert result[0] == 0, "row_count_difference nonzero: " + sql
                 assert result[1] == 0, "num_mismatched nonzero: " + sql
@@ -243,7 +240,7 @@ class TableComparison:
             db_string=db_string,
         )
 
-        columns = run_sql(sql, self.unique_schema, database=self.default_database, fetch="all")
+        columns = self.run_sql(sql, fetch="all")
         return list(map(self.filter_many_columns, columns))
 
     # Snowflake needs a static char_size
@@ -256,14 +253,12 @@ class TableComparison:
         return (table_name, column_name, data_type, char_size)
 
     @contextmanager
-    def get_connection(self, name=None):
+    def get_connection(self, name="_test"):
         """Create a test connection context where all executed macros, etc will
         use the adapter created in the schema fixture.
         This allows tests to run normal adapter macros as if reset_adapters()
         were not called by handle_and_check (for asserts, etc)
         """
-        if name is None:
-            name = "__test"
         with patch.object(providers, "get_adapter", return_value=self.adapter):
             with self.adapter.connection_named(name):
                 conn = self.adapter.connections.get_thread_connection()
@@ -312,25 +307,59 @@ class TableComparison:
         sql = self.adapter.get_rows_different_sql(relation_a, relation_b, column_names)
         return sql
 
+    # This duplicates code in the TestProjInfo class.
+    def run_sql(self, sql, fetch=None):
+        if sql.strip() == "":
+            return
+        # substitute schema and database in sql
+        adapter = self.adapter
+        kwargs = {
+            "schema": self.unique_schema,
+            "database": adapter.quote(self.default_database),
+        }
+        sql = sql.format(**kwargs)
+
+        with self.get_connection("__test") as conn:
+            msg = f'test connection "{conn.name}" executing: {sql}'
+            fire_event(IntegrationTestDebug(msg=msg))
+            with conn.handle.cursor() as cursor:
+                try:
+                    cursor.execute(sql)
+                    conn.handle.commit()
+                    conn.handle.commit()
+                    if fetch == "one":
+                        return cursor.fetchone()
+                    elif fetch == "all":
+                        return cursor.fetchall()
+                    else:
+                        return
+                except BaseException as e:
+                    if conn.handle and not getattr(conn.handle, "closed", True):
+                        conn.handle.rollback()
+                    print(sql)
+                    print(e)
+                    raise
+                finally:
+                    conn.transaction_open = False
+
+    def get_tables_in_schema(self):
+        sql = """
+                select table_name,
+                        case when table_type = 'BASE TABLE' then 'table'
+                             when table_type = 'VIEW' then 'view'
+                             else table_type
+                        end as materialization
+                from information_schema.tables
+                where {}
+                order by table_name
+                """
+
+        sql = sql.format(_ilike("table_schema", self.unique_schema))
+        result = self.run_sql(sql, fetch="all")
+
+        return {model_name: materialization for (model_name, materialization) in result}
+
 
 # needs overriding for presto
 def _ilike(target, value):
     return "{} ilike '{}'".format(target, value)
-
-
-def get_tables_in_schema(schema, database="dbt"):
-    sql = """
-            select table_name,
-                    case when table_type = 'BASE TABLE' then 'table'
-                         when table_type = 'VIEW' then 'view'
-                         else table_type
-                    end as materialization
-            from information_schema.tables
-            where {}
-            order by table_name
-            """
-
-    sql = sql.format(_ilike("table_schema", schema))
-    result = run_sql(sql, schema, database=database, fetch="all")
-
-    return {model_name: materialization for (model_name, materialization) in result}

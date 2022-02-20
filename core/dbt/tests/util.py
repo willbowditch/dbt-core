@@ -5,9 +5,7 @@ from typing import List
 from dbt.main import handle_and_check
 from dbt.logger import log_manager
 from dbt.contracts.graph.manifest import Manifest
-from dbt.adapters.factory import get_adapter_by_type
-from dbt.events.test_types import IntegrationTestDebug
-from dbt.events.functions import fire_event, capture_stdout_logs, stop_capture_stdout_logs
+from dbt.events.functions import capture_stdout_logs, stop_capture_stdout_logs
 
 
 # This is used in pytest tests to run dbt
@@ -46,58 +44,6 @@ def get_manifest(project_root):
         return manifest
     else:
         return None
-
-
-def run_sql_file(sql_path, unique_schema, database="dbt"):
-    # It would nice not to have to pass the full path in, to
-    # avoid having to use the 'request' fixture.
-    # Could we use os.environ['PYTEST_CURRENT_TEST']?
-    # Might be more fragile, if we want to reuse this code...
-    with open(sql_path, "r") as f:
-        statements = f.read().split(";")
-        for statement in statements:
-            run_sql(statement, unique_schema, database)
-
-
-def adapter_type():
-    return "postgres"
-
-
-def run_sql(sql, unique_schema, database="dbt", fetch=None):
-    if sql.strip() == "":
-        return
-    # substitute schema and database in sql
-    adapter = get_adapter_by_type(adapter_type())
-    kwargs = {
-        "schema": unique_schema,
-        "database": adapter.quote(database),
-    }
-    sql = sql.format(**kwargs)
-
-    # get adapter and connection
-    with adapter.connection_named("__test"):
-        conn = adapter.connections.get_thread_connection()
-        msg = f'test connection "{conn.name}" executing: {sql}'
-        fire_event(IntegrationTestDebug(msg=msg))
-        with conn.handle.cursor() as cursor:
-            try:
-                cursor.execute(sql)
-                conn.handle.commit()
-                conn.handle.commit()
-                if fetch == "one":
-                    return cursor.fetchone()
-                elif fetch == "all":
-                    return cursor.fetchall()
-                else:
-                    return
-            except BaseException as e:
-                if conn.handle and not getattr(conn.handle, "closed", True):
-                    conn.handle.rollback()
-                print(sql)
-                print(e)
-                raise
-            finally:
-                conn.transaction_open = False
 
 
 def normalize(path):

@@ -1,7 +1,7 @@
 import pytest
 import os
-from dbt.tests.util import run_dbt, copy_file, run_sql
-from dbt.tests.tables import TableComparison, get_tables_in_schema
+from dbt.tests.util import run_dbt, copy_file
+from dbt.tests.tables import TableComparison
 
 # advanced_incremental.sql
 advanced_incremental_sql = """
@@ -186,19 +186,19 @@ def test_simple_copy(project, test_data_dir):
 
 
 def test_simple_copy_with_materialized_views(project):
-    run_sql(f"create table {project.test_schema}.unrelated_table (id int)", project.test_schema)
+    project.run_sql(f"create table {project.test_schema}.unrelated_table (id int)")
     sql = f"""
         create materialized view {project.test_schema}.unrelated_materialized_view as (
             select * from {project.test_schema}.unrelated_table
         )
     """
-    run_sql(sql, project.test_schema)
+    project.run_sql(sql)
     sql = f"""
         create view {project.test_schema}.unrelated_view as (
             select * from {project.test_schema}.unrelated_materialized_view
         )
     """
-    run_sql(sql, project.test_schema)
+    project.run_sql(sql)
     results = run_dbt(["seed"])
     assert len(results) == 1
     results = run_dbt()
@@ -211,7 +211,7 @@ def test_dbt_doesnt_run_empty_models(project):
     results = run_dbt()
     assert len(results) == 7
 
-    tables = get_tables_in_schema(project.test_schema)
+    tables = project.get_tables_in_schema()
 
     assert "empty" not in tables.keys()
     assert "disabled" not in tables.keys()
