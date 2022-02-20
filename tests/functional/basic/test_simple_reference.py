@@ -1,7 +1,7 @@
 import pytest
 import os
 from dbt.tests.util import run_dbt, copy_file
-from dbt.tests.tables import TableComparison, get_tables_in_schema
+from dbt.tests.tables import TableComparison
 
 
 ephemeral_copy_sql = """
@@ -236,7 +236,7 @@ def test_simple_reference_with_models_and_children(project):
     table_comp.assert_tables_equal("summary_expected", "materialized_summary")
     table_comp.assert_tables_equal("summary_expected", "ephemeral_summary")
 
-    created_tables = get_tables_in_schema(project.test_schema)
+    created_tables = project.get_tables_in_schema()
 
     assert "incremental_copy" not in created_tables
     assert "incremental_summary" not in created_tables
@@ -270,5 +270,5 @@ def test_simple_ref_with_models(project):
     )
     table_comp.assert_tables_equal("users", "materialized_copy")
 
-    created_tables = get_tables_in_schema(project.test_schema)
+    created_tables = project.get_tables_in_schema()
     assert "materialized_copy" in created_tables
