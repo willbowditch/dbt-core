@@ -61,7 +61,7 @@ impl Version {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct BaselineMetric {
     pub project: String,
-    pub command: String,
+    pub metric: String,
     pub ts: DateTime<Utc>,
     pub measurement: Measurement,
 }
@@ -79,19 +79,19 @@ pub struct Baseline {
 #[derive(Debug, Clone, PartialEq)]
 pub struct Sample {
     pub project: String,
-    pub command: String,
+    pub metric: String,
     pub value: f64,
     pub ts: DateTime<Utc>
 }
 
 impl Sample {
     // TODO make these results not panics.
-    fn from_measurement(project: String, command: String, ts: DateTime<Utc>, measurement: &Measurement) -> Sample {
+    pub fn from_measurement(project: String, metric: String, ts: DateTime<Utc>, measurement: &Measurement) -> Sample {
         match &measurement.times[..] {
             [] => panic!("found a sample with no measurement"),
             [x] => Sample {
                 project: project,
-                command: command,
+                metric: metric,
                 value: *x,
                 ts: ts
             },
@@ -106,7 +106,7 @@ impl Sample {
 pub struct Calculation {
     pub version: Version,
     pub project: String,
-    pub command: String,
+    pub metric: String,
     pub regression: bool,
     pub ts: DateTime<Utc>,
     pub sigma: f64,
@@ -156,18 +156,18 @@ impl<'de> Deserialize<'de> for Version {
 fn calculate_regressions(samples: &[Sample], baseline: Baseline, sigma: f64) -> Vec<Calculation> {
     // TODO key of type (String, String) is weak and error prone
     let m_samples: HashMap<(String, String), (f64, DateTime<Utc>)> =
-        samples.into_iter().map(|x| ((x.project.clone(), x.command.clone()), (x.value, x.ts))).collect();
+        samples.into_iter().map(|x| ((x.project.clone(), x.metric.clone()), (x.value, x.ts))).collect();
 
     baseline.metrics.clone().into_iter().filter_map(|metric| {
         let model = metric.measurement.clone();
         m_samples
-            .get(&(metric.clone().project, metric.clone().command))
+            .get(&(metric.clone().project, metric.clone().metric))
             .map(|(value, ts)| {
                 let threshold = model.mean + sigma * model.stddev;
                 Calculation {
                     version: baseline.version.clone(),
                     project: metric.project.clone(),
-                    command: metric.command.clone(),
+                    metric: metric.metric.clone(),
                     regression: threshold > *value,
                     ts: *ts,
                     sigma: sigma,
@@ -185,11 +185,10 @@ fn calculate_regressions(samples: &[Sample], baseline: Baseline, sigma: f64) -> 
 // Top-level function. Given a path for the result directory, call the above
 // functions to compare and collect calculations. Calculations include all samples
 // regardless of whether they passed or failed.
-pub fn regressions(baseline_dir: &PathBuf, projects_dir: &PathBuf) -> Result<Vec<Calculation>, CalculateError> {
+pub fn regressions(baseline_dir: &PathBuf, projects_dir: &PathBuf, tmp_dir: &PathBuf) -> Result<Vec<Calculation>, CalculateError> {
     let baselines: Vec<Baseline> = measure::from_json_files::<Baseline>(Path::new(&baseline_dir))?
         .into_iter().map(|(_, x)| x).collect();
-    let samples: Vec<Sample> = measure::take_samples(projects_dir)
-        .or_else(|e| Err(CalculateError::CalculateIOError(e)))?;
+    let samples: Vec<Sample> = measure::take_samples(projects_dir, tmp_dir)?;
 
     // this is the baseline to compare these samples against
     let baseline: Baseline = match &baselines[..] {

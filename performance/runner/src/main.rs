@@ -75,7 +75,7 @@ fn run_app() -> Result<i32, CalculateError> {
             }
 
             // get all the calculations or gracefully show the user an exception
-            let calculations = calculate::regressions(&baseline_dir, &projects_dir)?;
+            let calculations = calculate::regressions(&baseline_dir, &projects_dir, &out_dir)?;
 
             // print all calculations to stdout so they can be easily debugged
             // via CI.

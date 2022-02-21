@@ -1,5 +1,6 @@
 use crate::exceptions::{CalculateError, IOError};
-use crate::calculate::Sample;
+use crate::calculate::{Measurements, Sample};
+use chrono::prelude::*;
 use serde::de::DeserializeOwned;
 use std::fs;
 use std::fs::DirEntry;
@@ -26,11 +27,22 @@ struct Metric<'a> {
 }
 
 impl Metric<'_> {
-    // TODO maybe use directories instead?
-    //
-    // Returns the proper filename for the hyperfine output for this metric.
-    fn outfile(&self, project: &str) -> String {
-        [self.name, "_", project, ".json"].join("")
+    fn sep() -> &'static str {
+        "___"
+    }
+
+    // encodes the metric name and project in the filename for the hyperfine output.
+    fn filename(&self, project: &str) -> String {
+        format!("{}{}{}.json", self.name, Metric::sep(), project)
+    }
+
+    // Parses out the metric name and project rom the filename of the hyperfine output
+    fn from_filename(filename: String) -> Option<(String, String)> {
+        let split: Vec<&str> = filename.split(Metric::sep()).collect();
+        match &split[..] {
+            [name, project] => Some((name.to_string(), project.to_string())),
+            _ => None
+        }
     }
 }
 
@@ -72,7 +84,7 @@ pub fn from_json_files<T : DeserializeOwned>(
         .collect()
 }
 
-fn get_projects<'a>(projects_directory: &PathBuf) -> Result<Vec<(PathBuf, String, &Metric<'a>)>, IOError> {
+fn get_projects<'a>(projects_directory: &PathBuf) -> Result<Vec<(PathBuf, String, Metric<'a>)>, IOError> {
     let entries = fs::read_dir(projects_directory)
         .or_else(|e| Err(IOError::ReadErr(projects_directory.to_path_buf(), Some(e))))?;
 
@@ -93,12 +105,12 @@ fn get_projects<'a>(projects_directory: &PathBuf) -> Result<Vec<(PathBuf, String
         // each project-metric pair we will run
         let pairs = METRICS
             .iter()
-            .map(|metric| (path.clone(), project_name.clone(), metric))
-            .collect::<Vec<(PathBuf, String, &Metric<'a>)>>();
+            .map(|metric| (path.clone(), project_name.clone(), metric.clone()))
+            .collect::<Vec<(PathBuf, String, Metric<'a>)>>();
 
         Ok(pairs)
     })
-    .collect::<Result<Vec<Vec<(PathBuf, String, &Metric<'a>)>>, IOError>>()?;
+    .collect::<Result<Vec<Vec<(PathBuf, String, Metric<'a>)>>, IOError>>()?;
 
     Ok(unflattened_results.concat())
 }
@@ -133,22 +145,78 @@ fn run_hyperfine(
         .or_else(|e| Err(IOError::CommandErr(Some(e))))
 }
 
-pub fn take_samples(test_projects_dir: &PathBuf) -> Result<Vec<Sample>, IOError> {
-    unimplemented!()
+// deletes the output directory, makes one hyperfine run for each project-metric pair,
+// reads in the results, and returns a Sample for each project-metric pair.
+pub fn take_samples(projects_dir: &PathBuf, out_dir: &PathBuf) -> Result<Vec<Sample>, CalculateError> {
+    // Attempt to delete the directory and its contents. If it doesn't exist we'll just recreate it anyway.
+    // So it's ok to toss this Result.
+    match fs::remove_dir_all(out_dir) {
+        // create the directory. It's empty now.
+        _ => fs::create_dir(out_dir)
+            .or_else(|e| Err(IOError::CannotRecreateTempDirErr(out_dir.clone(), e)))
+    }?;
+
+    // using one time stamp for all samples.
+    let ts = Utc::now();
+
+    // run hyperfine in serial for each project-metric pair
+    let hyperfine_runs = get_projects(projects_dir)?
+        .iter()
+        .map(|(path, project_name, metric)| {
+            let command = format!("{} --profiles-dir ../../project_config/", metric.cmd);
+            let mut output_file = out_dir.clone();
+            output_file.push(metric.filename(project_name));
+
+            run_hyperfine(
+                path,
+                &command,
+                metric.clone().prepare,
+                1,
+                &output_file
+            )
+            .or_else(|e| Err(CalculateError::from(e)))
+            .and_then(|status| {
+                match status.code() {
+                    Some(code) if code != 0 => Err(CalculateError::HyperfineNonZeroExitCode(code)),
+                    _ => Ok(())
+                }
+            })
+        })
+        .collect::<Result<Vec<()>, CalculateError>>()?;
+
+    // forces the errors from the hyperfine runs to be raised.
+    // TODO maybe do this more gracefully
+    for _ in hyperfine_runs {}
+
+    let samples = from_json_files::<Measurements>(out_dir)?
+        .into_iter()
+        .map(|(path, measurement)| {
+            // TODO fix unwrap
+            let (metric, project) = Metric::from_filename(path.to_string_lossy().into_owned()).unwrap();
+            Sample::from_measurement(
+                metric,
+                project,
+                ts,
+                &measurement.results[0] // TODO do it safer
+            )
+        })
+        .collect();
+
+    Ok(samples)
 }
 
-// Calls hyperfine via system command, and returns all the exit codes for each hyperfine run.
+// Calls hyperfine via system command, reads in the results, and writes out a Baseline json file.
+// Intended to be called after each new version is released.
 pub fn model<'a>(
     projects_directory: &PathBuf,
     out_dir: &PathBuf
 ) -> Result<i32, CalculateError> {
     let hyperfine_runs: Vec<ExitStatus> = get_projects(projects_directory)?
         .iter()
-        // run hyperfine on each pairing
         .map(|(path, project_name, metric)| {
             let command = format!("{} --profiles-dir ../../project_config/", metric.clone().cmd);
             let mut output_file = out_dir.clone();
-            output_file.push(metric.outfile(project_name));
+            output_file.push(metric.filename(project_name));
 
             run_hyperfine(
                 path,
@@ -163,7 +231,6 @@ pub fn model<'a>(
     // check hyperfine runs for any non-zero exit codes
     for run in hyperfine_runs {
         match run.code() {
-            // TODO make exception for hyperfine run failing
             Some(code) if code != 0 => return Err(CalculateError::HyperfineNonZeroExitCode(code)),
             _ => ()
         }

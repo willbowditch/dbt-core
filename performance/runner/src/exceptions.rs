@@ -19,6 +19,8 @@ pub enum IOError {
     BadFileContentsErr(PathBuf, Option<io::Error>),
     #[error("CommandErr: System command failed to run.\nOriginating Exception: {}", .0.as_ref().map_or("None".to_owned(), |e| format!("{}", e)))]
     CommandErr(Option<io::Error>),
+    #[error("CannotRerreateTempDirErr: attempted to delete and recreate temp dir at path {}\nOriginating Exception: {}", .0.to_string_lossy().into_owned(), .1)]
+    CannotRecreateTempDirErr(PathBuf, io::Error)
 }
 
 // TODO make this RunnerError instead?
