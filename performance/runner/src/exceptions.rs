@@ -1,4 +1,3 @@
-use crate::calculate::*;
 use std::io;
 #[cfg(test)]
 use std::path::Path;
@@ -22,6 +21,7 @@ pub enum IOError {
     CommandErr(Option<io::Error>),
 }
 
+// TODO make this RunnerError instead?
 // Custom Error messages for the error states we could encounter
 // during calculation, and are not prevented at compile time. New
 // constructors should be added for any new error situations that
@@ -36,8 +36,6 @@ pub enum CalculateError {
     NoResultsErr(PathBuf),
     #[error("OddResultsCountErr: The results directory has an odd number of results in it. Expected an even number.\nFile Count: {}\nFilepath: {}", .0, .1.to_string_lossy().into_owned())]
     OddResultsCountErr(usize, PathBuf),
-    #[error("BadGroupSizeErr: Expected two results per group, one for each branch-project pair.\nCount: {}\nGroup: {:?}", .0, .1.into_iter().map(|group| (&group.version[..], &group.run[..])).collect::<Vec<(&str, &str)>>())]
-    BadGroupSizeErr(usize, Vec<MeasurementGroup>),
     #[error("BadBranchNameErr: Branch names must be 'baseline' and 'dev'.\nFound: {}, {}", .0, .1)]
     BadBranchNameErr(String, String),
 }

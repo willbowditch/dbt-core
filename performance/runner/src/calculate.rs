@@ -1,14 +1,14 @@
-use crate::exceptions::{CalculateError, IOError};
+use crate::exceptions::CalculateError;
+use crate::measure;
 use chrono::prelude::*;
-use itertools::Itertools;
 use serde::{de::Error, Deserialize, Deserializer, Serialize, Serializer};
 use std::collections::HashMap;
-use std::fs;
-use std::fs::DirEntry;
-use std::path::{Path, PathBuf};
 use std::str::FromStr;
+use std::path::{Path, PathBuf};
+
 
 // TODO move this to measure.rs
+//
 // This type exactly matches the type of array elements
 // from hyperfine's output. Deriving `Serialize` and `Deserialize`
 // gives us read and write capabilities via json_serde.
@@ -26,6 +26,7 @@ pub struct Measurement {
 }
 
 // TODO move this to measure.rs
+//
 // This type exactly matches the type of hyperfine's output.
 // Deriving `Serialize` and `Deserialize` gives us read and
 // write capabilities via json_serde.
@@ -35,6 +36,7 @@ pub struct Measurements {
 }
 
 // TODO move this to measure.rs?
+//
 // struct representation for "major.minor.patch" version.
 // useful for ordering versions to get the latest
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
@@ -51,32 +53,6 @@ impl Version {
             major: major,
             minor: minor,
             patch: patch,
-        }
-    }
-
-    // Given a list of versions, get the most recent version prior.
-    // see the `version_compare_order()` test for example pairings.
-    fn compare_from(&self, versions: &[Version]) -> Option<Version> {
-        let mut sorted: Vec<&Version> = versions.into_iter().collect();
-        sorted.push(self);
-        sorted.sort();
-        sorted.reverse();
-
-        match &sorted[..] {
-            [] => None,
-            [&v] => Some(Version::max(v, *self)),
-            [_head, _middle @ .., &last] => {
-                let mut vs: Vec<(Version, Option<Version>)> = sorted
-                    .clone()
-                    .into_iter()
-                    .map(|x| *x)
-                    .zip(sorted[1..].into_iter().map(|x| Some(**x)))
-                    .collect();
-                vs.push((last, None));
-                let m: HashMap<Version, Option<Version>> = vs.into_iter().collect();
-                // using unwrap because we added `version` to the hashmap in this function.
-                *m.get(self).unwrap()
-            }
         }
     }
 }
@@ -101,7 +77,7 @@ pub struct Baseline {
 // A JSON structure outputted by the release process that contains
 // a history of all previous version baseline measurements.
 #[derive(Debug, Clone, PartialEq)]
-struct Sample {
+pub struct Sample {
     pub project: String,
     pub command: String,
     pub value: f64,
@@ -137,15 +113,6 @@ pub struct Calculation {
     pub mean: f64,
     pub stddev: f64,
     pub threshold: f64
-}
-
-// A type to describe which measurement we are working with. This
-// information is parsed from the filename of hyperfine's output.
-#[derive(Debug, Clone, PartialEq)]
-pub struct MeasurementGroup {
-    pub version: String,
-    pub run: String,
-    pub measurement: Measurement,
 }
 
 // Serializes a Version struct into a "major.minor.patch" string.
@@ -185,43 +152,6 @@ impl<'de> Deserialize<'de> for Version {
     }
 }
 
-// TODO move this somewhere else?
-// Given a directory, read all files in the directory and return each
-// filename with the deserialized json contents of that file.
-fn from_json_files<'a, A : Deserialize<'a>>(
-    results_directory: &Path,
-) -> Result<Vec<(PathBuf, A)>, CalculateError> {
-    fs::read_dir(results_directory)
-        .or_else(|e| Err(IOError::ReadErr(results_directory.to_path_buf(), Some(e))))
-        .or_else(|e| Err(CalculateError::CalculateIOError(e)))?
-        .into_iter()
-        .map(|entry| {
-            let ent: DirEntry = entry
-                .or_else(|e| Err(IOError::ReadErr(results_directory.to_path_buf(), Some(e))))
-                .or_else(|e| Err(CalculateError::CalculateIOError(e)))?;
-
-            Ok(ent.path())
-        })
-        .collect::<Result<Vec<PathBuf>, CalculateError>>()?
-        .iter()
-        .filter(|path| {
-            path.extension()
-                .and_then(|ext| ext.to_str())
-                .map_or(false, |ext| ext.ends_with("json"))
-        })
-        .map(|path| {
-            fs::read_to_string(path)
-                .or_else(|e| Err(IOError::BadFileContentsErr(path.clone(), Some(e))))
-                .or_else(|e| Err(CalculateError::CalculateIOError(e)))
-                .and_then(|contents| {
-                    serde_json::from_str::<A>(&contents)
-                        .or_else(|e| Err(CalculateError::BadJSONErr(path.clone(), Some(e))))
-                })
-                .map(|m| (path.clone(), m))
-        })
-        .collect()
-}
-
 fn calculate_regressions(samples: &[Sample], baseline: Baseline, sigma: f64) -> Vec<Calculation> {
     // TODO key of type (String, String) is weak and error prone
     let mut m_samples: HashMap<(String, String), (f64, DateTime<Utc>)> =
@@ -249,32 +179,31 @@ fn calculate_regressions(samples: &[Sample], baseline: Baseline, sigma: f64) -> 
     .collect()
 }
 
+// TODO fix panics
+//
 // Top-level function. Given a path for the result directory, call the above
-// functions to compare and collect calculations. Calculations include both
-// metrics that fall within the threshold and regressions.
-pub fn regressions(results_directory: &PathBuf) -> Result<Vec<Calculation>, CalculateError> {
-    measurements_from_files(Path::new(&results_directory)).and_then(|v| {
-        // exit early with an Err if there are no results to process
-        if v.len() <= 0 {
-            Err(CalculateError::NoResultsErr(results_directory.clone()))
-        // we expect two runs for each project-metric pairing: one for each branch, baseline
-        // and dev. An odd result count is unexpected.
-        } else if v.len() % 2 == 1 {
-            Err(CalculateError::OddResultsCountErr(
-                v.len(),
-                results_directory.clone(),
-            ))
-        } else {
-            // otherwise, we can do our comparisons
-            let measurements = v
-                .iter()
-                // the way we're running these, the files will each contain exactly one measurement, hence `results[0]`
-                .map(|(p, ms)| (p, &ms.results[0]))
-                .collect::<Vec<(&PathBuf, &Measurement)>>();
+// functions to compare and collect calculations. Calculations include all samples
+// regardless of whether they passed or failed.
+pub fn regressions(baseline_dir: &PathBuf, test_projects_dir: &PathBuf) -> Result<Vec<Calculation>, CalculateError> {
+    let baselines: Vec<Baseline> = measure::from_json_files::<Baseline>(Path::new(&baseline_dir))?
+        .into_iter().map(|(_, x)| x).collect();
+    let samples: Vec<Sample> = measure::take_samples(test_projects_dir)
+        .or_else(|e| Err(CalculateError::CalculateIOError(e)))?;
 
-            calculate_regressions(&measurements[..])
-        }
-    })
+    // this is the baseline to compare these samples against
+    let baseline: Baseline = match &baselines[..] {
+        [] => panic!("no baselines found in dir"),
+        [x, _xs @ ..] => baselines.into_iter().fold(*x, |max, next| {
+            if max.version >= next.version {
+                max
+            } else {
+                next
+            }
+        })
+    };
+
+    // calculate regressions with a 3 sigma threshold
+    Ok(calculate_regressions(&samples, baseline, 3.0))
 }
 
 #[cfg(test)]
