@@ -8,6 +8,7 @@ use std::fs::DirEntry;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
+// TODO move this to measure.rs
 // This type exactly matches the type of array elements
 // from hyperfine's output. Deriving `Serialize` and `Deserialize`
 // gives us read and write capabilities via json_serde.
@@ -24,6 +25,7 @@ pub struct Measurement {
     pub times: Vec<f64>,
 }
 
+// TODO move this to measure.rs
 // This type exactly matches the type of hyperfine's output.
 // Deriving `Serialize` and `Deserialize` gives us read and
 // write capabilities via json_serde.
@@ -32,6 +34,7 @@ pub struct Measurements {
     pub results: Vec<Measurement>,
 }
 
+// TODO move this to measure.rs?
 // struct representation for "major.minor.patch" version.
 // useful for ordering versions to get the latest
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
@@ -51,6 +54,8 @@ impl Version {
         }
     }
 
+    // Given a list of versions, get the most recent version prior.
+    // see the `version_compare_order()` test for example pairings.
     fn compare_from(&self, versions: &[Version]) -> Option<Version> {
         let mut sorted: Vec<&Version> = versions.into_iter().collect();
         sorted.push(self);
@@ -76,35 +81,62 @@ impl Version {
     }
 }
 
-// A JSON structure outputted by the release process that contains
-// a history of all previous version baseline measurements.
+// A model for a single project-command pair
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub struct Baseline {
-    pub version: Version,
-    pub metric: String,
+pub struct BaselineMetric {
+    pub project: String,
+    pub command: String,
     pub ts: DateTime<Utc>,
     pub measurement: Measurement,
 }
 
-// Output data from a comparison between runs on the baseline
-// and dev branches.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct Data {
-    pub mu: f64,
-    pub sigma: f64,
-    pub max_acceptable: f64,
-    pub measured_mean: f64,
-    pub z: f64,
+// A JSON structure outputted by the release process that contains
+// a models for all the measured project-command pairs for this version.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct Baseline {
+    pub version: Version,
+    pub metrics: Vec<BaselineMetric>
+}
+
+// A JSON structure outputted by the release process that contains
+// a history of all previous version baseline measurements.
+#[derive(Debug, Clone, PartialEq)]
+struct Sample {
+    pub project: String,
+    pub command: String,
+    pub value: f64,
+    pub ts: DateTime<Utc>
+}
+
+impl Sample {
+    // TODO make these results not panics.
+    fn from_measurement(project: String, command: String, ts: DateTime<Utc>, measurement: &Measurement) -> Sample {
+        match &measurement.times[..] {
+            [] => panic!("found a sample with no measurement"),
+            [x] => Sample {
+                project: project,
+                command: command,
+                value: *x,
+                ts: ts
+            },
+            _ => panic!("found a sample with too many measurements!"),
+        }
+    }
 }
 
 // The full output from a comparison between runs on the baseline
 // and dev branches.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Calculation {
-    pub metric: String,
+    pub version: Version,
+    pub project: String,
+    pub command: String,
     pub regression: bool,
     pub ts: DateTime<Utc>,
-    pub data: Data,
+    pub sigma: f64,
+    pub mean: f64,
+    pub stddev: f64,
+    pub threshold: f64
 }
 
 // A type to describe which measurement we are working with. This
@@ -153,39 +185,12 @@ impl<'de> Deserialize<'de> for Version {
     }
 }
 
-// Given two measurements, return all the calculations. Calculations are
-// flagged as regressions or not regressions.
-fn calculate(metric: &str, dev: &Measurement, baseline: &Measurement) -> Vec<Calculation> {
-    // choosing the current timestamp for all calculations to be the same.
-    // this timestamp is not from the time of measurement becuase hyperfine
-    // controls that. Since calculation is run directly after, this is fine.
-    let ts = Utc::now();
-
-    let threshold = 3.0;
-    let sigma = baseline.stddev;
-    let max_acceptable = baseline.mean + (threshold * sigma);
-
-    let z = (dev.mean - baseline.mean) / sigma;
-
-    vec![Calculation {
-        metric: ["3σ", metric].join("_"),
-        regression: z > threshold,
-        ts: ts,
-        data: Data {
-            mu: baseline.mean,
-            sigma: sigma,
-            max_acceptable: max_acceptable,
-            measured_mean: baseline.mean,
-            z: z,
-        },
-    }]
-}
-
+// TODO move this somewhere else?
 // Given a directory, read all files in the directory and return each
 // filename with the deserialized json contents of that file.
-fn measurements_from_files(
+fn from_json_files<'a, A : Deserialize<'a>>(
     results_directory: &Path,
-) -> Result<Vec<(PathBuf, Measurements)>, CalculateError> {
+) -> Result<Vec<(PathBuf, A)>, CalculateError> {
     fs::read_dir(results_directory)
         .or_else(|e| Err(IOError::ReadErr(results_directory.to_path_buf(), Some(e))))
         .or_else(|e| Err(CalculateError::CalculateIOError(e)))?
@@ -209,7 +214,7 @@ fn measurements_from_files(
                 .or_else(|e| Err(IOError::BadFileContentsErr(path.clone(), Some(e))))
                 .or_else(|e| Err(CalculateError::CalculateIOError(e)))
                 .and_then(|contents| {
-                    serde_json::from_str::<Measurements>(&contents)
+                    serde_json::from_str::<A>(&contents)
                         .or_else(|e| Err(CalculateError::BadJSONErr(path.clone(), Some(e))))
                 })
                 .map(|m| (path.clone(), m))
@@ -217,77 +222,31 @@ fn measurements_from_files(
         .collect()
 }
 
-// Given a list of filename-measurement pairs, detect any regressions by grouping
-// measurements together by filename.
-fn calculate_regressions(
-    measurements: &[(&PathBuf, &Measurement)],
-) -> Result<Vec<Calculation>, CalculateError> {
-    /*
-        Strategy of this function body:
-        1. [Measurement] -> [MeasurementGroup]
-        2. Sort the MeasurementGroups
-        3. Group the MeasurementGroups by "run"
-        4. Call `calculate` with the two resulting Measurements as input
-    */
+fn calculate_regressions(samples: &[Sample], baseline: Baseline, sigma: f64) -> Vec<Calculation> {
+    // TODO key of type (String, String) is weak and error prone
+    let mut m_samples: HashMap<(String, String), (f64, DateTime<Utc>)> =
+        samples.into_iter().map(|x| ((x.project, x.command), (x.value, x.ts))).collect();
 
-    let mut measurement_groups: Vec<MeasurementGroup> = measurements
-        .iter()
-        .map(|(p, m)| {
-            p.file_name()
-                .ok_or_else(|| IOError::MissingFilenameErr(p.to_path_buf()))
-                .and_then(|name| {
-                    name.to_str()
-                        .ok_or_else(|| IOError::FilenameNotUnicodeErr(p.to_path_buf()))
-                })
-                .map(|name| {
-                    let parts: Vec<&str> = name.split("_").collect();
-                    MeasurementGroup {
-                        version: parts[0].to_owned(),
-                        run: parts[1..].join("_"),
-                        measurement: (*m).clone(),
-                    }
-                })
-        })
-        .collect::<Result<Vec<MeasurementGroup>, IOError>>()
-        .or_else(|e| Err(CalculateError::CalculateIOError(e)))?;
-
-    measurement_groups.sort_by(|x, y| (&x.run, &x.version).cmp(&(&y.run, &y.version)));
-
-    // locking up mutation
-    let sorted_measurement_groups = measurement_groups;
-
-    let calculations: Vec<Calculation> = sorted_measurement_groups
-        .iter()
-        .group_by(|x| &x.run)
-        .into_iter()
-        .map(|(_, g)| {
-            let mut groups: Vec<&MeasurementGroup> = g.collect();
-            groups.sort_by(|x, y| x.version.cmp(&y.version));
-
-            match groups.len() {
-                2 => {
-                    let dev = &groups[1];
-                    let baseline = &groups[0];
-
-                    if dev.version == "dev" && baseline.version == "baseline" {
-                        Ok(calculate(&dev.run, &dev.measurement, &baseline.measurement))
-                    } else {
-                        Err(CalculateError::BadBranchNameErr(
-                            baseline.version.clone(),
-                            dev.version.clone(),
-                        ))
-                    }
+    baseline.metrics.into_iter().filter_map(|metric| {
+        let model = metric.measurement;
+        m_samples
+            .get(&(metric.project, metric.command))
+            .map(|(value, ts)| {
+                let threshold = model.mean + sigma * model.stddev;
+                Calculation {
+                    version: baseline.version,
+                    project: metric.project,
+                    command: metric.command,
+                    regression: threshold > *value,
+                    ts: *ts,
+                    sigma: sigma,
+                    mean: model.mean,
+                    stddev: model.stddev,
+                    threshold: threshold
                 }
-                i => {
-                    let gs: Vec<MeasurementGroup> = groups.into_iter().map(|x| x.clone()).collect();
-                    Err(CalculateError::BadGroupSizeErr(i, gs))
-                }
-            }
-        })
-        .collect::<Result<Vec<Vec<Calculation>>, CalculateError>>()?
-        .concat();
-
-    Ok(calculations)
+            })
+    })
+    .collect()
 }
 
 // Top-level function. Given a path for the result directory, call the above

@@ -3,6 +3,9 @@ use std::fs;
 use std::path::PathBuf;
 use std::process::{Command, ExitStatus};
 
+
+// TODO run hyperfine, read all files, create a Baseline value and write THAT out instead.
+
 // `Metric` defines a dbt command that we want to measure on both the
 // baseline and dev branches.
 #[derive(Debug, Clone)]
