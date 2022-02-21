@@ -33,6 +33,8 @@ def prefix():
 @pytest.fixture
 def unique_schema(request, prefix) -> str:
     test_file = request.module.__name__
+    # We only want the last part of the name
+    test_file = test_file.split(".")[-1]
     unique_schema = f"{prefix}_{test_file}"
     return unique_schema
 
