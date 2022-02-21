@@ -27,6 +27,8 @@ F      <- the only failing commit
 - Commit E samples a value of 31.2 seconds and passes
 - Commit F samples a value of 32.9 seconds and fails
 
+Because these performance regression tests are non-deterministic, it is frequently going to be possible to rerun the test on a failing commit and get it to pass. The more often we do this, the farther down the commit history we will be punting detection that can't be easily passed rerun.
+
 ## The Statistics
 Particle physicists need to be confident in declaring new discoveries, snack manufacturers need to be sure each snack is within the regulated margin of error for nutrition facts, and weight-rated climbing gear needs to be produced so you can trust your life to every unit that comes off the line. All of these use cases use the same kind of math to meet their needs: sigma-based p-values. This section will peel apart that math with the help of a physicist and walk through how we apply this approach to performance regression testing in this test suite.
 
