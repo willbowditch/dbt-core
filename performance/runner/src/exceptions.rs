@@ -40,6 +40,12 @@ pub enum CalculateError {
     BadBranchNameErr(String, String),
 }
 
+impl From<IOError> for CalculateError {
+    fn from(item: IOError) -> Self {
+        CalculateError::CalculateIOError(item)
+    }
+}
+
 // Tests for exceptions
 #[cfg(test)]
 mod tests {

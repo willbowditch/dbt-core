@@ -152,21 +152,22 @@ impl<'de> Deserialize<'de> for Version {
     }
 }
 
+// TODO find an alternative to all this cloning
 fn calculate_regressions(samples: &[Sample], baseline: Baseline, sigma: f64) -> Vec<Calculation> {
     // TODO key of type (String, String) is weak and error prone
     let mut m_samples: HashMap<(String, String), (f64, DateTime<Utc>)> =
-        samples.into_iter().map(|x| ((x.project, x.command), (x.value, x.ts))).collect();
+        samples.into_iter().map(|x| ((x.project.clone(), x.command.clone()), (x.value, x.ts))).collect();
 
-    baseline.metrics.into_iter().filter_map(|metric| {
-        let model = metric.measurement;
+    baseline.metrics.clone().into_iter().filter_map(|metric| {
+        let model = metric.measurement.clone();
         m_samples
-            .get(&(metric.project, metric.command))
+            .get(&(metric.clone().project, metric.clone().command))
             .map(|(value, ts)| {
                 let threshold = model.mean + sigma * model.stddev;
                 Calculation {
-                    version: baseline.version,
-                    project: metric.project,
-                    command: metric.command,
+                    version: baseline.version.clone(),
+                    project: metric.project.clone(),
+                    command: metric.command.clone(),
                     regression: threshold > *value,
                     ts: *ts,
                     sigma: sigma,
@@ -184,16 +185,16 @@ fn calculate_regressions(samples: &[Sample], baseline: Baseline, sigma: f64) -> 
 // Top-level function. Given a path for the result directory, call the above
 // functions to compare and collect calculations. Calculations include all samples
 // regardless of whether they passed or failed.
-pub fn regressions(baseline_dir: &PathBuf, test_projects_dir: &PathBuf) -> Result<Vec<Calculation>, CalculateError> {
+pub fn regressions(baseline_dir: &PathBuf, projects_dir: &PathBuf) -> Result<Vec<Calculation>, CalculateError> {
     let baselines: Vec<Baseline> = measure::from_json_files::<Baseline>(Path::new(&baseline_dir))?
         .into_iter().map(|(_, x)| x).collect();
-    let samples: Vec<Sample> = measure::take_samples(test_projects_dir)
+    let samples: Vec<Sample> = measure::take_samples(projects_dir)
         .or_else(|e| Err(CalculateError::CalculateIOError(e)))?;
 
     // this is the baseline to compare these samples against
     let baseline: Baseline = match &baselines[..] {
         [] => panic!("no baselines found in dir"),
-        [x, _xs @ ..] => baselines.into_iter().fold(*x, |max, next| {
+        [x, ..] => baselines.clone().into_iter().fold(x.clone(), |max, next| {
             if max.version >= next.version {
                 max
             } else {

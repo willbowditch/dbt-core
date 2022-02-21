@@ -1,13 +1,20 @@
 use crate::exceptions::{CalculateError, IOError};
-use crate::calculate::{Sample};
-use serde::Deserialize;
+use crate::calculate::{Baseline, Measurement, Measurements, Sample};
+use serde::de::DeserializeOwned;
 use std::fs;
 use std::fs::DirEntry;
 use std::path::{Path, PathBuf};
 use std::process::{Command, ExitStatus};
 
 
-// TODO run hyperfine, read all files, create a Baseline value and write THAT out instead.
+// To add a new metric to the test suite, simply define it in this list
+static metrics: [Metric; 1] = [
+    Metric {
+        name: "parse",
+        prepare: "rm -rf target/",
+        cmd: "dbt parse --no-version-check",
+    }
+];
 
 // `Metric` defines a dbt command that we want to measure on both the
 // baseline and dev branches.
@@ -19,9 +26,11 @@ struct Metric<'a> {
 }
 
 impl Metric<'_> {
+    // TODO maybe use directories instead?
+    //
     // Returns the proper filename for the hyperfine output for this metric.
-    fn outfile(&self, project: &str, branch: &str) -> String {
-        [branch, "_", self.name, "_", project, ".json"].join("")
+    fn outfile(&self, project: &str) -> String {
+        [self.name, "_", project, ".json"].join("")
     }
 }
 
@@ -29,9 +38,9 @@ impl Metric<'_> {
 //
 // Given a directory, read all files in the directory and return each
 // filename with the deserialized json contents of that file.
-pub fn from_json_files<'a, A : Deserialize<'a>>(
+pub fn from_json_files<T : DeserializeOwned>(
     results_directory: &Path,
-) -> Result<Vec<(PathBuf, A)>, CalculateError> {
+) -> Result<Vec<(PathBuf, T)>, CalculateError> {
     fs::read_dir(results_directory)
         .or_else(|e| Err(IOError::ReadErr(results_directory.to_path_buf(), Some(e))))
         .or_else(|e| Err(CalculateError::CalculateIOError(e)))?
@@ -54,8 +63,8 @@ pub fn from_json_files<'a, A : Deserialize<'a>>(
             fs::read_to_string(path)
                 .or_else(|e| Err(IOError::BadFileContentsErr(path.clone(), Some(e))))
                 .or_else(|e| Err(CalculateError::CalculateIOError(e)))
-                .and_then(|contents| {
-                    serde_json::from_str::<A>(&contents)
+                .and_then(|ref contents| {
+                    serde_json::from_str::<T>(contents)
                         .or_else(|e| Err(CalculateError::BadJSONErr(path.clone(), Some(e))))
                 })
                 .map(|m| (path.clone(), m))
@@ -95,13 +104,14 @@ fn get_projects<'a>(projects_directory: &PathBuf) -> Result<Vec<(PathBuf, String
 }
 
 fn run_hyperfine(
+    run_dir: &PathBuf,
     command: &str,
     prep: &str,
     runs: i32,
-    output_file: &str
+    output_file: &PathBuf
 ) -> Result<ExitStatus, IOError> {
     Command::new("hyperfine")
-        .current_dir(path)
+        .current_dir(run_dir)
         // warms filesystem caches by running the command first without counting it.
         // alternatively we could clear them before each run
         .arg("--warmup")
@@ -128,38 +138,39 @@ pub fn take_samples(test_projects_dir: &PathBuf) -> Result<Vec<Sample>, IOError>
 }
 
 // Calls hyperfine via system command, and returns all the exit codes for each hyperfine run.
-pub fn measure<'a>(
+pub fn model<'a>(
     projects_directory: &PathBuf,
-    dbt_branch: &str,
-) -> Result<Vec<ExitStatus>, IOError> {
-
-    /*
-        Strategy of this function body:
-        1. Read all directory names in `projects_directory`
-        2. Pair `n` projects with `m` metrics for a total of n*m pairs
-        3. Run hyperfine on each project-metric pair
-    */
-
-    // To add a new metric to the test suite, simply define it in this list:
-    // TODO: This could be read from a config file in a future version.
-    let metrics: Vec<Metric> = vec![Metric {
-        name: "parse",
-        prepare: "rm -rf target/",
-        cmd: "dbt parse --no-version-check",
-    }];
-
-    get_projects(projects_directory)?
+    out_dir: &PathBuf
+) -> Result<i32, CalculateError> {
+    let hyperfine_runs: Vec<ExitStatus> = get_projects(projects_directory)?
         .iter()
         // run hyperfine on each pairing
-        .map(|(path, project_name, &metric)| {
-            let command = format!("{} --profiles-dir ../../project_config/", metric.cmd);
-            let output_file = format!("../../results/{}", metric.outfile(project_name, dbt_branch));
+        .map(|(path, project_name, metric)| {
+            let command = format!("{} --profiles-dir ../../project_config/", metric.clone().cmd);
+            let mut output_file = out_dir.clone();
+            output_file.push(metric.outfile(project_name));
+
             run_hyperfine(
+                path,
                 &command,
-                metric.prepare,
+                metric.clone().prepare,
                 20,
                 &output_file
             )
         })
-        .collect()
+        .collect::<Result<Vec<ExitStatus>, IOError>>()?;
+
+    // check hyperfine runs for any non-zero exit codes
+    for run in hyperfine_runs {
+        match run.code() {
+            // TODO make exception for hyperfine run failing
+            Some(x) if x != 0 => return Err(unimplemented!()),
+            _ => ()
+        }
+    };
+
+    // let measurements: Vec<Measurement> =
+
+
+    unimplemented!()
 }

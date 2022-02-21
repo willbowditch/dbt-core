@@ -18,19 +18,23 @@ use structopt::StructOpt;
 #[derive(Clone, Debug, StructOpt)]
 #[structopt(name = "performance", about = "performance regression testing runner")]
 enum Opt {
-    #[structopt(name = "measure")]
-    Measure {
+    #[structopt(name = "model")]
+    Model {
         #[structopt(parse(from_os_str))]
         #[structopt(short)]
         projects_dir: PathBuf,
-        #[structopt(short)]
-        branch_name: String,
-    },
-    #[structopt(name = "calculate")]
-    Calculate {
         #[structopt(parse(from_os_str))]
         #[structopt(short)]
-        results_dir: PathBuf,
+        out_dir: PathBuf,
+    },
+    #[structopt(name = "sample")]
+    Sample {
+        #[structopt(parse(from_os_str))]
+        #[structopt(short)]
+        projects_dir: PathBuf,
+        #[structopt(parse(from_os_str))]
+        #[structopt(short)]
+        baseline_dir: PathBuf,
         #[structopt(parse(from_os_str))]
         #[structopt(short)]
         out_dir: PathBuf,
@@ -45,30 +49,21 @@ enum Opt {
 fn run_app() -> Result<i32, CalculateError> {
     // match what the user inputs from the cli
     match Opt::from_args() {
-        // measure subcommand
-        Opt::Measure {
+        // model subcommand
+        Opt::Model {
             projects_dir,
-            branch_name,
+            out_dir
         } => {
             // if there are any nonzero exit codes from the hyperfine runs,
             // return the first one. otherwise return zero.
-            measure::measure(&projects_dir, &branch_name)
-                .or_else(|e| Err(CalculateError::CalculateIOError(e)))?
-                .iter()
-                .map(|status| status.code())
-                .flatten()
-                .filter(|code| *code != 0)
-                .collect::<Vec<i32>>()
-                .get(0)
-                .map_or(Ok(0), |x| {
-                    println!("Main: a child process exited with a nonzero status code.");
-                    Ok(*x)
-                })
+            measure::model(&projects_dir, &out_dir)?;
+            Ok(0)
         }
 
         // calculate subcommand
-        Opt::Calculate {
-            results_dir,
+        Opt::Sample {
+            projects_dir,
+            baseline_dir,
             out_dir,
         } => {
             // validate output directory and exit early if it won't work.
@@ -80,7 +75,7 @@ fn run_app() -> Result<i32, CalculateError> {
             }
 
             // get all the calculations or gracefully show the user an exception
-            let calculations = calculate::regressions(&results_dir)?;
+            let calculations = calculate::regressions(&baseline_dir, &projects_dir)?;
 
             // print all calculations to stdout so they can be easily debugged
             // via CI.
