@@ -32,12 +32,8 @@ pub enum CalculateError {
     BadJSONErr(PathBuf, Option<serde_json::Error>),
     #[error("{}", .0)]
     CalculateIOError(IOError),
-    #[error("NoResultsErr: The results directory has no json files in it.\nFilepath: {}", .0.to_string_lossy().into_owned())]
-    NoResultsErr(PathBuf),
-    #[error("OddResultsCountErr: The results directory has an odd number of results in it. Expected an even number.\nFile Count: {}\nFilepath: {}", .0, .1.to_string_lossy().into_owned())]
-    OddResultsCountErr(usize, PathBuf),
-    #[error("BadBranchNameErr: Branch names must be 'baseline' and 'dev'.\nFound: {}, {}", .0, .1)]
-    BadBranchNameErr(String, String),
+    #[error("Hyperfine child process exited with non-zero exit code: {}", .0)]
+    HyperfineNonZeroExitCode(i32)
 }
 
 impl From<IOError> for CalculateError {

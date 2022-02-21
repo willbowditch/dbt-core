@@ -1,5 +1,5 @@
 use crate::exceptions::{CalculateError, IOError};
-use crate::calculate::{Baseline, Measurement, Measurements, Sample};
+use crate::calculate::Sample;
 use serde::de::DeserializeOwned;
 use std::fs;
 use std::fs::DirEntry;
@@ -8,7 +8,7 @@ use std::process::{Command, ExitStatus};
 
 
 // To add a new metric to the test suite, simply define it in this list
-static metrics: [Metric; 1] = [
+static METRICS: [Metric; 1] = [
     Metric {
         name: "parse",
         prepare: "rm -rf target/",
@@ -91,7 +91,7 @@ fn get_projects<'a>(projects_directory: &PathBuf) -> Result<Vec<(PathBuf, String
             .to_owned();
 
         // each project-metric pair we will run
-        let pairs = metrics
+        let pairs = METRICS
             .iter()
             .map(|metric| (path.clone(), project_name.clone(), metric))
             .collect::<Vec<(PathBuf, String, &Metric<'a>)>>();
@@ -164,7 +164,7 @@ pub fn model<'a>(
     for run in hyperfine_runs {
         match run.code() {
             // TODO make exception for hyperfine run failing
-            Some(x) if x != 0 => return Err(unimplemented!()),
+            Some(code) if code != 0 => return Err(CalculateError::HyperfineNonZeroExitCode(code)),
             _ => ()
         }
     };

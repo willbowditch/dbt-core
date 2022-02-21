@@ -155,7 +155,7 @@ impl<'de> Deserialize<'de> for Version {
 // TODO find an alternative to all this cloning
 fn calculate_regressions(samples: &[Sample], baseline: Baseline, sigma: f64) -> Vec<Calculation> {
     // TODO key of type (String, String) is weak and error prone
-    let mut m_samples: HashMap<(String, String), (f64, DateTime<Utc>)> =
+    let m_samples: HashMap<(String, String), (f64, DateTime<Utc>)> =
         samples.into_iter().map(|x| ((x.project.clone(), x.command.clone()), (x.value, x.ts))).collect();
 
     baseline.metrics.clone().into_iter().filter_map(|metric| {
