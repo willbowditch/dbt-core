@@ -67,20 +67,15 @@ fn run_app() -> Result<i32, CalculateError> {
             Ok(0)
         }
 
-        // calculate subcommand
+        // samples performance characteristics from the current commit
+        // and compares them against the model for the latest version in this branch
+        // prints all sample results and exits with non-zero exit code
+        // when a regression is suspected
         Opt::Sample {
             projects_dir,
             baseline_dir,
             out_dir,
         } => {
-            // validate output directory and exit early if it won't work.
-            let md = metadata(&out_dir)
-                .expect("Main: Failed to read specified output directory metadata. Does it exist?");
-            if !md.is_dir() {
-                eprintln!("Main: Output directory is not a directory");
-                return Ok(1);
-            }
-
             // get all the calculations or gracefully show the user an exception
             let calculations = calculate::regressions(&baseline_dir, &projects_dir, &out_dir)?;
 
@@ -100,16 +95,6 @@ fn run_app() -> Result<i32, CalculateError> {
             let ts = calculations
                 .first()
                 .map_or_else(|| Utc::now(), |calc| calc.ts);
-
-            // create the empty destination file, and write the json string
-            let outfile = &mut out_dir.into_os_string();
-            outfile.push("/final_calculations_");
-            outfile.push(ts.timestamp().to_string());
-            outfile.push(".json");
-
-            let mut f = File::create(outfile).expect("Main: Unable to create file");
-            f.write_all(json_calcs.as_bytes())
-                .expect("Main: Unable to write data");
 
             // filter for regressions
             let regressions: Vec<&Calculation> =
