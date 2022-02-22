@@ -160,33 +160,24 @@ pub fn take_samples(projects_dir: &PathBuf, out_dir: &PathBuf) -> Result<Vec<Sam
     let ts = Utc::now();
 
     // run hyperfine in serial for each project-metric pair
-    let hyperfine_runs = get_projects(projects_dir)?
-        .iter()
-        .map(|(path, project_name, metric)| {
-            let command = format!("{} --profiles-dir ../../project_config/", metric.cmd);
-            let mut output_file = out_dir.clone();
-            output_file.push(metric.filename(project_name));
+    for (path, project_name, metric) in get_projects(projects_dir)? {
+        let command = format!("{} --profiles-dir ../../project_config/", metric.cmd);
+        let mut output_file = out_dir.clone();
+        output_file.push(metric.filename(&project_name));
 
-            run_hyperfine(
-                path,
-                &command,
-                metric.clone().prepare,
-                1,
-                &output_file
-            )
-            .or_else(|e| Err(CalculateError::from(e)))
-            .and_then(|status| {
-                match status.code() {
-                    Some(code) if code != 0 => Err(CalculateError::HyperfineNonZeroExitCode(code)),
-                    _ => Ok(())
-                }
-            })
-        })
-        .collect::<Result<Vec<()>, CalculateError>>()?;
+        let status = run_hyperfine(
+            &path,
+            &command,
+            metric.clone().prepare,
+            1,
+            &output_file
+        ).or_else(|e| Err(CalculateError::from(e)))?;
 
-    // forces the errors from the hyperfine runs to be raised.
-    // TODO maybe do this more gracefully
-    for _ in hyperfine_runs {}
+        match status.code() {
+            Some(code) if code != 0 => return Err(CalculateError::HyperfineNonZeroExitCode(code)),
+            _ => ()
+        }
+    }
 
     let samples = from_json_files::<Measurements>(out_dir)?
         .into_iter()
