@@ -63,7 +63,7 @@ never_selected_sql = """
 select * from {{ this.schema }}.seed
 """
 
-user_rollup_dependency_sql = """
+users_rollup_dependency_sql = """
 {{
     config(materialized='table')
 }}
@@ -171,7 +171,7 @@ def models():
         "emails_alt.sql": emails_alt_sql,
         "emails.sql": emails_sql,
         "never_selected.sql": never_selected_sql,
-        "user_rollup_dependency.sql": user_rollup_dependency_sql,
+        "users_rollup_dependency.sql": users_rollup_dependency_sql,
         "users_rollup.sql": users_rollup_sql,
         "users.sql": users_sql,
         "schema.yml": schema_yml,
@@ -219,7 +219,6 @@ def test__postgres__specific_model(project, create_tables):
     assert "alternative.users" not in created_tables
     assert "base_users" not in created_tables
     assert "emails" not in created_tables
-    # TODO add assert_correct_schemas function
     assert_correct_schemas(project, table_comp)
 
 
