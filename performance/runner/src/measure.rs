@@ -1,9 +1,10 @@
 use crate::exceptions::{CalculateError, IOError};
-use crate::calculate::{Measurements, Sample};
+use crate::calculate::{Baseline, BaselineMetric, Measurements, Sample, Version};
 use chrono::prelude::*;
 use serde::de::DeserializeOwned;
 use std::fs;
 use std::fs::DirEntry;
+use std::io;
 use std::path::{Path, PathBuf};
 use std::process::{Command, ExitStatus};
 
@@ -145,16 +146,19 @@ fn run_hyperfine(
         .or_else(|e| Err(IOError::CommandErr(Some(e))))
 }
 
+// Attempt to delete the directory and its contents. If it doesn't exist we'll just recreate it anyway.
+fn clear_dir(dir: &PathBuf) -> Result<(), io::Error> {
+    match fs::remove_dir_all(dir) {
+        // whether it existed or not, create the directory.
+        _ => fs::create_dir(dir)
+    }
+}
+
 // deletes the output directory, makes one hyperfine run for each project-metric pair,
 // reads in the results, and returns a Sample for each project-metric pair.
 pub fn take_samples(projects_dir: &PathBuf, out_dir: &PathBuf) -> Result<Vec<Sample>, CalculateError> {
-    // Attempt to delete the directory and its contents. If it doesn't exist we'll just recreate it anyway.
-    // So it's ok to toss this Result.
-    match fs::remove_dir_all(out_dir) {
-        // create the directory. It's empty now.
-        _ => fs::create_dir(out_dir)
-            .or_else(|e| Err(IOError::CannotRecreateTempDirErr(out_dir.clone(), e)))
-    }?;
+    clear_dir(out_dir)
+        .or_else(|e| Err(IOError::CannotRecreateTempDirErr(out_dir.clone(), e)))?;
 
     // using one time stamp for all samples.
     let ts = Utc::now();
@@ -182,8 +186,10 @@ pub fn take_samples(projects_dir: &PathBuf, out_dir: &PathBuf) -> Result<Vec<Sam
     let samples = from_json_files::<Measurements>(out_dir)?
         .into_iter()
         .map(|(path, measurement)| {
-            // TODO fix unwrap
-            let (metric, project) = Metric::from_filename(path.to_string_lossy().into_owned()).unwrap();
+            // TODO fix unwraps
+            // `file_name` is boop___proj.json. `file_stem` is boop___proj.
+            let filename = path.file_stem().unwrap();
+            let (metric, project) = Metric::from_filename(filename.to_string_lossy().into_owned()).unwrap();
             Sample::from_measurement(
                 metric,
                 project,
@@ -199,36 +205,64 @@ pub fn take_samples(projects_dir: &PathBuf, out_dir: &PathBuf) -> Result<Vec<Sam
 // Calls hyperfine via system command, reads in the results, and writes out a Baseline json file.
 // Intended to be called after each new version is released.
 pub fn model<'a>(
+    version: Version,
     projects_directory: &PathBuf,
-    out_dir: &PathBuf
-) -> Result<i32, CalculateError> {
-    let hyperfine_runs: Vec<ExitStatus> = get_projects(projects_directory)?
-        .iter()
-        .map(|(path, project_name, metric)| {
-            let command = format!("{} --profiles-dir ../../project_config/", metric.clone().cmd);
-            let mut output_file = out_dir.clone();
-            output_file.push(metric.filename(project_name));
+    out_dir: &PathBuf,
+    tmp_dir: &PathBuf
+) -> Result<(), CalculateError> {
 
-            run_hyperfine(
-                path,
-                &command,
-                metric.clone().prepare,
-                20,
-                &output_file
-            )
-        })
-        .collect::<Result<Vec<ExitStatus>, IOError>>()?;
 
-    // check hyperfine runs for any non-zero exit codes
-    for run in hyperfine_runs {
-        match run.code() {
+    for (path, project_name, metric) in get_projects(projects_directory)? {
+        let command = format!("{} --profiles-dir ../../project_config/", metric.clone().cmd);
+        let mut output_file = out_dir.clone();
+        output_file.push(metric.filename(&project_name));
+
+        let status = run_hyperfine(
+            &path,
+            &command,
+            metric.clone().prepare,
+            20,
+            &output_file
+        ).or_else(|e| Err(CalculateError::from(e)))?;
+
+        match status.code() {
             Some(code) if code != 0 => return Err(CalculateError::HyperfineNonZeroExitCode(code)),
             _ => ()
         }
-    };
 
-    // let measurements: Vec<Measurement> =
+    }
 
+    // read what hyperfine wrote
+    let measurements: Vec<(PathBuf, Measurements)> =
+        from_json_files::<Measurements>(out_dir)?;
 
+    // put it in the right format using the same timestamp for every model.
+    let baseline = from_measurements(version, &measurements, Some(Utc::now()));
+
+    // write the newly modeled baseline to a file
     unimplemented!()
+}
+
+fn from_measurements(version: Version, measurements: &[(PathBuf, Measurements)], ts: Option<DateTime<Utc>>) -> Baseline {
+    let metrics = measurements
+        .into_iter()
+        .map(|(path, measurements)| {
+            // TODO fix unwraps
+            // `file_name` is boop___proj.json. `file_stem` is boop___proj.
+            let filename = path.file_stem().unwrap();
+            let (metric_name, project) = Metric::from_filename(filename.to_string_lossy().into_owned()).unwrap();
+            BaselineMetric {
+                project: project,
+                metric: metric_name,
+                // uses the provided timestamp for every entry, or the current time if None.
+                ts: ts.unwrap_or(Utc::now()),
+                measurement: measurements.results[0],
+            }
+        })
+        .collect();
+
+    Baseline {
+        version: version,
+        metrics: metrics
+    }
 }

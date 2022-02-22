@@ -4,7 +4,7 @@ mod calculate;
 mod exceptions;
 mod measure;
 
-use crate::calculate::Calculation;
+use crate::calculate::{Version, Calculation};
 use crate::exceptions::CalculateError;
 use chrono::offset::Utc;
 use std::fs::metadata;
@@ -20,12 +20,16 @@ use structopt::StructOpt;
 enum Opt {
     #[structopt(name = "model")]
     Model {
+        version: Version,
         #[structopt(parse(from_os_str))]
         #[structopt(short)]
         projects_dir: PathBuf,
         #[structopt(parse(from_os_str))]
         #[structopt(short)]
         out_dir: PathBuf,
+        #[structopt(parse(from_os_str))]
+        #[structopt(short)]
+        tmp_dir: PathBuf,
     },
     #[structopt(name = "sample")]
     Sample {
@@ -51,12 +55,14 @@ fn run_app() -> Result<i32, CalculateError> {
     match Opt::from_args() {
         // model subcommand
         Opt::Model {
+            version,
             projects_dir,
-            out_dir
+            out_dir,
+            tmp_dir,
         } => {
             // if there are any nonzero exit codes from the hyperfine runs,
             // return the first one. otherwise return zero.
-            measure::model(&projects_dir, &out_dir)?;
+            measure::model(version, &projects_dir, &out_dir, &tmp_dir)?;
             Ok(0)
         }
 

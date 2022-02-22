@@ -30,6 +30,8 @@ pub enum IOError {
 // come up. The desired output of these errors is tested below.
 #[derive(Debug, Error)]
 pub enum CalculateError {
+    #[error("VersionParseFail: Error parsing input `{}`. Must be in the format \"major.minor.patch\" where each component is an integer.", .0)]
+    VersionParseFail(String),
     #[error("BadJSONErr: JSON in file cannot be deserialized as expected.\nFilepath: {}\nOriginating Exception: {}", .0.to_string_lossy().into_owned(), .1.as_ref().map_or("None".to_owned(), |e| format!("{}", e)))]
     BadJSONErr(PathBuf, Option<serde_json::Error>),
     #[error("{}", .0)]

@@ -1,10 +1,13 @@
 use crate::exceptions::CalculateError;
 use crate::measure;
 use chrono::prelude::*;
-use serde::{de::Error, Deserialize, Deserializer, Serialize, Serializer};
+use serde::{Deserialize, Serialize};
+use serde_with::{DeserializeFromStr, SerializeDisplay};
 use std::collections::HashMap;
-use std::str::FromStr;
+use std::fmt;
+use std::fmt::Display;
 use std::path::{Path, PathBuf};
+use std::str::FromStr;
 
 
 // TODO move this to measure.rs
@@ -39,11 +42,33 @@ pub struct Measurements {
 //
 // struct representation for "major.minor.patch" version.
 // useful for ordering versions to get the latest
-#[derive(Debug, Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, DeserializeFromStr, SerializeDisplay)]
 pub struct Version {
     major: i32,
     minor: i32,
     patch: i32,
+}
+
+
+impl FromStr for Version {
+    type Err = CalculateError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let ints: Vec<i32> = s
+            .split(".")
+            .map(|x| x.parse::<i32>())
+            .collect::<Result<Vec<i32>, <i32 as FromStr>::Err>>()
+            .or_else(|_| Err(CalculateError::VersionParseFail(s.to_owned())))?;
+
+        match ints[..] {
+            [major, minor, patch] => Ok(Version {
+                major: major,
+                minor: minor,
+                patch: patch,
+            }),
+            _ => Err(CalculateError::VersionParseFail(s.to_owned())),
+        }
+    }
 }
 
 impl Version {
@@ -115,40 +140,10 @@ pub struct Calculation {
     pub threshold: f64
 }
 
-// Serializes a Version struct into a "major.minor.patch" string.
-impl Serialize for Version {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        format!("{}.{}.{}", self.major, self.minor, self.patch).serialize(serializer)
-    }
-}
-
-// Deserializes a Version struct from a "major.minor.patch" string.
-impl<'de> Deserialize<'de> for Version {
-    fn deserialize<D>(deserializer: D) -> Result<Version, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let s: &str = Deserialize::deserialize(deserializer)?;
-
-        let ints: Vec<i32> = s
-            .split(".")
-            .map(|x| x.parse::<i32>())
-            .collect::<Result<Vec<i32>, <i32 as FromStr>::Err>>()
-            .map_err(D::Error::custom)?;
-
-        match ints[..] {
-            [major, minor, patch] => Ok(Version {
-                major: major,
-                minor: minor,
-                patch: patch,
-            }),
-            _ => Err(D::Error::custom(
-                "Must be in the format \"major.minor.patch\" where each component is an integer.",
-            )),
-        }
+// This display instance is used to derive Serialize as well via `SerializeDisplay`
+impl Display for Version {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}.{}.{}", self.major, self.minor, self.patch)
     }
 }
 
@@ -180,8 +175,6 @@ fn calculate_regressions(samples: &[Sample], baseline: Baseline, sigma: f64) -> 
     .collect()
 }
 
-// TODO fix panics
-//
 // Top-level function. Given a path for the result directory, call the above
 // functions to compare and collect calculations. Calculations include all samples
 // regardless of whether they passed or failed.
