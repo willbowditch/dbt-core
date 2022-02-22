@@ -1,49 +1,62 @@
 use crate::exceptions::{CalculateError, IOError};
-use crate::calculate::{Baseline, BaselineMetric, Measurements, Sample, Version};
+use crate::calculate::{Baseline, MetricModel, Measurements, Sample, Version};
 use chrono::prelude::*;
+use serde::{Deserialize, Serialize};
 use serde::de::DeserializeOwned;
 use std::fs;
 use std::fs::DirEntry;
 use std::io;
 use std::path::{Path, PathBuf};
 use std::process::{Command, ExitStatus};
+use std::str::FromStr;
 
 
 // To add a new metric to the test suite, simply define it in this list
-static METRICS: [Metric; 1] = [
-    Metric {
+static METRICS: [HyperfineCmd; 1] = [
+    HyperfineCmd {
         name: "parse",
         prepare: "rm -rf target/",
         cmd: "dbt parse --no-version-check",
     }
 ];
 
-// `Metric` defines a dbt command that we want to measure on both the
-// baseline and dev branches.
+// `HyperfineCmd` defines a command that we want to measure with hyperfine
 #[derive(Debug, Clone)]
-struct Metric<'a> {
+struct HyperfineCmd<'a> {
     name: &'a str,
     prepare: &'a str,
     cmd: &'a str,
 }
 
-impl Metric<'_> {
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Hash)]
+pub struct Metricc {
+    pub name: String,
+    pub project_name: String,
+}
+
+impl FromStr for Metricc {
+    type Err = CalculateError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let split: Vec<&str> = s.split(Metricc::sep()).collect();
+        match &split[..] {
+            [name, project] => Ok(Metricc {
+                name: name.to_string(),
+                project_name: project.to_string()
+            }),
+            _ => Err(CalculateError::MetricParseFail(s.to_owned()))
+        }
+    }
+}
+
+impl Metricc {
     fn sep() -> &'static str {
         "___"
     }
 
     // encodes the metric name and project in the filename for the hyperfine output.
-    fn filename(&self, project: &str) -> String {
-        format!("{}{}{}.json", self.name, Metric::sep(), project)
-    }
-
-    // Parses out the metric name and project rom the filename of the hyperfine output
-    fn from_filename(filename: String) -> Option<(String, String)> {
-        let split: Vec<&str> = filename.split(Metric::sep()).collect();
-        match &split[..] {
-            [name, project] => Some((name.to_string(), project.to_string())),
-            _ => None
-        }
+    fn filename(&self) -> String {
+        format!("{}{}{}.json", self.name, Metricc::sep(), self.project_name)
     }
 }
 
@@ -85,7 +98,7 @@ pub fn from_json_files<T : DeserializeOwned>(
         .collect()
 }
 
-fn get_projects<'a>(projects_directory: &PathBuf) -> Result<Vec<(PathBuf, String, Metric<'a>)>, IOError> {
+fn get_projects<'a>(projects_directory: &PathBuf) -> Result<Vec<(PathBuf, String, HyperfineCmd<'a>)>, IOError> {
     let entries = fs::read_dir(projects_directory)
         .or_else(|e| Err(IOError::ReadErr(projects_directory.to_path_buf(), Some(e))))?;
 
@@ -107,11 +120,11 @@ fn get_projects<'a>(projects_directory: &PathBuf) -> Result<Vec<(PathBuf, String
         let pairs = METRICS
             .iter()
             .map(|metric| (path.clone(), project_name.clone(), metric.clone()))
-            .collect::<Vec<(PathBuf, String, Metric<'a>)>>();
+            .collect::<Vec<(PathBuf, String, HyperfineCmd<'a>)>>();
 
         Ok(pairs)
     })
-    .collect::<Result<Vec<Vec<(PathBuf, String, Metric<'a>)>>, IOError>>()?;
+    .collect::<Result<Vec<Vec<(PathBuf, String, HyperfineCmd<'a>)>>, IOError>>()?;
 
     Ok(unflattened_results.concat())
 }
@@ -164,15 +177,20 @@ pub fn take_samples(projects_dir: &PathBuf, out_dir: &PathBuf) -> Result<Vec<Sam
     let ts = Utc::now();
 
     // run hyperfine in serial for each project-metric pair
-    for (path, project_name, metric) in get_projects(projects_dir)? {
-        let command = format!("{} --profiles-dir ../../project_config/", metric.cmd);
+    for (path, project_name, hcmd) in get_projects(projects_dir)? {
+        let metric = Metricc {
+            name: hcmd.name.to_owned(),
+            project_name: project_name.to_owned()
+        };
+
+        let command = format!("{} --profiles-dir ../../project_config/", hcmd.cmd);
         let mut output_file = out_dir.clone();
-        output_file.push(metric.filename(&project_name));
+        output_file.push(metric.filename());
 
         let status = run_hyperfine(
             &path,
             &command,
-            metric.clone().prepare,
+            hcmd.clone().prepare,
             1,
             &output_file
         ).or_else(|e| Err(CalculateError::from(e)))?;
@@ -189,10 +207,9 @@ pub fn take_samples(projects_dir: &PathBuf, out_dir: &PathBuf) -> Result<Vec<Sam
             // TODO fix unwraps
             // `file_name` is boop___proj.json. `file_stem` is boop___proj.
             let filename = path.file_stem().unwrap();
-            let (metric, project) = Metric::from_filename(filename.to_string_lossy().into_owned()).unwrap();
+            let metric = Metricc::from_str(&filename.to_string_lossy().into_owned()).unwrap();
             Sample::from_measurement(
                 metric,
-                project,
                 ts,
                 &measurement.results[0] // TODO do it safer
             )
@@ -212,17 +229,22 @@ pub fn model<'a>(
 ) -> Result<(), CalculateError> {
 
 
-    for (path, project_name, metric) in get_projects(projects_directory)? {
-        let command = format!("{} --profiles-dir ../../project_config/", metric.clone().cmd);
-        let mut output_file = out_dir.clone();
-        output_file.push(metric.filename(&project_name));
+    for (path, project_name, hcmd) in get_projects(projects_directory)? {
+        let metric = Metricc {
+            name: hcmd.name.to_owned(),
+            project_name: project_name.to_owned()
+        };
+
+        let command = format!("{} --profiles-dir ../../project_config/", hcmd.clone().cmd);
+        let mut tmp_file = tmp_dir.clone();
+        tmp_file.push(metric.filename());
 
         let status = run_hyperfine(
             &path,
             &command,
-            metric.clone().prepare,
+            hcmd.clone().prepare,
             20,
-            &output_file
+            &tmp_file
         ).or_else(|e| Err(CalculateError::from(e)))?;
 
         match status.code() {
@@ -239,30 +261,44 @@ pub fn model<'a>(
     // put it in the right format using the same timestamp for every model.
     let baseline = from_measurements(version, &measurements, Some(Utc::now()));
 
-    // write the newly modeled baseline to a file
-    unimplemented!()
+    // write a file for each baseline measurement
+    for model in &baseline.models {
+        // create the correct filename like `/out_dir/1.0.0/parse___2000_models.json`
+        let mut out_file = out_dir.clone();
+        out_file.push(version.to_string());
+        out_file.push(model.metric.filename());
+        out_file.set_extension("json");
+
+        // write the newly modeled baseline to the above path
+        let s = serde_json::to_string(&baseline)
+            .or_else(|e| Err(CalculateError::SerializationErr(e)))?;
+
+        fs::write(out_file.clone(), s)
+            .or_else(|e| Err(IOError::WriteErr(out_file.clone(), Some(e))))?;
+    }
+
+    Ok(())
 }
 
 fn from_measurements(version: Version, measurements: &[(PathBuf, Measurements)], ts: Option<DateTime<Utc>>) -> Baseline {
-    let metrics = measurements
+    let models = measurements
         .into_iter()
         .map(|(path, measurements)| {
             // TODO fix unwraps
             // `file_name` is boop___proj.json. `file_stem` is boop___proj.
             let filename = path.file_stem().unwrap();
-            let (metric_name, project) = Metric::from_filename(filename.to_string_lossy().into_owned()).unwrap();
-            BaselineMetric {
-                project: project,
-                metric: metric_name,
+            let metric = Metricc::from_str(&filename.to_string_lossy()).unwrap();
+            MetricModel {
+                metric: metric,
                 // uses the provided timestamp for every entry, or the current time if None.
                 ts: ts.unwrap_or(Utc::now()),
-                measurement: measurements.results[0],
+                measurement: measurements.results[0].clone(),
             }
         })
         .collect();
 
     Baseline {
         version: version,
-        metrics: metrics
+        models: models
     }
 }

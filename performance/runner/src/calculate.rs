@@ -1,5 +1,6 @@
 use crate::exceptions::CalculateError;
 use crate::measure;
+use crate::measure::Metricc;
 use chrono::prelude::*;
 use serde::{Deserialize, Serialize};
 use serde_with::{DeserializeFromStr, SerializeDisplay};
@@ -84,9 +85,8 @@ impl Version {
 
 // A model for a single project-command pair
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub struct BaselineMetric {
-    pub project: String,
-    pub metric: String,
+pub struct MetricModel {
+    pub metric: Metricc,
     pub ts: DateTime<Utc>,
     pub measurement: Measurement,
 }
@@ -96,26 +96,24 @@ pub struct BaselineMetric {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Baseline {
     pub version: Version,
-    pub metrics: Vec<BaselineMetric>
+    pub models: Vec<MetricModel>
 }
 
 // A JSON structure outputted by the release process that contains
 // a history of all previous version baseline measurements.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Sample {
-    pub project: String,
-    pub metric: String,
+    pub metric: Metricc,
     pub value: f64,
     pub ts: DateTime<Utc>
 }
 
 impl Sample {
     // TODO make these results not panics.
-    pub fn from_measurement(project: String, metric: String, ts: DateTime<Utc>, measurement: &Measurement) -> Sample {
+    pub fn from_measurement(metric: Metricc, ts: DateTime<Utc>, measurement: &Measurement) -> Sample {
         match &measurement.times[..] {
             [] => panic!("found a sample with no measurement"),
             [x] => Sample {
-                project: project,
                 metric: metric,
                 value: *x,
                 ts: ts
@@ -130,8 +128,7 @@ impl Sample {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Calculation {
     pub version: Version,
-    pub project: String,
-    pub metric: String,
+    pub metric: Metricc,
     pub regression: bool,
     pub ts: DateTime<Utc>,
     pub sigma: f64,
@@ -149,20 +146,18 @@ impl Display for Version {
 
 // TODO find an alternative to all this cloning
 fn calculate_regressions(samples: &[Sample], baseline: Baseline, sigma: f64) -> Vec<Calculation> {
-    // TODO key of type (String, String) is weak and error prone
-    let m_samples: HashMap<(String, String), (f64, DateTime<Utc>)> =
-        samples.into_iter().map(|x| ((x.project.clone(), x.metric.clone()), (x.value, x.ts))).collect();
+    let m_samples: HashMap<Metricc, (f64, DateTime<Utc>)> =
+        samples.into_iter().map(|x| (x.metric.clone(), (x.value, x.ts))).collect();
 
-    baseline.metrics.clone().into_iter().filter_map(|metric| {
-        let model = metric.measurement.clone();
+    baseline.models.clone().into_iter().filter_map(|metric_model| {
+        let model = metric_model.measurement.clone();
         m_samples
-            .get(&(metric.clone().project, metric.clone().metric))
+            .get(&metric_model.metric)
             .map(|(value, ts)| {
                 let threshold = model.mean + sigma * model.stddev;
                 Calculation {
-                    version: baseline.version.clone(),
-                    project: metric.project.clone(),
-                    metric: metric.metric.clone(),
+                    version: baseline.version,
+                    metric: metric_model.metric,
                     regression: *value > threshold,
                     ts: *ts,
                     sigma: sigma,
@@ -229,7 +224,7 @@ mod tests {
 
         let baseline = Baseline {
             version: Version::new(9,9,9),
-            metrics: vec![baseline_metric]
+            models: vec![baseline_metric]
         };
 
         let sample = Sample {
@@ -280,7 +275,7 @@ mod tests {
 
         let baseline = Baseline {
             version: Version::new(9,9,9),
-            metrics: vec![baseline_metric]
+            models: vec![baseline_metric]
         };
 
         let sample = Sample {
