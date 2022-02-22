@@ -21,13 +21,14 @@ use structopt::StructOpt;
 enum Opt {
     #[structopt(name = "model")]
     Model {
+        #[structopt(short)]
         version: Version,
         #[structopt(parse(from_os_str))]
         #[structopt(short)]
         projects_dir: PathBuf,
         #[structopt(parse(from_os_str))]
         #[structopt(short)]
-        out_dir: PathBuf,
+        baselines_dir: PathBuf,
         #[structopt(parse(from_os_str))]
         #[structopt(short)]
         tmp_dir: PathBuf,
@@ -58,12 +59,12 @@ fn run_app() -> Result<i32, CalculateError> {
         Opt::Model {
             version,
             projects_dir,
-            out_dir,
+            baselines_dir,
             tmp_dir,
         } => {
             // if there are any nonzero exit codes from the hyperfine runs,
             // return the first one. otherwise return zero.
-            measure::model(version, &projects_dir, &out_dir, &tmp_dir)?;
+            measure::model(version, &projects_dir, &baselines_dir, &tmp_dir)?;
             Ok(0)
         }
 
