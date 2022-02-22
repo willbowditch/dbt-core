@@ -3,9 +3,10 @@ extern crate structopt;
 mod calculate;
 mod exceptions;
 mod measure;
+mod types;
 
-use crate::calculate::{Version, Calculation};
 use crate::exceptions::CalculateError;
+use crate::types::{Version, Calculation};
 use chrono::offset::Utc;
 use std::fs::metadata;
 use std::fs::File;

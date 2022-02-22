@@ -1,7 +1,6 @@
 use crate::exceptions::{CalculateError, IOError};
-use crate::calculate::{Baseline, MetricModel, Measurements, Sample, Version};
+use crate::types::*;
 use chrono::prelude::*;
-use serde::{Deserialize, Serialize};
 use serde::de::DeserializeOwned;
 use std::fs;
 use std::fs::DirEntry;
@@ -19,46 +18,6 @@ static METRICS: [HyperfineCmd; 1] = [
         cmd: "dbt parse --no-version-check",
     }
 ];
-
-// `HyperfineCmd` defines a command that we want to measure with hyperfine
-#[derive(Debug, Clone)]
-struct HyperfineCmd<'a> {
-    name: &'a str,
-    prepare: &'a str,
-    cmd: &'a str,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Hash)]
-pub struct Metricc {
-    pub name: String,
-    pub project_name: String,
-}
-
-impl FromStr for Metricc {
-    type Err = CalculateError;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let split: Vec<&str> = s.split(Metricc::sep()).collect();
-        match &split[..] {
-            [name, project] => Ok(Metricc {
-                name: name.to_string(),
-                project_name: project.to_string()
-            }),
-            _ => Err(CalculateError::MetricParseFail(s.to_owned()))
-        }
-    }
-}
-
-impl Metricc {
-    fn sep() -> &'static str {
-        "___"
-    }
-
-    // encodes the metric name and project in the filename for the hyperfine output.
-    fn filename(&self) -> String {
-        format!("{}{}{}.json", self.name, Metricc::sep(), self.project_name)
-    }
-}
 
 // TODO this could have it's impure parts split out and tested.
 //
