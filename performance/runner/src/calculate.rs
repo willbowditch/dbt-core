@@ -62,8 +62,10 @@ mod tests {
 
     #[test]
     fn detects_3sigma_regression() {
-        let project = "test".to_owned();
-        let metric = "detects 3 sigma".to_owned();
+        let metric = Metricc {
+            name: "test".to_owned(),
+            project_name: "detects 3 sigma".to_owned()
+        };
 
         let measurement = Measurement {
             command: "some command".to_owned(),
@@ -77,8 +79,7 @@ mod tests {
             times: vec![],
         };
 
-        let baseline_metric = BaselineMetric {
-            project: project.clone(),
+        let baseline_metric = MetricModel {
             metric: metric.clone(),
             ts: Utc::now(),
             measurement: measurement,
@@ -90,7 +91,6 @@ mod tests {
         };
 
         let sample = Sample {
-            project: project.clone(),
             metric: metric.clone(),
             value: 1.31,
             ts: Utc::now()
@@ -108,13 +108,14 @@ mod tests {
         // expect one regression for the mean being outside the 3 sigma
         println!("{:#?}", regressions);
         assert_eq!(regressions.len(), 1);
-        assert_eq!(regressions[0].metric, "detects 3 sigma");
     }
 
     #[test]
     fn passes_near_3sigma() {
-        let project = "test".to_owned();
-        let metric = "passes near 3 sigma".to_owned();
+        let metric = Metricc {
+            name: "test".to_owned(),
+            project_name: "passes near 3 sigma".to_owned()
+        };
 
         let measurement = Measurement {
             command: "some command".to_owned(),
@@ -128,8 +129,7 @@ mod tests {
             times: vec![],
         };
 
-        let baseline_metric = BaselineMetric {
-            project: project.clone(),
+        let baseline_metric = MetricModel {
             metric: metric.clone(),
             ts: Utc::now(),
             measurement: measurement,
@@ -141,7 +141,6 @@ mod tests {
         };
 
         let sample = Sample {
-            project: project.clone(),
             metric: metric.clone(),
             value: 1.29,
             ts: Utc::now()

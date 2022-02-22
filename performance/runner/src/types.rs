@@ -104,7 +104,7 @@ impl FromStr for Version {
 
 impl Version {
     #[cfg(test)]
-    fn new(major: i32, minor: i32, patch: i32) -> Version {
+    pub fn new(major: i32, minor: i32, patch: i32) -> Version {
         Version {
             major: major,
             minor: minor,
