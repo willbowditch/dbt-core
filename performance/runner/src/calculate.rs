@@ -168,7 +168,7 @@ fn calculate_regressions(samples: &[Sample], baseline: Baseline, sigma: f64) -> 
                     version: baseline.version.clone(),
                     project: metric.project.clone(),
                     metric: metric.metric.clone(),
-                    regression: threshold > *value,
+                    regression: *value > threshold,
                     ts: *ts,
                     sigma: sigma,
                     mean: model.mean,
@@ -212,19 +212,10 @@ mod tests {
 
     #[test]
     fn detects_3sigma_regression() {
-        let dev = Measurement {
-            command: "some command".to_owned(),
-            mean: 1.31,
-            stddev: 0.1,
-            median: 1.00,
-            user: 1.00,
-            system: 1.00,
-            min: 0.00,
-            max: 3.00,
-            times: vec![],
-        };
+        let project = "test".to_owned();
+        let metric = "detects 3 sigma".to_owned();
 
-        let baseline = Measurement {
+        let measurement = Measurement {
             command: "some command".to_owned(),
             mean: 1.00,
             stddev: 0.1,
@@ -236,31 +227,46 @@ mod tests {
             times: vec![],
         };
 
-        let calculations = calculate("test_metric", &dev, &baseline);
+        let baseline_metric = BaselineMetric {
+            project: project.clone(),
+            metric: metric.clone(),
+            ts: Utc::now(),
+            measurement: measurement,
+        };
+
+        let baseline = Baseline {
+            version: Version::new(9,9,9),
+            metrics: vec![baseline_metric]
+        };
+
+        let sample = Sample {
+            project: project.clone(),
+            metric: metric.clone(),
+            value: 1.31,
+            ts: Utc::now()
+        };
+
+        let calculations = calculate_regressions(
+            &[sample],
+            baseline,
+            3.0 // 3 sigma
+        );
+
         let regressions: Vec<&Calculation> =
             calculations.iter().filter(|calc| calc.regression).collect();
 
         // expect one regression for the mean being outside the 3 sigma
         println!("{:#?}", regressions);
         assert_eq!(regressions.len(), 1);
-        assert_eq!(regressions[0].metric, "3σ_test_metric");
+        assert_eq!(regressions[0].metric, "detects 3 sigma");
     }
 
     #[test]
     fn passes_near_3sigma() {
-        let dev = Measurement {
-            command: "some command".to_owned(),
-            mean: 1.29,
-            stddev: 0.1,
-            median: 1.00,
-            user: 1.00,
-            system: 1.00,
-            min: 0.00,
-            max: 2.00,
-            times: vec![],
-        };
+        let project = "test".to_owned();
+        let metric = "passes near 3 sigma".to_owned();
 
-        let baseline = Measurement {
+        let measurement = Measurement {
             command: "some command".to_owned(),
             mean: 1.00,
             stddev: 0.1,
@@ -272,7 +278,31 @@ mod tests {
             times: vec![],
         };
 
-        let calculations = calculate("test_metric", &dev, &baseline);
+        let baseline_metric = BaselineMetric {
+            project: project.clone(),
+            metric: metric.clone(),
+            ts: Utc::now(),
+            measurement: measurement,
+        };
+
+        let baseline = Baseline {
+            version: Version::new(9,9,9),
+            metrics: vec![baseline_metric]
+        };
+
+        let sample = Sample {
+            project: project.clone(),
+            metric: metric.clone(),
+            value: 1.29,
+            ts: Utc::now()
+        };
+
+        let calculations = calculate_regressions(
+            &[sample],
+            baseline,
+            3.0 // 3 sigma
+        );
+
         let regressions: Vec<&Calculation> =
             calculations.iter().filter(|calc| calc.regression).collect();
 
@@ -292,55 +322,5 @@ mod tests {
         };
         let v2 = serde_json::from_str::<Version>(&serde_json::to_string_pretty(&v).unwrap());
         assert_eq!(v, v2.unwrap());
-    }
-
-    // Given a list of versions, and one particular version,
-    // return an ordered list of all the historical versions
-    #[test]
-    fn version_compare_order() {
-        let versions = vec![
-            Version::new(1, 0, 2),
-            Version::new(1, 1, 0),
-            Version::new(1, 1, 1),
-            Version::new(1, 0, 1),
-            Version::new(1, 0, 0),
-            Version::new(0, 21, 1),
-            Version::new(0, 21, 0),
-            Version::new(0, 20, 2),
-            Version::new(0, 20, 1),
-            Version::new(0, 20, 0),
-        ];
-
-        assert_eq!(
-            Some(Version::new(1, 0, 1)),
-            Version::new(1, 0, 2).compare_from(&versions)
-        );
-
-        assert_eq!(
-            Some(Version::new(1, 0, 0)),
-            Version::new(1, 0, 1).compare_from(&versions)
-        );
-
-        // this is a little controversial. 1.1.0 is a branch off
-        // 1.0.0, but comparing it to 1.0.2 _shouldn't_ be a big deal
-        // since patch releases shouldn't have much interesting in them.
-        assert_eq!(
-            Some(Version::new(1, 0, 2)),
-            Version::new(1, 1, 0).compare_from(&versions)
-        );
-
-        assert_eq!(
-            Some(Version::new(0, 21, 1)),
-            Version::new(1, 0, 0).compare_from(&versions)
-        );
-
-        assert_eq!(None, Version::new(0, 14, 0).compare_from(&versions));
-
-        // this one is a little controversial. If we're missing data,
-        // this asserts we use the most recent data we have.
-        assert_eq!(
-            Some(Version::new(1, 0, 2)),
-            Version::new(1, 0, 6).compare_from(&versions)
-        );
     }
 }

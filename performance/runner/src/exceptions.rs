@@ -106,48 +106,6 @@ Originating Exception: None"#,
 Filepath: dummy/path/file.json
 Originating Exception: None"#,
             ),
-            (
-                CalculateError::NoResultsErr(Path::new("dummy/path/no_file/").to_path_buf()),
-                r#"NoResultsErr: The results directory has no json files in it.
-Filepath: dummy/path/no_file/"#,
-            ),
-            (
-                CalculateError::OddResultsCountErr(
-                    3,
-                    Path::new("dummy/path/no_file/").to_path_buf(),
-                ),
-                r#"OddResultsCountErr: The results directory has an odd number of results in it. Expected an even number.
-File Count: 3
-Filepath: dummy/path/no_file/"#,
-            ),
-            (
-                CalculateError::BadGroupSizeErr(
-                    1,
-                    vec![MeasurementGroup {
-                        version: "dev".to_owned(),
-                        run: "some command".to_owned(),
-                        measurement: Measurement {
-                            command: "some command".to_owned(),
-                            mean: 1.0,
-                            stddev: 1.0,
-                            median: 1.0,
-                            user: 1.0,
-                            system: 1.0,
-                            min: 1.0,
-                            max: 1.0,
-                            times: vec![1.0, 1.1, 0.9, 1.0, 1.1, 0.9, 1.1],
-                        },
-                    }],
-                ),
-                r#"BadGroupSizeErr: Expected two results per group, one for each branch-project pair.
-Count: 1
-Group: [("dev", "some command")]"#,
-            ),
-            (
-                CalculateError::BadBranchNameErr("boop".to_owned(), "noop".to_owned()),
-                r#"BadBranchNameErr: Branch names must be 'baseline' and 'dev'.
-Found: boop, noop"#,
-            ),
         ];
 
         for (err, msg) in pairs {
