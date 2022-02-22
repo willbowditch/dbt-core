@@ -8,7 +8,7 @@ use std::path::{Path, PathBuf};
 
 // TODO find an alternative to all this cloning
 fn calculate_regressions(samples: &[Sample], baseline: Baseline, sigma: f64) -> Vec<Calculation> {
-    let m_samples: HashMap<Metricc, (f64, DateTime<Utc>)> =
+    let m_samples: HashMap<Metric, (f64, DateTime<Utc>)> =
         samples.into_iter().map(|x| (x.metric.clone(), (x.value, x.ts))).collect();
 
     baseline.models.clone().into_iter().filter_map(|metric_model| {
@@ -62,7 +62,7 @@ mod tests {
 
     #[test]
     fn detects_3sigma_regression() {
-        let metric = Metricc {
+        let metric = Metric {
             name: "test".to_owned(),
             project_name: "detects 3 sigma".to_owned()
         };
@@ -112,7 +112,7 @@ mod tests {
 
     #[test]
     fn passes_near_3sigma() {
-        let metric = Metricc {
+        let metric = Metric {
             name: "test".to_owned(),
             project_name: "passes near 3 sigma".to_owned()
         };

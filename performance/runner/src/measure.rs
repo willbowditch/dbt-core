@@ -137,7 +137,7 @@ pub fn take_samples(projects_dir: &PathBuf, out_dir: &PathBuf) -> Result<Vec<Sam
 
     // run hyperfine in serial for each project-metric pair
     for (path, project_name, hcmd) in get_projects(projects_dir)? {
-        let metric = Metricc {
+        let metric = Metric {
             name: hcmd.name.to_owned(),
             project_name: project_name.to_owned()
         };
@@ -166,7 +166,7 @@ pub fn take_samples(projects_dir: &PathBuf, out_dir: &PathBuf) -> Result<Vec<Sam
             // TODO fix unwraps
             // `file_name` is boop___proj.json. `file_stem` is boop___proj.
             let filename = path.file_stem().unwrap();
-            let metric = Metricc::from_str(&filename.to_string_lossy().into_owned()).unwrap();
+            let metric = Metric::from_str(&filename.to_string_lossy().into_owned()).unwrap();
             Sample::from_measurement(
                 metric,
                 ts,
@@ -189,7 +189,7 @@ pub fn model<'a>(
 
 
     for (path, project_name, hcmd) in get_projects(projects_directory)? {
-        let metric = Metricc {
+        let metric = Metric {
             name: hcmd.name.to_owned(),
             project_name: project_name.to_owned()
         };
@@ -246,7 +246,7 @@ fn from_measurements(version: Version, measurements: &[(PathBuf, Measurements)],
             // TODO fix unwraps
             // `file_name` is boop___proj.json. `file_stem` is boop___proj.
             let filename = path.file_stem().unwrap();
-            let metric = Metricc::from_str(&filename.to_string_lossy()).unwrap();
+            let metric = Metric::from_str(&filename.to_string_lossy()).unwrap();
             MetricModel {
                 metric: metric,
                 // uses the provided timestamp for every entry, or the current time if None.

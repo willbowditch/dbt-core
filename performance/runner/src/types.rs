@@ -16,18 +16,18 @@ pub struct HyperfineCmd<'a> {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Hash)]
-pub struct Metricc {
+pub struct Metric {
     pub name: String,
     pub project_name: String,
 }
 
-impl FromStr for Metricc {
+impl FromStr for Metric {
     type Err = CalculateError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let split: Vec<&str> = s.split(Metricc::sep()).collect();
+        let split: Vec<&str> = s.split(Metric::sep()).collect();
         match &split[..] {
-            [name, project] => Ok(Metricc {
+            [name, project] => Ok(Metric {
                 name: name.to_string(),
                 project_name: project.to_string()
             }),
@@ -36,14 +36,14 @@ impl FromStr for Metricc {
     }
 }
 
-impl Metricc {
+impl Metric {
     pub fn sep() -> &'static str {
         "___"
     }
 
     // encodes the metric name and project in the filename for the hyperfine output.
     pub fn filename(&self) -> String {
-        format!("{}{}{}.json", self.name, Metricc::sep(), self.project_name)
+        format!("{}{}{}.json", self.name, Metric::sep(), self.project_name)
     }
 }
 
@@ -116,7 +116,7 @@ impl Version {
 // A model for a single project-command pair
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct MetricModel {
-    pub metric: Metricc,
+    pub metric: Metric,
     pub ts: DateTime<Utc>,
     pub measurement: Measurement,
 }
@@ -133,14 +133,14 @@ pub struct Baseline {
 // a history of all previous version baseline measurements.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Sample {
-    pub metric: Metricc,
+    pub metric: Metric,
     pub value: f64,
     pub ts: DateTime<Utc>
 }
 
 impl Sample {
     // TODO make these results not panics.
-    pub fn from_measurement(metric: Metricc, ts: DateTime<Utc>, measurement: &Measurement) -> Sample {
+    pub fn from_measurement(metric: Metric, ts: DateTime<Utc>, measurement: &Measurement) -> Sample {
         match &measurement.times[..] {
             [] => panic!("found a sample with no measurement"),
             [x] => Sample {
@@ -158,7 +158,7 @@ impl Sample {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Calculation {
     pub version: Version,
-    pub metric: Metricc,
+    pub metric: Metric,
     pub regression: bool,
     pub ts: DateTime<Utc>,
     pub sigma: f64,
