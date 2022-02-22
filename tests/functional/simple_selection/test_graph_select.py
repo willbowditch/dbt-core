@@ -1,9 +1,8 @@
 import os
-import json
 import pytest
 
-from dbt.tests.util import run_dbt, run_sql_file
-from dbt.tests.tables import TableComparison, get_tables_in_schema
+from dbt.tests.util import run_dbt, get_manifest
+from dbt.tests.tables import TableComparison
 
 
 # steps happened:
@@ -190,9 +189,9 @@ def selectors():
 
 
 @pytest.fixture
-def create_tables(test_data_dir, unique_schema):
-    path = os.path.join(test_data_dir, "seed.sql")
-    run_sql_file(path, unique_schema)
+def create_tables(project):
+    path = os.path.join(project.test_data_dir, "seed.sql")
+    project.run_sql_file(path)
 
 
 def assert_correct_schemas(project, table_comp):
@@ -205,7 +204,7 @@ def assert_correct_schemas(project, table_comp):
         assert not exists
 
 
-def test__postgres__specific_model(project, create_tables):
+def test_specific_model(project, create_tables):
     results = run_dbt(["run", "--select", "users"])
     assert len(results) == 1
 
@@ -214,7 +213,7 @@ def test__postgres__specific_model(project, create_tables):
     )
     table_comp.assert_tables_equal("seed", "users")
 
-    created_tables = get_tables_in_schema(project.test_schema)
+    created_tables = project.get_tables_in_schema()
     assert "users_rollup" not in created_tables
     assert "alternative.users" not in created_tables
     assert "base_users" not in created_tables
@@ -222,31 +221,28 @@ def test__postgres__specific_model(project, create_tables):
     assert_correct_schemas(project, table_comp)
 
 
-def test__postgres__tags(project, create_tables, project_root):
+def test_tags(project, create_tables):
 
     results = run_dbt(["run", "--selector", "bi_selector"])
     table_comp = TableComparison(
         adapter=project.adapter, unique_schema=project.test_schema, database=project.database
     )
     assert len(results) == 2
-    created_tables = get_tables_in_schema(project.test_schema)
+    created_tables = project.get_tables_in_schema()
     assert not ("alternative.users" in created_tables)
     assert not ("base_users" in created_tables)
     assert not ("emails" in created_tables)
     assert "users" in created_tables
     assert "users_rollup" in created_tables
     assert_correct_schemas(project, table_comp)
-    manifest_path = project_root.join("target/manifest.json")
-    assert os.path.exists(manifest_path)
-    with open(manifest_path) as fp:
-        manifest = json.load(fp)
-        assert "selectors" in manifest
+    manifest = get_manifest(project.project_root)
+    assert manifest.selectors
 
 
-def test__postgres__tags_and_children(project, create_tables):
+def test_tags_and_children(project, create_tables):
     results = run_dbt(["run", "--select", "tag:base+"])
     assert len(results) == 5
-    created_models = get_tables_in_schema(project.test_schema)
+    created_models = project.get_tables_in_schema()
     assert not ("base_users" in created_models)
     assert not ("emails" in created_models)
     assert "emails_alt" in created_models
@@ -259,10 +255,10 @@ def test__postgres__tags_and_children(project, create_tables):
     assert_correct_schemas(project, table_comp)
 
 
-def test__postgres__tags_and_children_limited(project, create_tables):
+def test_tags_and_children_limited(project, create_tables):
     results = run_dbt(["run", "--select", "tag:base+2"])
     assert len(results) == 4
-    created_models = get_tables_in_schema(project.test_schema)
+    created_models = project.get_tables_in_schema()
     assert not ("base_users" in created_models)
     assert not ("emails" in created_models)
     assert "emails_alt" in created_models
@@ -276,7 +272,7 @@ def test__postgres__tags_and_children_limited(project, create_tables):
     assert_correct_schemas(project, table_comp)
 
 
-def test__postgres__specific_model_and_children(project, create_tables):
+def test_specific_model_and_children(project, create_tables):
 
     results = run_dbt(["run", "--select", "users+"])
     assert len(results) == 4
@@ -286,7 +282,7 @@ def test__postgres__specific_model_and_children(project, create_tables):
     table_comp.assert_tables_equal("seed", "users")
     table_comp.assert_tables_equal("summary_expected", "users_rollup")
 
-    created_models = get_tables_in_schema(project.test_schema)
+    created_models = project.get_tables_in_schema()
     assert "emails_alt" in created_models
     assert "base_users" not in created_models
     assert "alternative.users" not in created_models
@@ -294,7 +290,7 @@ def test__postgres__specific_model_and_children(project, create_tables):
     assert_correct_schemas(project, table_comp)
 
 
-def test__postgres__specific_model_and_children_limited(project, create_tables):
+def test_specific_model_and_children_limited(project, create_tables):
 
     results = run_dbt(["run", "--select", "users+1"])
     assert len(results) == 3
@@ -304,7 +300,7 @@ def test__postgres__specific_model_and_children_limited(project, create_tables):
     table_comp.assert_tables_equal("seed", "users")
     table_comp.assert_tables_equal("summary_expected", "users_rollup")
 
-    created_models = get_tables_in_schema(project.test_schema)
+    created_models = project.get_tables_in_schema()
     assert "emails_alt" in created_models
     assert "base_users" not in created_models
     assert "emails" not in created_models
@@ -312,7 +308,7 @@ def test__postgres__specific_model_and_children_limited(project, create_tables):
     assert_correct_schemas(project, table_comp)
 
 
-def test__postgres__specific_model_and_parents(project, create_tables):
+def test_specific_model_and_parents(project, create_tables):
     results = run_dbt(["run", "--select", "+users_rollup"])
     assert len(results) == 2
     table_comp = TableComparison(
@@ -321,13 +317,13 @@ def test__postgres__specific_model_and_parents(project, create_tables):
     table_comp.assert_tables_equal("seed", "users")
     table_comp.assert_tables_equal("summary_expected", "users_rollup")
 
-    created_models = get_tables_in_schema(project.test_schema)
+    created_models = project.get_tables_in_schema()
     assert not ("base_users" in created_models)
     assert not ("emails" in created_models)
     assert_correct_schemas(project, table_comp)
 
 
-def test__postgres__specific_model_and_parents_limited(project, create_tables):
+def test_specific_model_and_parents_limited(project, create_tables):
 
     results = run_dbt(["run", "--select", "1+users_rollup"])
     assert len(results) == 2
@@ -337,13 +333,13 @@ def test__postgres__specific_model_and_parents_limited(project, create_tables):
     table_comp.assert_tables_equal("seed", "users")
     table_comp.assert_tables_equal("summary_expected", "users_rollup")
 
-    created_models = get_tables_in_schema(project.test_schema)
+    created_models = project.get_tables_in_schema()
     assert not ("base_users" in created_models)
     assert not ("emails" in created_models)
     assert_correct_schemas(project, table_comp)
 
 
-def test__postgres__specific_model_with_exclusion(project, create_tables):
+def test_specific_model_with_exclusion(project, create_tables):
     results = run_dbt(["run", "--select", "+users_rollup", "--exclude", "models/users_rollup.sql"])
     assert len(results) == 1
 
@@ -352,17 +348,17 @@ def test__postgres__specific_model_with_exclusion(project, create_tables):
     )
     table_comp.assert_tables_equal("seed", "users")
 
-    created_models = get_tables_in_schema(project.test_schema)
+    created_models = project.get_tables_in_schema()
     assert not ("base_users" in created_models)
     assert not ("users_rollup" in created_models)
     assert not ("emails" in created_models)
     assert_correct_schemas(project, table_comp)
 
 
-def test__postgres__locally_qualified_name(project, project_root):
+def test_locally_qualified_name(project, project_root):
     results = run_dbt(["run", "--select", "test.subdir"])
     assert len(results) == 2
-    created_models = get_tables_in_schema(project.test_schema)
+    created_models = project.get_tables_in_schema()
     assert "users_rollup" not in created_models
     assert "base_users" not in created_models
     assert "emails" not in created_models
@@ -375,7 +371,7 @@ def test__postgres__locally_qualified_name(project, project_root):
 
     results = run_dbt(["run", "--select", "models/test/subdir*"])
     assert len(results) == 2
-    created_models = get_tables_in_schema(project.test_schema)
+    created_models = project.get_tables_in_schema()
     assert "users_rollup" not in created_models
     assert "base_users" not in created_models
     assert "emails" not in created_models
@@ -387,10 +383,10 @@ def test__postgres__locally_qualified_name(project, project_root):
     assert_correct_schemas(project, table_comp)
 
 
-def test__postgres__locally_qualified_name_model_with_dots(project, create_tables):
+def test_locally_qualified_name_model_with_dots(project, create_tables):
     results = run_dbt(["run", "--select", "alternative.users"])
     assert len(results) == 1
-    created_models = get_tables_in_schema(project.test_schema)
+    created_models = project.get_tables_in_schema()
     assert "alternative.users" in created_models
     table_comp = TableComparison(
         adapter=project.adapter, unique_schema=project.test_schema, database=project.database
@@ -399,15 +395,15 @@ def test__postgres__locally_qualified_name_model_with_dots(project, create_table
 
     results = run_dbt(["run", "--select", "models/alternative.*"])
     assert len(results) == 1
-    created_models = get_tables_in_schema(project.test_schema)
+    created_models = project.get_tables_in_schema()
     assert "alternative.users" in created_models
     assert_correct_schemas(project, table_comp)
 
 
-def test__postgres__childrens_parents(project, create_tables):
+def test_childrens_parents(project, create_tables):
     results = run_dbt(["run", "--select", "@base_users"])
     assert len(results) == 5
-    created_models = get_tables_in_schema(project.test_schema)
+    created_models = project.get_tables_in_schema()
     assert "users_rollup" in created_models
     assert "users" in created_models
     assert "emails_alt" in created_models
@@ -420,11 +416,11 @@ def test__postgres__childrens_parents(project, create_tables):
     assert results[0].node.name == "not_null_emails_email"
 
 
-def test__postgres__more_childrens_parents(project, create_tables):
+def test_more_childrens_parents(project, create_tables):
 
     results = run_dbt(["run", "--select", "@users"])
     assert len(results) == 4
-    created_models = get_tables_in_schema(project.test_schema)
+    created_models = project.get_tables_in_schema()
     assert "users_rollup" in created_models
     assert "users" in created_models
     assert "emails_alt" in created_models
@@ -438,10 +434,10 @@ def test__postgres__more_childrens_parents(project, create_tables):
     ]
 
 
-def test__postgres__concat(project, create_tables):
+def test_concat(project, create_tables):
     results = run_dbt(["run", "--select", "@emails_alt", "users_rollup"])
     assert len(results) == 3
-    created_models = get_tables_in_schema(project.test_schema)
+    created_models = project.get_tables_in_schema()
     assert "users_rollup" in created_models
     assert "users" in created_models
     assert "emails_alt" in created_models
@@ -449,12 +445,12 @@ def test__postgres__concat(project, create_tables):
     assert "nested_users" not in created_models
 
 
-def test__postgres__concat_exclude(project, create_tables):
+def test_concat_exclude(project, create_tables):
     results = run_dbt(
         ["run", "--select", "@emails_alt", "users_rollup", "--exclude", "emails_alt"]
     )
     assert len(results) == 2
-    created_models = get_tables_in_schema(project.test_schema)
+    created_models = project.get_tables_in_schema()
     assert "users" in created_models
     assert "users_rollup" in created_models
     assert "emails_alt" not in created_models
@@ -462,7 +458,7 @@ def test__postgres__concat_exclude(project, create_tables):
     assert "nested_users" not in created_models
 
 
-def test__postgres__concat_exclude_concat(project, create_tables):
+def test_concat_exclude_concat(project, create_tables):
     results = run_dbt(
         [
             "run",
@@ -475,7 +471,7 @@ def test__postgres__concat_exclude_concat(project, create_tables):
         ]
     )
     assert len(results) == 1
-    created_models = get_tables_in_schema(project.test_schema)
+    created_models = project.get_tables_in_schema()
     assert "users" in created_models
     assert "emails_alt" not in created_models
     assert "users_rollup" not in created_models
@@ -496,7 +492,7 @@ def test__postgres__concat_exclude_concat(project, create_tables):
     assert results[0].node.name == "unique_users_id"
 
 
-def test__postgres__exposure_parents(project, create_tables):
+def test_exposure_parents(project, create_tables):
     results = run_dbt(["ls", "--select", "+exposure:seed_ml_exposure"])
     assert len(results) == 2
     assert sorted(results) == ["exposure:test.seed_ml_exposure", "source:test.raw.seed"]
@@ -511,7 +507,7 @@ def test__postgres__exposure_parents(project, create_tables):
     ]
     results = run_dbt(["run", "-m", "+exposure:user_exposure"])
     assert len(results) == 2
-    created_models = get_tables_in_schema(project.test_schema)
+    created_models = project.get_tables_in_schema()
     assert "users_rollup" in created_models
     assert "users" in created_models
     assert "emails_alt" not in created_models
