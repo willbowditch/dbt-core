@@ -7,10 +7,6 @@ mod types;
 
 use crate::exceptions::CalculateError;
 use crate::types::{Version, Calculation};
-use chrono::offset::Utc;
-use std::fs::metadata;
-use std::fs::File;
-use std::io::Write;
 use std::path::PathBuf;
 use structopt::StructOpt;
 
@@ -86,16 +82,6 @@ fn run_app() -> Result<i32, CalculateError> {
             for c in &calculations {
                 println!("{:#?}\n", c);
             }
-
-            // indented json string representation of the calculations array
-            let json_calcs = serde_json::to_string_pretty(&calculations)
-                .expect("Main: Failed to serialize calculations to json");
-
-            // if there are any calculations, use the first timestamp, if there are none
-            // just use the current time.
-            let ts = calculations
-                .first()
-                .map_or_else(|| Utc::now(), |calc| calc.ts);
 
             // filter for regressions
             let regressions: Vec<&Calculation> =
