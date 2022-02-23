@@ -92,7 +92,7 @@ jobs:
           key: ${{ runner.os }}-${{ hashFiles('performance/runner/Cargo.toml')}}-${{ hashFiles('performance/runner/src/*') }}
 
       - name: Move Runner
-        run: mv performance/runner/target/release/runner ./performance
+        run: mv performance/runner/target/release/runner ./performance/runner
 
       - name: Change Runner Permissions
         run: chmod +x ./performance/runner
