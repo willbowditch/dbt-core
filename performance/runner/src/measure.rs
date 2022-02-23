@@ -182,6 +182,7 @@ pub fn model<'a>(
     projects_directory: &PathBuf,
     out_dir: &PathBuf,
     tmp_dir: &PathBuf,
+    n_runs: i32
 ) -> Result<(), CalculateError> {
     for (path, project_name, hcmd) in get_projects(projects_directory)? {
         let metric = Metric {
@@ -193,7 +194,7 @@ pub fn model<'a>(
         let mut tmp_file = tmp_dir.clone();
         tmp_file.push(metric.filename());
 
-        let status = run_hyperfine(&path, &command, hcmd.clone().prepare, 20, &tmp_file)
+        let status = run_hyperfine(&path, &command, hcmd.clone().prepare, n_runs, &tmp_file)
             .or_else(|e| Err(CalculateError::from(e)))?;
 
         match status.code() {

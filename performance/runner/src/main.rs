@@ -28,6 +28,8 @@ enum Opt {
         #[structopt(parse(from_os_str))]
         #[structopt(short)]
         tmp_dir: PathBuf,
+        #[structopt(short)]
+        n_runs: i32
     },
     #[structopt(name = "sample")]
     Sample {
@@ -57,10 +59,11 @@ fn run_app() -> Result<i32, CalculateError> {
             projects_dir,
             baselines_dir,
             tmp_dir,
+            n_runs
         } => {
             // if there are any nonzero exit codes from the hyperfine runs,
             // return the first one. otherwise return zero.
-            measure::model(version, &projects_dir, &baselines_dir, &tmp_dir)?;
+            measure::model(version, &projects_dir, &baselines_dir, &tmp_dir, n_runs)?;
             Ok(0)
         }
 
