@@ -5,9 +5,10 @@ mod exceptions;
 mod measure;
 mod types;
 
-use crate::exceptions::CalculateError;
+use crate::exceptions::{CalculateError, IOError};
 use crate::types::{Calculation, Version};
 use std::path::PathBuf;
+use std::fs;
 use structopt::StructOpt;
 
 // This type defines the commandline interface and is generated
@@ -61,9 +62,24 @@ fn run_app() -> Result<i32, CalculateError> {
             tmp_dir,
             n_runs,
         } => {
+            // resolve relative paths to absolute
+            let absolute_projects_dir = fs::canonicalize(&projects_dir)
+                .or_else(|e| Err(IOError::UnresolvablePathError(projects_dir.clone(), e)))?;
+            let absolute_baselines_dir = fs::canonicalize(&baselines_dir)
+                .or_else(|e| Err(IOError::UnresolvablePathError(projects_dir.clone(), e)))?;
+            let absolute_tmp_dir = fs::canonicalize(&tmp_dir)
+                .or_else(|e| Err(IOError::UnresolvablePathError(projects_dir.clone(), e)))?;
+
             // if there are any nonzero exit codes from the hyperfine runs,
             // return the first one. otherwise return zero.
-            measure::model(version, &projects_dir, &baselines_dir, &tmp_dir, n_runs)?;
+            measure::model(
+                version,
+                &absolute_projects_dir,
+                &absolute_baselines_dir,
+                &absolute_tmp_dir,
+                n_runs
+            )?;
+
             Ok(0)
         }
 
