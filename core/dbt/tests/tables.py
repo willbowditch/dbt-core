@@ -56,6 +56,7 @@ class TableComparison:
         sql = self._assert_tables_equal_sql(relation_a, relation_b)
         result = self.run_sql(sql, fetch="one")
 
+        print(f"--- result after running assert tables equal: {result}")
         assert result[0] == 0, "row_count_difference nonzero: " + sql
         assert result[1] == 0, "num_mismatched nonzero: " + sql
 
