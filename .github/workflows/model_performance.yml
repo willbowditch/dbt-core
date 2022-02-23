@@ -3,7 +3,7 @@ name: Model Performance Characteristics
 on:
   # TODO this should hit after each release.
   # this is just to make the first few baselines manually
-
+  pull_request:
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
@@ -92,14 +92,14 @@ jobs:
           key: ${{ runner.os }}-${{ hashFiles('performance/runner/Cargo.toml')}}-${{ hashFiles('performance/runner/src/*') }}
 
       - name: Move Runner
-        run: mv performance/runner/target/release/runner ./performance
+        run: mv performance/runner/target/release/runner ./performance/app
 
       - name: Change Runner Permissions
-        run: chmod +x ./performance/runner
+        run: chmod +x ./performance/app
 
       # TODO get current version somehow
       # `${{ github.workspace }}` is used to pass the absolute path
       # ${GITHUB_REF#refs/tags/} gets the branch tag name without the prefix
       - name: Run Measurement
-        run: mkdir tmp && ./runner model -v ${GITHUB_REF#refs/tags/} -b baselines -p projects -t tmp
+        run: mkdir tmp && ./app model -v ${GITHUB_REF#refs/tags/} -b baselines -p projects -t tmp
         working-directory: ${{ github.workspace }}/performance/
