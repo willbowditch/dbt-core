@@ -91,21 +91,15 @@ jobs:
           path: ${{ env.RUNNER_CACHE_PATH }}
           key: ${{ runner.os }}-${{ hashFiles('performance/runner/Cargo.toml')}}-${{ hashFiles('performance/runner/src/*') }}
 
-      - name: DEBUG ls
-        run: ls -F performance/runner/target/release/
-        
-      - name: DEBUG ls
-        run: ls -F performance/runner/target/release/runner
-
       - name: Move Runner
-        run: mv performance/runner/target/release/runner ./performance/runner
+        run: mv performance/runner/target/release/runner ./performance/app
 
       - name: Change Runner Permissions
-        run: chmod +x ./performance/runner
+        run: chmod +x ./performance/app
 
       # TODO get current version somehow
       # `${{ github.workspace }}` is used to pass the absolute path
       # ${GITHUB_REF#refs/tags/} gets the branch tag name without the prefix
       - name: Run Measurement
-        run: mkdir tmp && ./runner model -v ${GITHUB_REF#refs/tags/} -b baselines -p projects -t tmp
+        run: mkdir tmp && ./app model -v ${GITHUB_REF#refs/tags/} -b baselines -p projects -t tmp
         working-directory: ${{ github.workspace }}/performance/
