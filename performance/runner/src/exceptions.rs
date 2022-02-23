@@ -1,4 +1,3 @@
-use crate::calculate::*;
 use std::io;
 #[cfg(test)]
 use std::path::Path;
@@ -12,6 +11,8 @@ use thiserror::Error;
 pub enum IOError {
     #[error("ReadErr: The file cannot be read.\nFilepath: {}\nOriginating Exception: {}", .0.to_string_lossy().into_owned(), .1.as_ref().map_or("None".to_owned(), |e| format!("{}", e)))]
     ReadErr(PathBuf, Option<io::Error>),
+    #[error("WriteErr: The file cannot be written to.\nFilepath: {}\nOriginating Exception: {}", .0.to_string_lossy().into_owned(), .1.as_ref().map_or("None".to_owned(), |e| format!("{}", e)))]
+    WriteErr(PathBuf, Option<io::Error>),
     #[error("MissingFilenameErr: The path provided does not specify a file.\nFilepath: {}", .0.to_string_lossy().into_owned())]
     MissingFilenameErr(PathBuf),
     #[error("FilenameNotUnicodeErr: The filename is not expressible in unicode. Consider renaming the file.\nFilepath: {}", .0.to_string_lossy().into_owned())]
@@ -20,26 +21,35 @@ pub enum IOError {
     BadFileContentsErr(PathBuf, Option<io::Error>),
     #[error("CommandErr: System command failed to run.\nOriginating Exception: {}", .0.as_ref().map_or("None".to_owned(), |e| format!("{}", e)))]
     CommandErr(Option<io::Error>),
+    #[error("CannotRerreateTempDirErr: attempted to delete and recreate temp dir at path {}\nOriginating Exception: {}", .0.to_string_lossy().into_owned(), .1)]
+    CannotRecreateTempDirErr(PathBuf, io::Error)
 }
 
+// TODO make this RunnerError instead?
 // Custom Error messages for the error states we could encounter
 // during calculation, and are not prevented at compile time. New
 // constructors should be added for any new error situations that
 // come up. The desired output of these errors is tested below.
 #[derive(Debug, Error)]
 pub enum CalculateError {
+    #[error("VersionParseFail: Error parsing input `{}`. Must be in the format \"major.minor.patch\" where each component is an integer.", .0)]
+    VersionParseFail(String),
+    #[error("MetricParseFail: Error parsing input `{}`. Must be in the format \"metricname___projectname\" with no file extensions.", .0)]
+    MetricParseFail(String),
     #[error("BadJSONErr: JSON in file cannot be deserialized as expected.\nFilepath: {}\nOriginating Exception: {}", .0.to_string_lossy().into_owned(), .1.as_ref().map_or("None".to_owned(), |e| format!("{}", e)))]
     BadJSONErr(PathBuf, Option<serde_json::Error>),
+    #[error("SerializationErr: Object cannot be serialized as expected.\nOriginating Exception: {}", .0)]
+    SerializationErr(serde_json::Error),
     #[error("{}", .0)]
     CalculateIOError(IOError),
-    #[error("NoResultsErr: The results directory has no json files in it.\nFilepath: {}", .0.to_string_lossy().into_owned())]
-    NoResultsErr(PathBuf),
-    #[error("OddResultsCountErr: The results directory has an odd number of results in it. Expected an even number.\nFile Count: {}\nFilepath: {}", .0, .1.to_string_lossy().into_owned())]
-    OddResultsCountErr(usize, PathBuf),
-    #[error("BadGroupSizeErr: Expected two results per group, one for each branch-project pair.\nCount: {}\nGroup: {:?}", .0, .1.into_iter().map(|group| (&group.version[..], &group.run[..])).collect::<Vec<(&str, &str)>>())]
-    BadGroupSizeErr(usize, Vec<MeasurementGroup>),
-    #[error("BadBranchNameErr: Branch names must be 'baseline' and 'dev'.\nFound: {}, {}", .0, .1)]
-    BadBranchNameErr(String, String),
+    #[error("Hyperfine child process exited with non-zero exit code: {}", .0)]
+    HyperfineNonZeroExitCode(i32)
+}
+
+impl From<IOError> for CalculateError {
+    fn from(item: IOError) -> Self {
+        CalculateError::CalculateIOError(item)
+    }
 }
 
 // Tests for exceptions
@@ -103,48 +113,6 @@ Originating Exception: None"#,
                 r#"BadJSONErr: JSON in file cannot be deserialized as expected.
 Filepath: dummy/path/file.json
 Originating Exception: None"#,
-            ),
-            (
-                CalculateError::NoResultsErr(Path::new("dummy/path/no_file/").to_path_buf()),
-                r#"NoResultsErr: The results directory has no json files in it.
-Filepath: dummy/path/no_file/"#,
-            ),
-            (
-                CalculateError::OddResultsCountErr(
-                    3,
-                    Path::new("dummy/path/no_file/").to_path_buf(),
-                ),
-                r#"OddResultsCountErr: The results directory has an odd number of results in it. Expected an even number.
-File Count: 3
-Filepath: dummy/path/no_file/"#,
-            ),
-            (
-                CalculateError::BadGroupSizeErr(
-                    1,
-                    vec![MeasurementGroup {
-                        version: "dev".to_owned(),
-                        run: "some command".to_owned(),
-                        measurement: Measurement {
-                            command: "some command".to_owned(),
-                            mean: 1.0,
-                            stddev: 1.0,
-                            median: 1.0,
-                            user: 1.0,
-                            system: 1.0,
-                            min: 1.0,
-                            max: 1.0,
-                            times: vec![1.0, 1.1, 0.9, 1.0, 1.1, 0.9, 1.1],
-                        },
-                    }],
-                ),
-                r#"BadGroupSizeErr: Expected two results per group, one for each branch-project pair.
-Count: 1
-Group: [("dev", "some command")]"#,
-            ),
-            (
-                CalculateError::BadBranchNameErr("boop".to_owned(), "noop".to_owned()),
-                r#"BadBranchNameErr: Branch names must be 'baseline' and 'dev'.
-Found: boop, noop"#,
             ),
         ];
 
