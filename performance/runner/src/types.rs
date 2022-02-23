@@ -6,7 +6,6 @@ use std::fmt;
 use std::fmt::Display;
 use std::str::FromStr;
 
-
 // `HyperfineCmd` defines a command that we want to measure with hyperfine
 #[derive(Debug, Clone)]
 pub struct HyperfineCmd<'a> {
@@ -29,9 +28,9 @@ impl FromStr for Metric {
         match &split[..] {
             [name, project] => Ok(Metric {
                 name: name.to_string(),
-                project_name: project.to_string()
+                project_name: project.to_string(),
             }),
-            _ => Err(CalculateError::MetricParseFail(s.to_owned()))
+            _ => Err(CalculateError::MetricParseFail(s.to_owned())),
         }
     }
 }
@@ -73,13 +72,14 @@ pub struct Measurements {
 
 // struct representation for "major.minor.patch" version.
 // useful for ordering versions to get the latest
-#[derive(Debug, Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, DeserializeFromStr, SerializeDisplay)]
+#[derive(
+    Debug, Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, DeserializeFromStr, SerializeDisplay,
+)]
 pub struct Version {
     pub major: i32,
     pub minor: i32,
     pub patch: i32,
 }
-
 
 impl FromStr for Version {
     type Err = CalculateError;
@@ -126,7 +126,7 @@ pub struct MetricModel {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Baseline {
     pub version: Version,
-    pub models: Vec<MetricModel>
+    pub models: Vec<MetricModel>,
 }
 
 // A JSON structure outputted by the release process that contains
@@ -135,18 +135,22 @@ pub struct Baseline {
 pub struct Sample {
     pub metric: Metric,
     pub value: f64,
-    pub ts: DateTime<Utc>
+    pub ts: DateTime<Utc>,
 }
 
 impl Sample {
     // TODO make these results not panics.
-    pub fn from_measurement(metric: Metric, ts: DateTime<Utc>, measurement: &Measurement) -> Sample {
+    pub fn from_measurement(
+        metric: Metric,
+        ts: DateTime<Utc>,
+        measurement: &Measurement,
+    ) -> Sample {
         match &measurement.times[..] {
             [] => panic!("found a sample with no measurement"),
             [x] => Sample {
                 metric: metric,
                 value: *x,
-                ts: ts
+                ts: ts,
             },
             _ => panic!("found a sample with too many measurements!"),
         }
@@ -164,7 +168,7 @@ pub struct Calculation {
     pub sigma: f64,
     pub mean: f64,
     pub stddev: f64,
-    pub threshold: f64
+    pub threshold: f64,
 }
 
 // This display instance is used to derive Serialize as well via `SerializeDisplay`

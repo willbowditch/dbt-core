@@ -22,7 +22,7 @@ pub enum IOError {
     #[error("CommandErr: System command failed to run.\nOriginating Exception: {}", .0.as_ref().map_or("None".to_owned(), |e| format!("{}", e)))]
     CommandErr(Option<io::Error>),
     #[error("CannotRerreateTempDirErr: attempted to delete and recreate temp dir at path {}\nOriginating Exception: {}", .0.to_string_lossy().into_owned(), .1)]
-    CannotRecreateTempDirErr(PathBuf, io::Error)
+    CannotRecreateTempDirErr(PathBuf, io::Error),
 }
 
 // TODO make this RunnerError instead?
@@ -43,7 +43,7 @@ pub enum CalculateError {
     #[error("{}", .0)]
     CalculateIOError(IOError),
     #[error("Hyperfine child process exited with non-zero exit code: {}", .0)]
-    HyperfineNonZeroExitCode(i32)
+    HyperfineNonZeroExitCode(i32),
 }
 
 impl From<IOError> for CalculateError {

@@ -9,21 +9,18 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, ExitStatus};
 use std::str::FromStr;
 
-
 // To add a new metric to the test suite, simply define it in this list
-static METRICS: [HyperfineCmd; 1] = [
-    HyperfineCmd {
-        name: "parse",
-        prepare: "rm -rf target/",
-        cmd: "dbt parse --no-version-check",
-    }
-];
+static METRICS: [HyperfineCmd; 1] = [HyperfineCmd {
+    name: "parse",
+    prepare: "rm -rf target/",
+    cmd: "dbt parse --no-version-check",
+}];
 
 // TODO this could have it's impure parts split out and tested.
 //
 // Given a directory, read all files in the directory and return each
 // filename with the deserialized json contents of that file.
-pub fn from_json_files<T : DeserializeOwned>(
+pub fn from_json_files<T: DeserializeOwned>(
     results_directory: &Path,
 ) -> Result<Vec<(PathBuf, T)>, CalculateError> {
     fs::read_dir(results_directory)
@@ -57,33 +54,36 @@ pub fn from_json_files<T : DeserializeOwned>(
         .collect()
 }
 
-fn get_projects<'a>(projects_directory: &PathBuf) -> Result<Vec<(PathBuf, String, HyperfineCmd<'a>)>, IOError> {
+fn get_projects<'a>(
+    projects_directory: &PathBuf,
+) -> Result<Vec<(PathBuf, String, HyperfineCmd<'a>)>, IOError> {
     let entries = fs::read_dir(projects_directory)
         .or_else(|e| Err(IOError::ReadErr(projects_directory.to_path_buf(), Some(e))))?;
 
-    let unflattened_results = entries.map(|entry| {
-        let path = entry
-            .or_else(|e| Err(IOError::ReadErr(projects_directory.to_path_buf(), Some(e))))?
-            .path();
+    let unflattened_results = entries
+        .map(|entry| {
+            let path = entry
+                .or_else(|e| Err(IOError::ReadErr(projects_directory.to_path_buf(), Some(e))))?
+                .path();
 
-        let project_name: String = path
-            .file_name()
-            .ok_or_else(|| IOError::MissingFilenameErr(path.clone().to_path_buf()))
-            .and_then(|x| {
-                x.to_str()
-                    .ok_or_else(|| IOError::FilenameNotUnicodeErr(path.clone().to_path_buf()))
-            })?
-            .to_owned();
+            let project_name: String = path
+                .file_name()
+                .ok_or_else(|| IOError::MissingFilenameErr(path.clone().to_path_buf()))
+                .and_then(|x| {
+                    x.to_str()
+                        .ok_or_else(|| IOError::FilenameNotUnicodeErr(path.clone().to_path_buf()))
+                })?
+                .to_owned();
 
-        // each project-metric pair we will run
-        let pairs = METRICS
-            .iter()
-            .map(|metric| (path.clone(), project_name.clone(), metric.clone()))
-            .collect::<Vec<(PathBuf, String, HyperfineCmd<'a>)>>();
+            // each project-metric pair we will run
+            let pairs = METRICS
+                .iter()
+                .map(|metric| (path.clone(), project_name.clone(), metric.clone()))
+                .collect::<Vec<(PathBuf, String, HyperfineCmd<'a>)>>();
 
-        Ok(pairs)
-    })
-    .collect::<Result<Vec<Vec<(PathBuf, String, HyperfineCmd<'a>)>>, IOError>>()?;
+            Ok(pairs)
+        })
+        .collect::<Result<Vec<Vec<(PathBuf, String, HyperfineCmd<'a>)>>, IOError>>()?;
 
     Ok(unflattened_results.concat())
 }
@@ -93,7 +93,7 @@ fn run_hyperfine(
     command: &str,
     prep: &str,
     runs: i32,
-    output_file: &PathBuf
+    output_file: &PathBuf,
 ) -> Result<ExitStatus, IOError> {
     Command::new("hyperfine")
         .current_dir(run_dir)
@@ -122,15 +122,17 @@ fn run_hyperfine(
 fn clear_dir(dir: &PathBuf) -> Result<(), io::Error> {
     match fs::remove_dir_all(dir) {
         // whether it existed or not, create the directory.
-        _ => fs::create_dir(dir)
+        _ => fs::create_dir(dir),
     }
 }
 
 // deletes the output directory, makes one hyperfine run for each project-metric pair,
 // reads in the results, and returns a Sample for each project-metric pair.
-pub fn take_samples(projects_dir: &PathBuf, out_dir: &PathBuf) -> Result<Vec<Sample>, CalculateError> {
-    clear_dir(out_dir)
-        .or_else(|e| Err(IOError::CannotRecreateTempDirErr(out_dir.clone(), e)))?;
+pub fn take_samples(
+    projects_dir: &PathBuf,
+    out_dir: &PathBuf,
+) -> Result<Vec<Sample>, CalculateError> {
+    clear_dir(out_dir).or_else(|e| Err(IOError::CannotRecreateTempDirErr(out_dir.clone(), e)))?;
 
     // using one time stamp for all samples.
     let ts = Utc::now();
@@ -139,24 +141,19 @@ pub fn take_samples(projects_dir: &PathBuf, out_dir: &PathBuf) -> Result<Vec<Sam
     for (path, project_name, hcmd) in get_projects(projects_dir)? {
         let metric = Metric {
             name: hcmd.name.to_owned(),
-            project_name: project_name.to_owned()
+            project_name: project_name.to_owned(),
         };
 
         let command = format!("{} --profiles-dir ../../project_config/", hcmd.cmd);
         let mut output_file = out_dir.clone();
         output_file.push(metric.filename());
 
-        let status = run_hyperfine(
-            &path,
-            &command,
-            hcmd.clone().prepare,
-            1,
-            &output_file
-        ).or_else(|e| Err(CalculateError::from(e)))?;
+        let status = run_hyperfine(&path, &command, hcmd.clone().prepare, 1, &output_file)
+            .or_else(|e| Err(CalculateError::from(e)))?;
 
         match status.code() {
             Some(code) if code != 0 => return Err(CalculateError::HyperfineNonZeroExitCode(code)),
-            _ => ()
+            _ => (),
         }
     }
 
@@ -170,7 +167,7 @@ pub fn take_samples(projects_dir: &PathBuf, out_dir: &PathBuf) -> Result<Vec<Sam
             Sample::from_measurement(
                 metric,
                 ts,
-                &measurement.results[0] // TODO do it safer
+                &measurement.results[0], // TODO do it safer
             )
         })
         .collect();
@@ -184,38 +181,29 @@ pub fn model<'a>(
     version: Version,
     projects_directory: &PathBuf,
     out_dir: &PathBuf,
-    tmp_dir: &PathBuf
+    tmp_dir: &PathBuf,
 ) -> Result<(), CalculateError> {
-
-
     for (path, project_name, hcmd) in get_projects(projects_directory)? {
         let metric = Metric {
             name: hcmd.name.to_owned(),
-            project_name: project_name.to_owned()
+            project_name: project_name.to_owned(),
         };
 
         let command = format!("{} --profiles-dir ../../project_config/", hcmd.clone().cmd);
         let mut tmp_file = tmp_dir.clone();
         tmp_file.push(metric.filename());
 
-        let status = run_hyperfine(
-            &path,
-            &command,
-            hcmd.clone().prepare,
-            20,
-            &tmp_file
-        ).or_else(|e| Err(CalculateError::from(e)))?;
+        let status = run_hyperfine(&path, &command, hcmd.clone().prepare, 20, &tmp_file)
+            .or_else(|e| Err(CalculateError::from(e)))?;
 
         match status.code() {
             Some(code) if code != 0 => return Err(CalculateError::HyperfineNonZeroExitCode(code)),
-            _ => ()
+            _ => (),
         }
-
     }
 
     // read what hyperfine wrote
-    let measurements: Vec<(PathBuf, Measurements)> =
-        from_json_files::<Measurements>(out_dir)?;
+    let measurements: Vec<(PathBuf, Measurements)> = from_json_files::<Measurements>(out_dir)?;
 
     // put it in the right format using the same timestamp for every model.
     let baseline = from_measurements(version, &measurements, Some(Utc::now()));
@@ -239,7 +227,11 @@ pub fn model<'a>(
     Ok(())
 }
 
-fn from_measurements(version: Version, measurements: &[(PathBuf, Measurements)], ts: Option<DateTime<Utc>>) -> Baseline {
+fn from_measurements(
+    version: Version,
+    measurements: &[(PathBuf, Measurements)],
+    ts: Option<DateTime<Utc>>,
+) -> Baseline {
     let models = measurements
         .into_iter()
         .map(|(path, measurements)| {
@@ -258,6 +250,6 @@ fn from_measurements(version: Version, measurements: &[(PathBuf, Measurements)],
 
     Baseline {
         version: version,
-        models: models
+        models: models,
     }
 }

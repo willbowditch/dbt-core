@@ -6,7 +6,7 @@ mod measure;
 mod types;
 
 use crate::exceptions::CalculateError;
-use crate::types::{Version, Calculation};
+use crate::types::{Calculation, Version};
 use std::path::PathBuf;
 use structopt::StructOpt;
 
