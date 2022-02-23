@@ -182,7 +182,7 @@ pub fn model<'a>(
     projects_directory: &PathBuf,
     out_dir: &PathBuf,
     tmp_dir: &PathBuf,
-    n_runs: i32
+    n_runs: i32,
 ) -> Result<(), CalculateError> {
     for (path, project_name, hcmd) in get_projects(projects_directory)? {
         let metric = Metric {
