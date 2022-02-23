@@ -5,17 +5,20 @@ use chrono::prelude::*;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
-
 // TODO find an alternative to all this cloning
 fn calculate_regressions(samples: &[Sample], baseline: Baseline, sigma: f64) -> Vec<Calculation> {
-    let m_samples: HashMap<Metric, (f64, DateTime<Utc>)> =
-        samples.into_iter().map(|x| (x.metric.clone(), (x.value, x.ts))).collect();
+    let m_samples: HashMap<Metric, (f64, DateTime<Utc>)> = samples
+        .into_iter()
+        .map(|x| (x.metric.clone(), (x.value, x.ts)))
+        .collect();
 
-    baseline.models.clone().into_iter().filter_map(|metric_model| {
-        let model = metric_model.measurement.clone();
-        m_samples
-            .get(&metric_model.metric)
-            .map(|(value, ts)| {
+    baseline
+        .models
+        .clone()
+        .into_iter()
+        .filter_map(|metric_model| {
+            let model = metric_model.measurement.clone();
+            m_samples.get(&metric_model.metric).map(|(value, ts)| {
                 let threshold = model.mean + sigma * model.stddev;
                 Calculation {
                     version: baseline.version,
@@ -25,19 +28,25 @@ fn calculate_regressions(samples: &[Sample], baseline: Baseline, sigma: f64) -> 
                     sigma: sigma,
                     mean: model.mean,
                     stddev: model.stddev,
-                    threshold: threshold
+                    threshold: threshold,
                 }
             })
-    })
-    .collect()
+        })
+        .collect()
 }
 
 // Top-level function. Given a path for the result directory, call the above
 // functions to compare and collect calculations. Calculations include all samples
 // regardless of whether they passed or failed.
-pub fn regressions(baseline_dir: &PathBuf, projects_dir: &PathBuf, tmp_dir: &PathBuf) -> Result<Vec<Calculation>, CalculateError> {
+pub fn regressions(
+    baseline_dir: &PathBuf,
+    projects_dir: &PathBuf,
+    tmp_dir: &PathBuf,
+) -> Result<Vec<Calculation>, CalculateError> {
     let baselines: Vec<Baseline> = measure::from_json_files::<Baseline>(Path::new(&baseline_dir))?
-        .into_iter().map(|(_, x)| x).collect();
+        .into_iter()
+        .map(|(_, x)| x)
+        .collect();
     let samples: Vec<Sample> = measure::take_samples(projects_dir, tmp_dir)?;
 
     // this is the baseline to compare these samples against
@@ -49,7 +58,7 @@ pub fn regressions(baseline_dir: &PathBuf, projects_dir: &PathBuf, tmp_dir: &Pat
             } else {
                 next
             }
-        })
+        }),
     };
 
     // calculate regressions with a 3 sigma threshold
@@ -64,7 +73,7 @@ mod tests {
     fn detects_3sigma_regression() {
         let metric = Metric {
             name: "test".to_owned(),
-            project_name: "detects 3 sigma".to_owned()
+            project_name: "detects 3 sigma".to_owned(),
         };
 
         let measurement = Measurement {
@@ -86,20 +95,20 @@ mod tests {
         };
 
         let baseline = Baseline {
-            version: Version::new(9,9,9),
-            models: vec![baseline_metric]
+            version: Version::new(9, 9, 9),
+            models: vec![baseline_metric],
         };
 
         let sample = Sample {
             metric: metric.clone(),
             value: 1.31,
-            ts: Utc::now()
+            ts: Utc::now(),
         };
 
         let calculations = calculate_regressions(
             &[sample],
             baseline,
-            3.0 // 3 sigma
+            3.0, // 3 sigma
         );
 
         let regressions: Vec<&Calculation> =
@@ -114,7 +123,7 @@ mod tests {
     fn passes_near_3sigma() {
         let metric = Metric {
             name: "test".to_owned(),
-            project_name: "passes near 3 sigma".to_owned()
+            project_name: "passes near 3 sigma".to_owned(),
         };
 
         let measurement = Measurement {
@@ -136,20 +145,20 @@ mod tests {
         };
 
         let baseline = Baseline {
-            version: Version::new(9,9,9),
-            models: vec![baseline_metric]
+            version: Version::new(9, 9, 9),
+            models: vec![baseline_metric],
         };
 
         let sample = Sample {
             metric: metric.clone(),
             value: 1.29,
-            ts: Utc::now()
+            ts: Utc::now(),
         };
 
         let calculations = calculate_regressions(
             &[sample],
             baseline,
-            3.0 // 3 sigma
+            3.0, // 3 sigma
         );
 
         let regressions: Vec<&Calculation> =
