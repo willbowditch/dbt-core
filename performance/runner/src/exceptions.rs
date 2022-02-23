@@ -24,7 +24,7 @@ pub enum IOError {
     #[error("CannotRerreateTempDirErr: attempted to delete and recreate temp dir at path {}\nOriginating Exception: {}", .0.to_string_lossy().into_owned(), .1)]
     CannotRecreateTempDirErr(PathBuf, io::Error),
     #[error("UnresolvablePathError: The following path cannot be resolved. Is there a broken symlink? .\nFilepath: {}\nOriginating Exception: {}", .0.to_string_lossy().into_owned(), .1)]
-    UnresolvablePathError(PathBuf, io::Error)
+    UnresolvablePathError(PathBuf, io::Error),
 }
 
 // TODO make this RunnerError instead?

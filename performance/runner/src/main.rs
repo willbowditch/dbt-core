@@ -7,8 +7,8 @@ mod types;
 
 use crate::exceptions::{CalculateError, IOError};
 use crate::types::{Calculation, Version};
-use std::path::PathBuf;
 use std::fs;
+use std::path::PathBuf;
 use structopt::StructOpt;
 
 // This type defines the commandline interface and is generated
@@ -77,7 +77,7 @@ fn run_app() -> Result<i32, CalculateError> {
                 &absolute_projects_dir,
                 &absolute_baselines_dir,
                 &absolute_tmp_dir,
-                n_runs
+                n_runs,
             )?;
 
             Ok(0)
