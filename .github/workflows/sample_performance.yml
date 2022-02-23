@@ -11,7 +11,7 @@ env:
 
 jobs:
   latest-runner:
-    name: Build Runner or Use Cached
+    name: Compare Performance Samples
     runs-on: ubuntu-latest
     env:
       RUSTFLAGS: "-D warnings"
@@ -60,16 +60,6 @@ jobs:
           command: build
           args: --release --manifest-path performance/runner/Cargo.toml
       # the cache action automatically caches this binary at the end of the job
-
-  # run the performance measurements on the current or default branch
-  sample:
-    needs: [latest-runner]
-    name: Sample latest commits
-    runs-on: ubuntu-latest
-    steps:
-
-      - name: Checkout Dev Branch
-        uses: actions/checkout@v2
 
       - name: Setup Python
         uses: actions/setup-python@v2.2.2
