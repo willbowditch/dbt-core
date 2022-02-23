@@ -62,16 +62,6 @@ jobs:
           args: --release --manifest-path performance/runner/Cargo.toml
       # the cache action automatically caches this binary at the end of the job
 
-  # run the performance measurements on the current or default branch
-  model:
-    needs: [latest-runner]
-    name: Model a release
-    runs-on: ubuntu-latest
-    steps:
-
-      - name: Checkout Dev Branch
-        uses: actions/checkout@v2
-
       - name: Setup Python
         uses: actions/setup-python@v2.2.2
         with:
