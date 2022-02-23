@@ -12,7 +12,7 @@ env:
 
 jobs:
   latest-runner:
-    name: Build Runner or Use Cached
+    name: Model Perfomance Characteristics
     runs-on: ubuntu-latest
     env:
       RUSTFLAGS: "-D warnings"
