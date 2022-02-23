@@ -3,7 +3,7 @@ name: Model Performance Characteristics
 on:
   # TODO this should hit after each release.
   # this is just to make the first few baselines manually
-
+  pull_request:
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
