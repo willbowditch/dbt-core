@@ -72,14 +72,6 @@ jobs:
       - name: Install Hyperfine
         run: wget https://github.com/sharkdp/hyperfine/releases/download/v1.11.0/hyperfine_1.11.0_amd64.deb && sudo dpkg -i hyperfine_1.11.0_amd64.deb
 
-      # runner was just accessed or built so it should always be there
-      - name: Fetch Runner From Cache
-        uses: actions/cache@v2
-        id: cache
-        with:
-          path: ${{ env.RUNNER_CACHE_PATH }}
-          key: ${{ runner.os }}-${{ hashFiles('performance/runner/Cargo.toml')}}-${{ hashFiles('performance/runner/src/*') }}
-
       - name: Move Runner
         run: mv performance/runner/target/release/runner ./performance/app
 
