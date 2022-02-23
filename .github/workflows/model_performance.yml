@@ -1,4 +1,4 @@
-name: Performance Regression Tests
+name: Model Performance Characteristics
 # Schedule triggers
 on:
   # TODO this should hit after each release.
