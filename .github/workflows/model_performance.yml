@@ -91,6 +91,12 @@ jobs:
           path: ${{ env.RUNNER_CACHE_PATH }}
           key: ${{ runner.os }}-${{ hashFiles('performance/runner/Cargo.toml')}}-${{ hashFiles('performance/runner/src/*') }}
 
+      - name: DEBUG ls
+        run: ls -F performance/runner/target/release/
+        
+      - name: DEBUG ls
+        run: ls -F performance/runner/target/release/runner
+
       - name: Move Runner
         run: mv performance/runner/target/release/runner ./performance/runner
 
