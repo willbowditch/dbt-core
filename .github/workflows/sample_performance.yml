@@ -91,12 +91,12 @@ jobs:
           key: ${{ runner.os }}-${{ hashFiles('performance/runner/Cargo.toml')}}-${{ hashFiles('performance/runner/src/*') }}
 
       - name: Move Runner
-        run: mv performance/runner/target/release/runner ./performance
+        run: mv performance/runner/target/release/runner ./performance/app
 
       - name: Change Runner Permissions
-        run: chmod +x ./performance/runner
+        run: chmod +x ./performance/app
 
       # `${{ github.workspace }}` is used to pass the absolute path
       - name: Run Measurement
-        run: mkdir tmp && ./runner sample -b baselines -p projects -o tmp
+        run: mkdir tmp && ./app sample -b baselines -p projects -o tmp
         working-directory: ${{ github.workspace }}/performance/
