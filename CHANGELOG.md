@@ -5,6 +5,7 @@
 - New Dockerfile to support specific db adapters and platforms.  See docker/README.md for details ([#4495](https://github.com/dbt-labs/dbt-core/issues/4495), [#4487](https://github.com/dbt-labs/dbt-core/pull/4487))
 - Allow unique_key to take a list ([#2479](https://github.com/dbt-labs/dbt-core/issues/2479), [#4618](https://github.com/dbt-labs/dbt-core/pull/4618))
 - Add `--quiet` global flag and `print` Jinja function ([#3451](https://github.com/dbt-labs/dbt-core/issues/3451), [#4701](https://github.com/dbt-labs/dbt-core/pull/4701))
+- Change behaviour of `not_null` test so that it only `select`s all columns if `--store-failures` is enabled. ([#4769](https://github.com/dbt-labs/dbt-core/issues/4769), [#4777](https://github.com/dbt-labs/dbt-core/pull/4777))
 
 ### Fixes
 - User wasn't asked for permission to overwite a profile entry when running init inside an existing project ([#4375](https://github.com/dbt-labs/dbt-core/issues/4375), [#4447](https://github.com/dbt-labs/dbt-core/pull/4447))
@@ -28,7 +29,7 @@ Contributors:
 - [@emartens](https://github.com/ehmartens) ([#4701](https://github.com/dbt-labs/dbt-core/pull/4701))
 - [@mdesmet](https://github.com/mdesmet) ([#4604](https://github.com/dbt-labs/dbt-core/pull/4604))
 - [@kazanzhy](https://github.com/kazanzhy) ([#4545](https://github.com/dbt-labs/dbt-core/pull/4545))
-
+- [@willbowditch](https://github.com/willbowditch) ([#4777](https://github.com/dbt-labs/dbt-core/pull/4777))
 
 ## dbt-core 1.0.4 (TBD)
 
