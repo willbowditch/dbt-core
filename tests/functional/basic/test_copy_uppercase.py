@@ -1,7 +1,6 @@
 import pytest
-import os
 from dbt.tests.tables import TableComparison
-from dbt.tests.util import run_dbt
+from dbt.tests.util import run_dbt, read_file
 
 from tests.functional.basic.test_simple_copy import (
     advanced_incremental_sql,
@@ -22,8 +21,8 @@ select * from {{ ref('MATERIALIZED') }}
 """
 
 
-@pytest.fixture
-def dbt_profile_data(unique_schema, database_host):
+@pytest.fixture(scope="class")
+def dbt_profile_data(unique_schema):
     return {
         "config": {"send_anonymous_usage_stats": False},
         "test": {
@@ -31,7 +30,7 @@ def dbt_profile_data(unique_schema, database_host):
                 "default": {
                     "type": "postgres",
                     "threads": 4,
-                    "host": database_host,
+                    "host": "localhost",
                     "port": 5432,
                     "user": "root",
                     "pass": "password",
@@ -44,7 +43,7 @@ def dbt_profile_data(unique_schema, database_host):
     }
 
 
-@pytest.fixture
+@pytest.fixture(scope="class")
 def models():
     return {
         "ADVANCED_INCREMENTAL.sql": advanced_incremental_sql,
@@ -60,14 +59,11 @@ def models():
     }
 
 
-@pytest.fixture
+@pytest.fixture(scope="class")
 def seeds(test_data_dir):
     # Read seed file and return
-    path = os.path.join(test_data_dir, "seed-initial.csv")
-    with open(path, "rb") as fp:
-        seed_csv = fp.read()
-        return {"seed.csv": seed_csv}
-    return {}
+    seed_csv = read_file(test_data_dir, "seed-initial.csv")
+    return {"seed.csv": seed_csv}
 
 
 def test_simple_copy_uppercase(project):

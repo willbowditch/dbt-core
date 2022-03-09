@@ -1,5 +1,6 @@
 import pytest
 import os
+from dbt.tests.util import read_file
 
 # models/customers.sql
 customers_sql = """
@@ -371,45 +372,43 @@ select * from renamed
 """
 
 
-@pytest.fixture
-def models():
-    return {
-        "customers.sql": customers_sql,
-        "docs.md": docs_md,
-        "orders.sql": orders_sql,
-        "overview.md": overview_md,
-        "schema.yml": schema_yml,
-        "staging": {
-            "schema.yml": staging_schema_yml,
-            "stg_customers.sql": staging_stg_customers_sql,
-            "stg_orders.sql": staging_stg_orders_sql,
-            "stg_payments.sql": staging_stg_payments_sql,
-        },
-    }
+class JaffleShopProject:
+    @pytest.fixture(scope="class")
+    def models(self):
+        return {
+            "customers.sql": customers_sql,
+            "docs.md": docs_md,
+            "orders.sql": orders_sql,
+            "overview.md": overview_md,
+            "schema.yml": schema_yml,
+            "staging": {
+                "schema.yml": staging_schema_yml,
+                "stg_customers.sql": staging_stg_customers_sql,
+                "stg_orders.sql": staging_stg_orders_sql,
+                "stg_payments.sql": staging_stg_payments_sql,
+            },
+        }
 
+    @pytest.fixture(scope="class")
+    def seeds(self):
+        # Read seed file and return
+        seeds = {}
+        dir_path = os.path.dirname(os.path.realpath(__file__))
+        for file_name in ("raw_customers.csv", "raw_orders.csv", "raw_payments.csv"):
+            contents = read_file(dir_path, "jaffle_shop_data", file_name)
+            seeds[file_name] = contents
+        return seeds
 
-@pytest.fixture
-def seeds():
-    # Read seed file and return
-    seeds = {}
-    dir_path = os.path.dirname(os.path.realpath(__file__))
-    for file_name in ("raw_customers.csv", "raw_orders.csv", "raw_payments.csv"):
-        path = os.path.join(dir_path, "jaffle_shop_data", file_name)
-        with open(path, "rb") as fp:
-            seeds[file_name] = fp.read()
-    return seeds
-
-
-@pytest.fixture
-def project_config_update():
-    return {
-        "name": "jaffle_shop",
-        "models": {
-            "jaffle_shop": {
-                "materialized": "table",
-                "staging": {
-                    "materialized": "view",
-                },
-            }
-        },
-    }
+    @pytest.fixture(scope="class")
+    def project_config_update(self):
+        return {
+            "name": "jaffle_shop",
+            "models": {
+                "jaffle_shop": {
+                    "materialized": "table",
+                    "staging": {
+                        "materialized": "view",
+                    },
+                }
+            },
+        }
